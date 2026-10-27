@@ -12,7 +12,7 @@ import { Component, HostListener, input, output } from '@angular/core';
         <div class="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1"><h2>{{ titulo() }}</h2><ng-content select="[cabeza]" /></div>
         <button class="px-1.5 py-0.5 text-[1.6rem] leading-none text-tenue" (click)="cerrar.emit()" aria-label="Cerrar">×</button>
       </header>
-      <div class="flex flex-col gap-3.5 overflow-auto p-4"><ng-content /></div>
+      <div class="flex flex-col gap-3.5 overflow-x-hidden overflow-y-auto p-4"><ng-content /></div>
       <footer class="flex flex-wrap gap-2 border-t border-linea bg-superficie px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] empty:hidden"><ng-content select="[pie]" /></footer>
     </section>
   `,
