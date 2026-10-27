@@ -15,6 +15,7 @@ const COSTOS: Rol[] = ['dueno', 'admin', 'encargado'];
 const GER: Rol[] = ['dueno', 'admin'];
 const MENU: Item[] = [
   { ruta: 'inicio', texto: 'Inicio', icono: 'inicio', roles: COSTOS },
+  { ruta: 'caja', texto: 'Caja', icono: 'caja', roles: [...COSTOS, 'vendedor'] },
   { ruta: 'cotizaciones', texto: 'Cotizaciones', icono: 'cotizaciones', roles: [...COSTOS, 'vendedor'] },
   { ruta: 'ventas', texto: 'Ventas', icono: 'ventas', roles: [...COSTOS, 'vendedor'] },
   { ruta: 'produccion', texto: 'Producción', icono: 'produccion', roles: TODOS },

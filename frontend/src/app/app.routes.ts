@@ -41,6 +41,7 @@ export const routes: Routes = [
           { path: ':id', data: { tipo: 'ventas' }, loadComponent: () => import('./pages/doc-editor').then((m) => m.DocEditor), title: 'Venta · Grabix' },
         ],
       },
+      { path: 'caja', canActivate: [VENTA], loadComponent: () => import('./pages/caja').then((m) => m.Caja), title: 'Caja · Grabix' },
       { path: 'produccion', loadComponent: () => import('./pages/produccion').then((m) => m.Produccion), title: 'Producción · Grabix' },
       { path: 'inventario', canActivate: [VENTA], loadComponent: () => import('./pages/inventario').then((m) => m.Inventario), title: 'Inventario · Grabix' },
       { path: 'clientes', canActivate: [VENTA], loadComponent: () => import('./pages/clientes').then((m) => m.Clientes), title: 'Clientes · Grabix' },
