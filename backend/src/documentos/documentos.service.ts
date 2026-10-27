@@ -90,6 +90,7 @@ export class DocumentosService {
     const qb = em
       .createQueryBuilder(ent, 'd')
       .leftJoinAndSelect('d.cliente', 'c')
+      .leftJoinAndSelect('d.items', 'i')
       .where('d.tallerId = :t', { t: s.tallerId })
       .orderBy('d.fecha', 'DESC')
       .addOrderBy('d.id', 'DESC')

@@ -78,7 +78,7 @@ export class AuthService {
       order: { id: 'ASC' },
     });
     const vence = t.estadoSuscripcion === EstadoSuscripcion.Prueba ? t.pruebaHasta : t.pagadoHasta;
-    const dias = vence ? Math.ceil((Date.parse(vence + 'T23:59:59') - Date.now()) / 86400000) : null;
+    const dias = vence ? Math.round((Date.parse(vence) - Date.parse(hoy())) / 86400000) : null;
     return {
       usuario: { id: u.id, nombre: u.nombre, email: u.email, rol: u.rol, sucursalId: u.sucursalId },
       taller: t,

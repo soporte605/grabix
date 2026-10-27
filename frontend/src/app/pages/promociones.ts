@@ -1,0 +1,98 @@
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Api } from '../core/api.service';
+import { AvisoService, mensajeError } from '../core/aviso.service';
+import { DineroPipe, FechaPipe, hoy, sumarDias } from '../core/formato';
+import { Cliente, Promocion } from '../core/modelos';
+import { SesionService } from '../core/sesion.service';
+import { Confirmar } from '../ui/confirmar';
+import { Hoja } from '../ui/hoja';
+import { Icono } from '../ui/icono';
+
+@Component({
+  selector: 'app-promociones',
+  imports: [FormsModule, DineroPipe, FechaPipe, Hoja, Icono, Confirmar],
+  template: `
+    <div class="encabezado">
+      <div><h1>Promociones</h1><p>Descuentos para tus cotizaciones y ventas, listos para mandar por WhatsApp.</p></div>
+      @if (s.verCostos()) { <button class="btn pri" (click)="abrir()"><app-icono nombre="mas1" />Nueva promoción</button> }
+    </div>
+    <div class="tarjeta lista">
+      @for (p of promos(); track p.id) {
+        <button class="renglon" (click)="abrir(p)">
+          <span class="t">{{ p.nombre }}</span>
+          <span class="d"><span class="pill" [class]="vigente(p) ? 'ok' : 'mut'">{{ vigente(p) ? 'Vigente' : 'Inactiva' }}</span></span>
+          <span class="m">{{ p.tipo === 'pct' ? p.valor + '% de descuento' : (p.valor | dinero) + ' de descuento' }} @if (p.fin) { · hasta {{ p.fin | fecha }} }</span><span></span>
+        </button>
+      } @empty { <div class="vacio"><b>Sin promociones</b>Crea una, por ejemplo “10% en tazas para el Día de las Madres”.</div> }
+    </div>
+    @if (e(); as e) {
+      <app-hoja [titulo]="e.id ? e.nombre! : 'Nueva promoción'" (cerrar)="e_.set(null)">
+        <div class="campos">
+          <div class="campo todo"><label for="r-n">Nombre</label><input id="r-n" [(ngModel)]="e.nombre" [disabled]="!s.verCostos()"></div>
+          <div class="campo"><label for="r-t">Tipo</label><select id="r-t" [(ngModel)]="e.tipo" [disabled]="!s.verCostos()"><option value="pct">Porcentaje</option><option value="monto">Cantidad fija</option></select></div>
+          <div class="campo"><label for="r-v">Valor</label><input id="r-v" type="number" [(ngModel)]="e.valor" [disabled]="!s.verCostos()"></div>
+          <div class="campo"><label for="r-i">Desde</label><input id="r-i" type="date" [(ngModel)]="e.inicio" [disabled]="!s.verCostos()"></div>
+          <div class="campo"><label for="r-f">Hasta</label><input id="r-f" type="date" [(ngModel)]="e.fin" [disabled]="!s.verCostos()"></div>
+          <div class="campo todo"><label for="r-m">Mensaje para WhatsApp (usa {{ '{' }}cliente{{ '}' }} para el nombre)</label><textarea id="r-m" [(ngModel)]="e.mensaje" [disabled]="!s.verCostos()"></textarea></div>
+          <label class="fila chico"><input type="checkbox" [(ngModel)]="e.activa" [disabled]="!s.verCostos()"> Activa</label>
+        </div>
+        @if (e.id) {
+          <div class="caja">
+            <h3>Enviar a clientes</h3>
+            <p class="tenue chico">Se abre un chat por cliente con el mensaje listo.</p>
+            @for (c of conTelefono(); track c.id) {
+              <div class="fila entre"><span>{{ c.nombre }} <span class="tenue num chico">{{ c.telefono }}</span></span>
+                <a class="btn sm wa" target="_blank" rel="noopener" [href]="wa(e, c)"><app-icono nombre="wa" />Enviar</a></div>
+            } @empty { <p class="tenue chico">Ningún cliente tiene teléfono.</p> }
+          </div>
+        }
+        <ng-container pie>
+          @if (s.verCostos()) {
+            @if (e.id) { <app-confirmar (confirmado)="eliminar()" /> }
+            <span style="flex:1"></span><button class="btn pri" (click)="guardar()">Guardar</button>
+          }
+        </ng-container>
+      </app-hoja>
+    }
+  `,
+})
+export class Promociones implements OnInit {
+  s = inject(SesionService);
+  private api = inject(Api);
+  private aviso = inject(AvisoService);
+  promos = signal<Promocion[]>([]);
+  clientes = signal<Cliente[]>([]);
+  e_ = signal<Partial<Promocion> | null>(null);
+  e = this.e_.asReadonly();
+  conTelefono = () => this.clientes().filter((c) => c.telefono);
+
+  async ngOnInit() {
+    this.promos.set(await this.api.get('/promociones'));
+    this.clientes.set(await this.api.get('/clientes'));
+  }
+  vigente(p: Promocion) { const h = hoy(); return p.activa && (!p.inicio || p.inicio <= h) && (!p.fin || p.fin >= h); }
+  abrir(p?: Promocion) { this.e_.set(p ? { ...p } : { nombre: '', tipo: 'pct', valor: 10, inicio: hoy(), fin: sumarDias(hoy(), 30), activa: true, mensaje: '' }); }
+  wa(p: Partial<Promocion>, c: Cliente) {
+    const t = this.s.taller();
+    const desc = p.tipo === 'pct' ? `${p.valor}%` : `${t?.moneda ?? '$'}${p.valor}`;
+    const txt = (p.mensaje || `¡Hola {cliente}! En ${t?.nombre} tenemos la promoción "${p.nombre}": ${desc} de descuento${p.fin ? ' hasta el ' + p.fin.split('-').reverse().join('/') : ''}. ¿Te cotizo algo?`).replace(/\{cliente\}/g, c.nombre);
+    let tel = c.telefono.replace(/\D/g, '');
+    if (tel.length === 10) tel = (t?.lada ?? '') + tel;
+    return `https://wa.me/${tel}?text=${encodeURIComponent(txt)}`;
+  }
+  async guardar() {
+    const e = this.e()!;
+    const body = { nombre: e.nombre, tipo: e.tipo, valor: Number(e.valor) || 0, inicio: e.inicio || null, fin: e.fin || null, activa: !!e.activa, mensaje: e.mensaje ?? '' };
+    try {
+      if (e.id) await this.api.put(`/promociones/${e.id}`, body); else await this.api.post('/promociones', body);
+      this.e_.set(null);
+      this.promos.set(await this.api.get('/promociones'));
+    } catch (err) { this.aviso.error(mensajeError(err)); }
+  }
+  async eliminar() {
+    await this.api.del(`/promociones/${this.e()!.id}`);
+    this.e_.set(null);
+    this.promos.set(await this.api.get('/promociones'));
+  }
+}

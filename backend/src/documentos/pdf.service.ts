@@ -10,8 +10,8 @@ const TINTA = '#13222b';
 const GRIS = '#5a6a74';
 const LINEA = '#d6dee2';
 /** Colores de marca; se reemplazan al definir la identidad visual. */
-const ACENTO = process.env.PDF_COLOR_ACENTO ?? '#0b6670';
-const SEGUNDO = process.env.PDF_COLOR_SECUNDARIO ?? '#c56a12';
+const ACENTO = process.env.PDF_COLOR_ACENTO ?? '#0b5c8a';
+const SEGUNDO = process.env.PDF_COLOR_SECUNDARIO ?? '#f08a24';
 
 export const fmtFecha = (f?: string | null) => (f ? String(f).slice(0, 10).split('-').reverse().join('/') : '');
 
@@ -91,7 +91,7 @@ export class PdfService {
     y += 12;
     const tot = (k: string, v: string, fuerte = false) => {
       doc.font(fuerte ? 'Helvetica-Bold' : 'Helvetica').fontSize(fuerte ? 12 : 10).fillColor(fuerte ? TINTA : GRIS);
-      doc.text(k, R - 250, y, { width: 150, align: 'right' });
+      doc.text(k, R - 340, y, { width: 230, align: 'right', lineBreak: false, ellipsis: true });
       doc.text(v, R - 100, y, { width: 100, align: 'right' });
       y += fuerte ? 20 : 15;
     };

@@ -1,0 +1,49 @@
+# Levanta todo con:  docker compose up -d --build
+# Web:  http://localhost:8080   ·   API: http://localhost:8080/api
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-grabix}
+      MYSQL_USER: ${DB_USER:-grabix}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-grabix}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - datos:/var/lib/mysql
+    ports:
+      - "${DB_PUERTO_LOCAL:-3307}:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${DB_USER:-grabix}", "-p${DB_PASSWORD:-grabix}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-grabix}
+      DB_USER: ${DB_USER:-grabix}
+      DB_PASSWORD: ${DB_PASSWORD:-grabix}
+      DB_SYNC: ${DB_SYNC:-true}
+      JWT_SECRET: ${JWT_SECRET:-cambia-este-secreto}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
+      PAGOS_MODO: ${PAGOS_MODO:-demo}
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PUERTO:-8080}:80"
+
+volumes:
+  datos:
