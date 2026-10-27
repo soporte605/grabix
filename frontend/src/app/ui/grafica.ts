@@ -6,25 +6,19 @@ import { SesionService } from '../core/sesion.service';
 @Component({
   selector: 'app-grafica',
   template: `
-    <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" role="img" aria-label="Ventas y ganancia por mes">
+    <svg class="block h-auto w-full fill-tenue font-mono text-[11px]" [attr.viewBox]="'0 0 ' + W + ' ' + H" role="img" aria-label="Ventas y ganancia por mes">
       @for (g of g().guias; track g.y) {
-        <line [attr.x1]="L" [attr.x2]="W" [attr.y1]="g.y" [attr.y2]="g.y" class="guia" />
+        <line [attr.x1]="L" [attr.x2]="W" [attr.y1]="g.y" [attr.y2]="g.y" class="stroke-linea" />
         <text [attr.x]="L - 6" [attr.y]="g.y + 4" text-anchor="end">{{ g.t }}</text>
       }
       @for (b of g().barras; track b.x) {
-        <rect class="b1" [attr.x]="b.x - b.w - 1" [attr.y]="b.yv" [attr.width]="b.w" [attr.height]="b.hv" rx="2"><title>Ventas {{ b.tv }}</title></rect>
+        <rect class="fill-marca" [attr.x]="b.x - b.w - 1" [attr.y]="b.yv" [attr.width]="b.w" [attr.height]="b.hv" rx="2"><title>Ventas {{ b.tv }}</title></rect>
         @if (mostrarGanancia()) {
-          <rect class="b2" [attr.x]="b.x + 1" [attr.y]="b.yg" [attr.width]="b.w" [attr.height]="b.hg" rx="2"><title>Ganancia {{ b.tg }}</title></rect>
+          <rect class="fill-acento" [attr.x]="b.x + 1" [attr.y]="b.yg" [attr.width]="b.w" [attr.height]="b.hg" rx="2"><title>Ganancia {{ b.tg }}</title></rect>
         }
         <text [attr.x]="b.x" [attr.y]="H - 8" text-anchor="middle">{{ b.mes }}</text>
       }
     </svg>
-  `,
-  styles: `
-    svg { width: 100%; height: auto; display: block; }
-    .guia { stroke: var(--linea); stroke-width: 1; }
-    text { fill: var(--tenue); font: 11px var(--f-num); }
-    .b1 { fill: var(--marca); } .b2 { fill: var(--acento); }
   `,
 })
 export class Grafica {

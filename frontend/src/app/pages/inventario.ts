@@ -23,7 +23,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
         @if (s.verCostos()) { <button class="btn pri" (click)="abrir()"><app-icono nombre="mas1" />Nuevo artículo</button> }
       </div>
     </div>
-    <div class="fila entre" style="margin-bottom:12px">
+    <div class="fila entre mb-3">
       <div class="chips">
         @for (t of filtros; track t[0]) { <button class="chip" [class.on]="tipo() === t[0]" (click)="tipo.set(t[0])">{{ t[1] }}</button> }
         <button class="chip" [class.on]="soloBajo()" (click)="soloBajo.set(!soloBajo())">Stock bajo</button>
@@ -35,7 +35,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
         <button class="renglon" (click)="s.verCostos() && abrir(p)">
           <span class="t">{{ p.nombre }} <span class="pill" [class]="p.tipo === 'insumo' ? 'mut' : p.tipo === 'servicio' ? 'acc' : 'sec'">{{ tipos[p.tipo] }}</span></span>
           <span class="d">
-            @if (p.controlaStock) { <span class="num" [class.bajo]="p.existencia <= p.minimo && p.minimo > 0">{{ p.existencia }} {{ p.unidad }}</span> }
+            @if (p.controlaStock) { <span class="num" [class]="p.existencia <= p.minimo && p.minimo > 0 ? 'font-semibold text-bad' : ''">{{ p.existencia }} {{ p.unidad }}</span> }
             @else if (p.componentes.length) { <span class="m">Receta de {{ p.componentes.length }} insumo{{ p.componentes.length > 1 ? 's' : '' }}</span> }
             @else { <span class="m">Servicio</span> }
           </span>
@@ -62,11 +62,11 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
             <p class="tenue chico">Si lo armas con insumos (una taza sublimada = 1 taza blanca + 1 hoja de papel), agrégalos. Al venderlo se descuentan del inventario.</p>
             @for (c of e.componentes; track $index; let i = $index) {
               <div class="fila">
-                <select class="entrada" style="flex:1" [(ngModel)]="c.insumoId" (ngModelChange)="calc()" aria-label="Insumo">
+                <select class="entrada flex-1" [(ngModel)]="c.insumoId" (ngModelChange)="calc()" aria-label="Insumo">
                   <option [ngValue]="0">Elige insumo</option>
                   @for (x of insumos(); track x.id) { <option [ngValue]="x.id">{{ x.nombre }}</option> }
                 </select>
-                <input class="entrada" style="width:90px" type="number" inputmode="decimal" [(ngModel)]="c.cantidad" (ngModelChange)="calc()" aria-label="Cantidad">
+                <input class="entrada w-[90px]" type="number" inputmode="decimal" [(ngModel)]="c.cantidad" (ngModelChange)="calc()" aria-label="Cantidad">
                 <button class="btn sm peligro" (click)="e.componentes.splice(i, 1); calc()" aria-label="Quitar">×</button>
               </div>
             }
@@ -102,7 +102,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
         }
         <ng-container pie>
           @if (e.id) { <app-confirmar texto="Desactivar" (confirmado)="desactivar()" /> }
-          <span style="flex:1"></span>
+          <span class="flex-1"></span>
           <button class="btn pri" (click)="guardar()">Guardar</button>
         </ng-container>
       </app-hoja>
@@ -116,17 +116,16 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
         </div>
         @for (i of t.items; track $index; let k = $index) {
           <div class="fila">
-            <select class="entrada" style="flex:1" [(ngModel)]="i.productoId" aria-label="Artículo">@for (p of conStock(); track p.id) { <option [ngValue]="p.id">{{ p.nombre }} ({{ p.existencia }})</option> }</select>
-            <input class="entrada" style="width:90px" type="number" [(ngModel)]="i.cantidad" aria-label="Cantidad">
+            <select class="entrada flex-1" [(ngModel)]="i.productoId" aria-label="Artículo">@for (p of conStock(); track p.id) { <option [ngValue]="p.id">{{ p.nombre }} ({{ p.existencia }})</option> }</select>
+            <input class="entrada w-[90px]" type="number" [(ngModel)]="i.cantidad" aria-label="Cantidad">
             <button class="btn sm peligro" (click)="t.items.splice(k, 1)">×</button>
           </div>
         }
         <div><button class="btn sm" (click)="t.items.push({ productoId: conStock()[0]?.id ?? 0, cantidad: 1 })"><app-icono nombre="mas1" />Agregar</button></div>
-        <ng-container pie><span style="flex:1"></span><button class="btn pri" (click)="traspasar()">Traspasar</button></ng-container>
+        <ng-container pie><span class="flex-1"></span><button class="btn pri" (click)="traspasar()">Traspasar</button></ng-container>
       </app-hoja>
     }
   `,
-  styles: `.bajo { color: var(--bad); font-weight: 600; }`,
 })
 export class Inventario implements OnInit {
   s = inject(SesionService);

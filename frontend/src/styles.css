@@ -1,0 +1,188 @@
+/* =========================================================================
+   Grabix · Tailwind CSS v4
+   Igual que SiloPro: los colores de marca viven como variables y Tailwind
+   los expone como utilidades (bg-marca, text-tenue, border-linea, font-titulo…).
+   Colores de Elikar Systems (azul marino + verde), tomados de elikarsystems.com.
+   Si Elikar entrega una paleta oficial, basta con cambiar el bloque :root.
+   ========================================================================= */
+@import 'tailwindcss';
+
+:root {
+  --marca: #002150;          /* principal: azul marino Elikar */
+  --marca-2: #001536;        /* principal oscuro (hover) */
+  --marca-suave: #e6ecf4;
+  --acento: #67be28;         /* secundario: verde Elikar */
+  --acento-2: #3f7a16;       /* verde legible sobre blanco */
+  --acento-suave: #edf7e4;
+  --sobre-marca: #ffffff;
+
+  --fondo: #f2f5f8;
+  --superficie: #ffffff;
+  --superficie-2: #f7f9fb;
+  --tinta: #132230;
+  --tenue: #5b6b79;
+  --linea: #d8e0e7;
+
+  --ok: #1f8a4c; --ok-suave: #dcf1e4;
+  --warn: #9a6a00; --warn-suave: #f7edcf;
+  --bad: #b8350f; --bad-suave: #f9e0d8;
+  --wa: #1f9d55;
+
+  --f-titulo: 'Montserrat', system-ui, 'Segoe UI', sans-serif;
+  --f-texto: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-num: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  --sombra: 0 10px 30px rgba(15, 35, 55, .14);
+  color-scheme: light;
+}
+
+@theme inline {
+  --font-titulo: var(--f-titulo);
+  --font-sans: var(--f-texto);
+  --font-mono: var(--f-num);
+
+  --color-marca: var(--marca);
+  --color-marca-2: var(--marca-2);
+  --color-marca-suave: var(--marca-suave);
+  --color-acento: var(--acento);
+  --color-acento-2: var(--acento-2);
+  --color-acento-suave: var(--acento-suave);
+  --color-sobre-marca: var(--sobre-marca);
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-tinta: var(--tinta);
+  --color-tenue: var(--tenue);
+  --color-linea: var(--linea);
+  --color-ok: var(--ok);
+  --color-ok-suave: var(--ok-suave);
+  --color-warn: var(--warn);
+  --color-warn-suave: var(--warn-suave);
+  --color-bad: var(--bad);
+  --color-bad-suave: var(--bad-suave);
+  --color-wa: var(--wa);
+
+  --shadow-caja: var(--sombra);
+}
+
+@theme {
+  /* El menú lateral aparece desde 960px. */
+  --breakpoint-lg: 60rem;
+  --animate-sube: sube .18s ease-out;
+  @keyframes sube { from { transform: translateY(16px); opacity: .6; } }
+}
+
+@layer base {
+  html, body { @apply h-full; }
+  body { @apply bg-fondo font-sans text-[15px]/normal text-tinta antialiased accent-marca; }
+  a { @apply text-marca underline; }
+  button:not(:disabled), [role='button']:not(:disabled) { @apply cursor-pointer; }
+  :focus-visible { @apply outline-2 outline-offset-2 outline-marca; }
+  h1, h2, h3 { @apply font-titulo tracking-[-.01em] text-balance; }
+  h1 { @apply text-[1.6rem] font-extrabold; }
+  h2 { @apply text-[1.1rem] font-bold; }
+  h3 { @apply text-[.95rem] font-bold; }
+  [hidden] { display: none !important; }
+}
+
+/* Piezas que se repiten en todas las pantallas (como la librería UI de SiloPro). */
+@layer components {
+  .num { @apply font-mono tabular-nums; }
+  .tenue { @apply text-tenue; }
+  .chico { @apply text-[.82rem]; }
+  .fila { @apply flex flex-wrap items-center gap-2; }
+  .entre { @apply justify-between; }
+  .error { @apply text-[.88rem] text-bad; }
+  .sr { @apply sr-only; }
+
+  /* Botones: .btn + .pri | .sec | .wa | .peligro (.armado) | .sm */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-[9px] border border-linea bg-superficie px-3.5 py-[9px]
+      text-[.92rem] font-semibold whitespace-nowrap text-tinta no-underline hover:border-marca disabled:cursor-default disabled:opacity-55;
+    & svg { @apply size-[17px]; }
+    &.pri { @apply border-marca bg-marca text-sobre-marca hover:bg-marca-2; }
+    &.sec { @apply border-acento bg-acento text-marca; }
+    &.wa { @apply border-wa bg-wa text-white; }
+    &.peligro { @apply text-bad; }
+    &.peligro.armado { @apply border-bad bg-bad text-white; }
+    &.sm { @apply px-2.5 py-[5px] text-[.82rem]; }
+  }
+
+  /* Margen lateral de pantalla que respeta la muesca del celular. */
+  .margen-x { @apply pr-[max(16px,env(safe-area-inset-right,0px))] pl-[max(16px,env(safe-area-inset-left,0px))]; }
+
+  /* Isotipo de Grabix: cuadro azul marino con franja verde. */
+  .marca-ico { @apply size-[30px] flex-none rounded-lg bg-[linear-gradient(180deg,var(--marca)_0_72%,var(--acento)_72%)]; }
+
+  /* Contenedores */
+  .tarjeta { @apply rounded-xl border border-linea bg-superficie; }
+  .pad { @apply p-4; }
+  .caja { @apply flex flex-col gap-2.5 rounded-xl border border-linea bg-superficie p-3.5; }
+  .rejilla { @apply grid gap-3.5; }
+  .encabezado {
+    @apply mb-[18px] flex flex-wrap items-end justify-between gap-3;
+    & p { @apply mt-0.5 text-tenue; }
+  }
+  .vacio {
+    @apply px-4 py-8 text-center text-tenue;
+    & b { @apply mb-1 block text-tinta; }
+  }
+
+  /* Listas: .lista > .renglon con .t (título), .m (detalle) y .d (derecha) */
+  .lista { @apply flex flex-col; }
+  .renglon {
+    @apply grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-[3px] border-t border-linea bg-transparent px-4 py-3 text-left text-inherit no-underline
+      first:border-t-0 hover:bg-superficie-2;
+    & .t { @apply min-w-0 font-semibold wrap-anywhere; }
+    & .m { @apply min-w-0 text-[.84rem] text-tenue wrap-anywhere; }
+    & .d { @apply text-right; }
+  }
+
+  /* Etiquetas: .pill + .ok | .warn | .bad | .acc | .sec | .mut */
+  .pill {
+    @apply inline-block rounded-full px-[9px] py-0.5 text-[.74rem] font-semibold whitespace-nowrap;
+    &.ok { @apply bg-ok-suave text-ok; }
+    &.warn { @apply bg-warn-suave text-warn; }
+    &.bad { @apply bg-bad-suave text-bad; }
+    &.acc { @apply bg-marca-suave text-marca; }
+    &.sec { @apply bg-acento-suave text-acento-2; }
+    &.mut { @apply border border-linea bg-superficie-2 text-tenue; }
+  }
+  .chips { @apply flex flex-wrap gap-1.5; }
+  .chip {
+    @apply rounded-full border border-linea bg-superficie px-3 py-[5px] text-[.82rem] font-medium;
+    &.on { @apply border-tinta bg-tinta text-superficie; }
+  }
+
+  /* Formularios: .campos (.c3) > .campo (.todo) > label + input/select/textarea */
+  .campos { @apply grid grid-cols-2 gap-2.5; &.c3 { @apply sm:grid-cols-3; } }
+  .campo {
+    @apply flex min-w-0 flex-col gap-1;
+    &.todo { @apply col-span-full; }
+    & label { @apply text-[.76rem] font-semibold tracking-[.02em] text-tenue; }
+    & textarea { @apply min-h-[70px] resize-y; }
+  }
+  .campo input:not([type='checkbox']):not([type='radio']):not([type='range']), .campo select, .campo textarea, .entrada {
+    @apply w-full min-w-0 rounded-lg border border-linea bg-superficie px-2.5 py-[9px];
+  }
+  .buscar { @apply w-full max-w-[340px] rounded-[9px] border border-linea bg-superficie px-3 py-[9px]; }
+
+  /* Totales de cotizaciones y ventas */
+  .totales {
+    @apply grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 font-mono tabular-nums;
+    & .k { @apply font-sans text-tenue; }
+    & .grande { @apply text-[1.15rem] font-semibold text-tinta; }
+  }
+  .interno { @apply mt-1 border-t border-dashed border-linea pt-2; }
+
+  /* Indicadores del inicio */
+  .kpis { @apply mb-3.5 grid grid-cols-2 gap-2.5 md:grid-cols-4; }
+  .kpi {
+    @apply px-4 py-3.5;
+    & .l { @apply text-[.72rem] font-semibold tracking-[.07em] text-tenue uppercase; }
+    & .v { @apply mt-1 font-mono text-[1.25rem] tabular-nums wrap-anywhere; }
+    & .s { @apply text-[.8rem] text-tenue; }
+    &.destacado { @apply border-marca bg-marca text-sobre-marca; }
+    &.destacado .l, &.destacado .s { @apply text-sobre-marca opacity-85; }
+  }
+}

@@ -22,14 +22,14 @@ interface Form {
   template: `
     <div class="encabezado">
       <div>
-        <a [routerLink]="id ? '..' : '..'" class="chico">← {{ esVenta ? 'Ventas' : 'Cotizaciones' }}</a>
+        <a [routerLink]="id ? '..' : '..'" class="chico no-underline">← {{ esVenta ? 'Ventas' : 'Cotizaciones' }}</a>
         <h1>{{ titulo() }}</h1>
         @if (doc(); as d) { <p>Creada el {{ d.fecha | fecha }} @if (esVenta && $any(d).cotizacionId) { · desde una cotización }</p> }
       </div>
       @if (doc()) { <span class="pill" [class]="mapa[f.estado][1]">{{ mapa[f.estado][0] }}</span> }
     </div>
 
-    <div class="rejilla editor">
+    <div class="rejilla max-w-[860px] pb-20">
       <section class="caja">
         <h3>Cliente</h3>
         <div class="campos c3">
@@ -43,7 +43,7 @@ interface Form {
           @if (f.clienteId == null) {
             <div class="campo"><label for="d-cn">Nombre</label><input id="d-cn" [(ngModel)]="f.clienteNombre" (ngModelChange)="tocar()"></div>
             <div class="campo"><label for="d-ct">WhatsApp</label><input id="d-ct" type="tel" [(ngModel)]="f.clienteTelefono" (ngModelChange)="tocar()"></div>
-            <label class="fila chico campo-check"><input type="checkbox" [(ngModel)]="f.guardarCliente"> Guardar en mis clientes</label>
+            <label class="fila chico self-end pb-2"><input type="checkbox" [(ngModel)]="f.guardarCliente"> Guardar en mis clientes</label>
           }
         </div>
         <div class="campos c3">
@@ -62,21 +62,21 @@ interface Form {
       <section class="caja">
         <h3>Conceptos</h3>
         @for (it of f.items; track $index; let i = $index) {
-          <div class="concepto">
-            <div class="cc">
-              <select class="entrada ps" [(ngModel)]="it.productoId" (ngModelChange)="elegir(it)" aria-label="Artículo">
+          <div class="grid grid-cols-[minmax(0,1fr)_30px] gap-1.5 rounded-[10px] border border-linea bg-superficie-2 p-2.5">
+            <div class="grid grid-cols-6 gap-1.5">
+              <select class="entrada col-span-6 p-2 sm:col-span-3" [(ngModel)]="it.productoId" (ngModelChange)="elegir(it)" aria-label="Artículo">
                 <option [ngValue]="null">Concepto libre</option>
                 @for (g of grupos(); track g.t) {
                   <optgroup [label]="g.t">@for (p of g.ps; track p.id) { <option [ngValue]="p.id">{{ p.nombre }}</option> }</optgroup>
                 }
               </select>
-              <input class="entrada ds" [(ngModel)]="it.descripcion" (ngModelChange)="tocar()" placeholder="Descripción" aria-label="Descripción">
-              <input class="entrada q" type="number" inputmode="decimal" [(ngModel)]="it.cantidad" (ngModelChange)="tocar()" placeholder="Cant." aria-label="Cantidad">
-              <input class="entrada pr" type="number" inputmode="decimal" [(ngModel)]="it.precio" (ngModelChange)="tocar()" placeholder="Precio c/u" aria-label="Precio unitario">
-              <span class="im num">{{ (it.cantidad || 0) * (it.precio || 0) | dinero }}
-                @if (s.verCostos() && it.productoId) { <small class="tenue">costo {{ costoDe(it) | dinero }}</small> }</span>
+              <input class="entrada col-span-6 p-2 sm:col-span-3" [(ngModel)]="it.descripcion" (ngModelChange)="tocar()" placeholder="Descripción" aria-label="Descripción">
+              <input class="entrada col-span-2 p-2" type="number" inputmode="decimal" [(ngModel)]="it.cantidad" (ngModelChange)="tocar()" placeholder="Cant." aria-label="Cantidad">
+              <input class="entrada col-span-2 p-2" type="number" inputmode="decimal" [(ngModel)]="it.precio" (ngModelChange)="tocar()" placeholder="Precio c/u" aria-label="Precio unitario">
+              <span class="num col-span-2 flex flex-col self-center text-right text-[.9rem]">{{ (it.cantidad || 0) * (it.precio || 0) | dinero }}
+                @if (s.verCostos() && it.productoId) { <small class="text-[.72rem] text-tenue">costo {{ costoDe(it) | dinero }}</small> }</span>
             </div>
-            <button class="quitar" (click)="quitar(i)" aria-label="Quitar concepto">×</button>
+            <button class="text-[1.4rem] text-bad" (click)="quitar(i)" aria-label="Quitar concepto">×</button>
           </div>
         }
         <div><button class="btn sm" (click)="agregar()"><app-icono nombre="mas1" />Agregar concepto</button></div>
@@ -121,7 +121,7 @@ interface Form {
           }
           @if (s.verCostos()) {
             <span class="k interno">Costo estimado (solo tú lo ves)</span><span class="interno">{{ t().costo | dinero }}</span>
-            <span class="k">Ganancia</span><span [class.neg]="t().total - t().costo < 0" class="pos">{{ t().total - t().costo | dinero }} · {{ t().total ? ((t().total - t().costo) / t().total | pct) : '—' }}</span>
+            <span class="k">Ganancia</span><span [class]="t().total - t().costo < 0 ? 'text-bad' : 'text-ok'">{{ t().total - t().costo | dinero }} · {{ t().total ? ((t().total - t().costo) / t().total | pct) : '—' }}</span>
           }
         </div>
       </section>
@@ -134,8 +134,8 @@ interface Form {
           } @empty { <p class="tenue chico">Sin pagos registrados.</p> }
           @if (v.estado !== 'cancelada') {
             <div class="fila">
-              <input class="entrada" style="max-width:140px" type="number" inputmode="decimal" placeholder="Monto" [(ngModel)]="pago" aria-label="Monto del pago">
-              <select class="entrada" style="max-width:160px" [(ngModel)]="metodoPago" aria-label="Forma de pago">@for (m of metodos; track m) { <option>{{ m }}</option> }</select>
+              <input class="entrada max-w-[140px] p-2" type="number" inputmode="decimal" placeholder="Monto" [(ngModel)]="pago" aria-label="Monto del pago">
+              <select class="entrada max-w-40 p-2" [(ngModel)]="metodoPago" aria-label="Forma de pago">@for (m of metodos; track m) { <option>{{ m }}</option> }</select>
               <button class="btn sm" (click)="registrarPago()" [disabled]="!pago">Registrar pago</button>
             </div>
           }
@@ -143,33 +143,14 @@ interface Form {
       }
     </div>
 
-    <div class="acciones">
+    <div class="sticky bottom-[calc(64px+env(safe-area-inset-bottom,0px))] z-5 mt-3 flex max-w-[860px] flex-wrap gap-2 rounded-xl border border-linea bg-superficie p-2.5 shadow-caja lg:bottom-3">
       @if (id) { <app-confirmar (confirmado)="eliminar()" /> }
       <button class="btn" (click)="pdf()" [disabled]="ocupado()"><app-icono nombre="pdf" />PDF</button>
       <button class="btn wa" (click)="whatsapp()" [disabled]="ocupado()"><app-icono nombre="wa" />WhatsApp</button>
       @if (!esVenta && id && f.estado !== 'aceptada') { <button class="btn" (click)="convertir()" [disabled]="ocupado()">Convertir en venta</button> }
-      <span class="esp"></span>
+      <span class="flex-1"></span>
       <button class="btn pri" (click)="guardar(true)" [disabled]="ocupado()">{{ ocupado() ? 'Guardando…' : 'Guardar' }}</button>
     </div>
-  `,
-  styles: `
-    .editor { max-width: 860px; padding-bottom: 80px; }
-    .encabezado a { text-decoration: none; }
-    .campo-check { align-self: end; padding-bottom: 8px; }
-    .concepto { display: grid; grid-template-columns: minmax(0, 1fr) 30px; gap: 6px; padding: 10px; border: 1px solid var(--linea); border-radius: 10px; background: var(--superficie-2); }
-    .cc { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
-    .cc > * { grid-column: span 6; }
-    .cc .q, .cc .pr, .cc .im { grid-column: span 2; }
-    @media (min-width: 640px) { .cc .ps, .cc .ds { grid-column: span 3; } }
-    .entrada { padding: 8px; }
-    .im { align-self: center; text-align: right; display: flex; flex-direction: column; font-size: .9rem; }
-    .im small { font-size: .72rem; }
-    .quitar { border: 0; background: none; color: var(--bad); font-size: 1.4rem; cursor: pointer; }
-    .pos { color: var(--ok); } .neg { color: var(--bad); }
-    .acciones { position: sticky; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); z-index: 5; display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; margin-top: 12px;
-      background: var(--superficie); border: 1px solid var(--linea); border-radius: 12px; box-shadow: var(--sombra); max-width: 860px; }
-    @media (min-width: 960px) { .acciones { bottom: 12px; } }
-    .esp { flex: 1; }
   `,
 })
 export class DocEditor implements OnInit {

@@ -3,28 +3,27 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { mensajeError } from '../core/aviso.service';
 import { SesionService } from '../core/sesion.service';
-import { ESTILOS_ACCESO } from './acceso';
+import { MarcoAcceso } from '../ui/marco-acceso';
 
 /** Abre el enlace de confirmación que llega por correo al registrarse. */
 @Component({
   selector: 'app-verificar-correo',
-  imports: [RouterLink],
+  imports: [RouterLink, MarcoAcceso],
   template: `
-    <main>
-      <a class="logo" routerLink="/"><span class="marca-ico"></span>Grabix</a>
-      <form class="tarjeta" (submit)="$event.preventDefault()">
+    <app-marco-acceso>
+      <form class="contents" (submit)="$event.preventDefault()">
         @switch (estado()) {
           @case ('cargando') { <h1>Confirmando tu correo…</h1> }
           @case ('ok') {
             <h1>¡Correo confirmado!</h1>
-            <p class="ok">Ya puedes invitar a tu equipo, elegir un plan y recuperar tu contraseña si la olvidas.</p>
+            <p class="rounded-lg bg-ok-suave px-3 py-2.5 text-ok">Ya puedes invitar a tu equipo, elegir un plan y recuperar tu contraseña si la olvidas.</p>
             <a class="btn pri" [routerLink]="s.token() ? '/app' : '/entrar'">{{ s.token() ? 'Ir a mi taller' : 'Entrar' }}</a>
           }
           @case ('error') {
             <h1>No pudimos confirmar tu correo</h1>
             <p class="error">{{ error() }}</p>
             @if (s.token()) {
-              <p class="tenue chico">Pide otro enlace desde el aviso amarillo dentro de tu taller.</p>
+              <p class="tenue chico">Pide otro enlace desde el aviso de la parte superior de tu taller.</p>
               <a class="btn pri" routerLink="/app">Ir a mi taller</a>
             } @else {
               <p class="tenue chico">Entra a tu cuenta y pide otro enlace desde el aviso de la parte superior.</p>
@@ -33,9 +32,8 @@ import { ESTILOS_ACCESO } from './acceso';
           }
         }
       </form>
-    </main>
+    </app-marco-acceso>
   `,
-  styles: ESTILOS_ACCESO,
 })
 export class VerificarCorreo implements OnInit {
   s = inject(SesionService);
@@ -57,14 +55,13 @@ export class VerificarCorreo implements OnInit {
 /** Pide el correo para mandar el enlace de recuperación. */
 @Component({
   selector: 'app-olvide',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, MarcoAcceso],
   template: `
-    <main>
-      <a class="logo" routerLink="/"><span class="marca-ico"></span>Grabix</a>
-      <form class="tarjeta" (ngSubmit)="enviar()">
+    <app-marco-acceso>
+      <form class="contents" (ngSubmit)="enviar()">
         <h1>Recupera tu contraseña</h1>
         @if (enviado()) {
-          <p class="ok">Si <b>{{ correo }}</b> tiene una cuenta, te llegará un correo con un enlace para crear una contraseña nueva. Vence en 1 hora.</p>
+          <p class="rounded-lg bg-ok-suave px-3 py-2.5 text-ok">Si <b>{{ correo }}</b> tiene una cuenta, te llegará un correo con un enlace para crear una contraseña nueva. Vence en 1 hora.</p>
           <p class="tenue chico">¿No lo ves? Revisa la carpeta de spam o promociones.</p>
           <a class="btn" routerLink="/entrar">Volver a entrar</a>
         } @else {
@@ -72,12 +69,11 @@ export class VerificarCorreo implements OnInit {
           <div class="campo"><label for="o-e">Correo</label><input id="o-e" name="email" type="email" [(ngModel)]="correo" required autocomplete="email"></div>
           @if (error()) { <p class="error">{{ error() }}</p> }
           <button class="btn pri" [disabled]="cargando()">{{ cargando() ? 'Enviando…' : 'Enviar enlace' }}</button>
-          <p class="chico tenue centro"><a routerLink="/entrar">Volver a entrar</a></p>
+          <p class="chico tenue text-center"><a routerLink="/entrar">Volver a entrar</a></p>
         }
       </form>
-    </main>
+    </app-marco-acceso>
   `,
-  styles: ESTILOS_ACCESO,
 })
 export class OlvideContrasena implements OnInit {
   private s = inject(SesionService);
@@ -106,11 +102,10 @@ export class OlvideContrasena implements OnInit {
 /** Crear contraseña desde un enlace de recuperación o de invitación. Al terminar deja la sesión iniciada. */
 @Component({
   selector: 'app-restablecer',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, MarcoAcceso],
   template: `
-    <main>
-      <a class="logo" routerLink="/"><span class="marca-ico"></span>Grabix</a>
-      <form class="tarjeta" (ngSubmit)="guardar()">
+    <app-marco-acceso>
+      <form class="contents" (ngSubmit)="guardar()">
         @if (datos(); as d) {
           @if (d.tipo === 'invitacion') {
             <h1>Bienvenido a {{ d.taller }}</h1>
@@ -137,9 +132,8 @@ export class OlvideContrasena implements OnInit {
           <h1>Revisando el enlace…</h1>
         }
       </form>
-    </main>
+    </app-marco-acceso>
   `,
-  styles: ESTILOS_ACCESO,
 })
 export class Restablecer implements OnInit {
   private s = inject(SesionService);

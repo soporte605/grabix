@@ -17,7 +17,7 @@ import { Icono } from '../ui/icono';
       <div><h1>Clientes</h1><p>{{ clientes().length }} registrados</p></div>
       <button class="btn pri" (click)="abrir()"><app-icono nombre="mas1" />Nuevo cliente</button>
     </div>
-    <div style="margin-bottom:12px"><input class="buscar" placeholder="Buscar nombre o teléfono" [ngModel]="q()" (ngModelChange)="q.set($event)" aria-label="Buscar"></div>
+    <div class="mb-3"><input class="buscar" placeholder="Buscar nombre o teléfono" [ngModel]="q()" (ngModelChange)="q.set($event)" aria-label="Buscar"></div>
     <div class="tarjeta lista">
       @for (c of visibles(); track c.id) {
         <button class="renglon" (click)="abrir(c)">
@@ -40,7 +40,7 @@ import { Icono } from '../ui/icono';
         <ng-container pie>
           @if (e.id && s.verCostos()) { <app-confirmar (confirmado)="eliminar()" /> }
           @if (e.telefono) { <a class="btn wa" target="_blank" rel="noopener" [href]="wa(e)"><app-icono nombre="wa" />WhatsApp</a> }
-          <span style="flex:1"></span>
+          <span class="flex-1"></span>
           <button class="btn pri" (click)="guardar()">Guardar</button>
         </ng-container>
       </app-hoja>

@@ -37,7 +37,7 @@ import { Icono } from '../ui/icono';
           <h3>Qué compraste</h3>
           <p class="tenue chico">Si eliges un artículo del inventario se suman existencias. Si no, queda como gasto (luz, mantenimiento, etc.).</p>
           @for (i of f.items; track $index; let k = $index) {
-            <div class="concepto">
+            <div class="grid grid-cols-2 gap-1.5 rounded-[10px] border border-linea bg-superficie-2 p-2.5 min-[700px]:grid-cols-[2fr_2fr_1fr_1fr_auto]">
               <select class="entrada" [(ngModel)]="i.productoId" (ngModelChange)="elegir(i)" aria-label="Artículo">
                 <option [ngValue]="null">Gasto u otro concepto</option>
                 @for (p of comprables(); track p.id) { <option [ngValue]="p.id">{{ p.nombre }}</option> }
@@ -52,7 +52,7 @@ import { Icono } from '../ui/icono';
         </div>
         <div class="campo"><label for="b-n">Notas</label><textarea id="b-n" [(ngModel)]="f.notas"></textarea></div>
         <div class="totales"><span class="k grande">Total</span><span class="grande">{{ total(f.items) | dinero }}</span></div>
-        <ng-container pie><span style="flex:1"></span><button class="btn pri" (click)="guardar()">Guardar compra</button></ng-container>
+        <ng-container pie><span class="flex-1"></span><button class="btn pri" (click)="guardar()">Guardar compra</button></ng-container>
       </app-hoja>
     }
 
@@ -65,10 +65,6 @@ import { Icono } from '../ui/icono';
         <ng-container pie>@if (s.gerencia()) { <app-confirmar texto="Eliminar y revertir inventario" (confirmado)="eliminar(c)" /> }</ng-container>
       </app-hoja>
     }
-  `,
-  styles: `
-    .concepto { display: grid; gap: 6px; grid-template-columns: 1fr 1fr; padding: 10px; border: 1px solid var(--linea); border-radius: 10px; background: var(--superficie-2); }
-    @media (min-width: 700px) { .concepto { grid-template-columns: 2fr 2fr 1fr 1fr auto; } }
   `,
 })
 export class Compras implements OnInit {

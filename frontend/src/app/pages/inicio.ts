@@ -21,7 +21,7 @@ type Periodo = 'mes' | 'anterior' | 'anio' | 'doce';
         <a class="btn" routerLink="../compras"><app-icono nombre="mas1" />Compra</a>
       </div>
     </div>
-    <div class="chips" style="margin-bottom:12px">
+    <div class="chips mb-3">
       @for (p of periodos; track p[0]) { <button class="chip" [class.on]="periodo() === p[0]" (click)="cambiar(p[0])">{{ p[1] }}</button> }
     </div>
     @if (e(); as e) {
@@ -31,15 +31,15 @@ type Periodo = 'mes' | 'anterior' | 'anio' | 'doce';
         <div class="tarjeta kpi"><div class="l">Cobrado</div><div class="v">{{ e.cobrado | dinero }}</div><div class="s">Por cobrar {{ e.porCobrar | dinero }}</div></div>
         <div class="tarjeta kpi"><div class="l">Compras</div><div class="v">{{ e.compras | dinero }}</div><div class="s">Cotizaciones aceptadas {{ e.cotizaciones.aceptadas }}/{{ e.cotizaciones.total }}</div></div>
       </div>
-      <div class="dos">
+      <div class="grid gap-3.5 min-[1000px]:grid-cols-[1.4fr_1fr]">
         <div class="rejilla">
           <section class="tarjeta pad">
-            <div class="fila entre" style="margin-bottom:8px"><h2>Últimos 12 meses</h2>
-              <span class="leyenda"><i style="background:var(--marca)"></i>Ventas <i style="background:var(--acento)"></i>Ganancia</span></div>
+            <div class="fila entre mb-2"><h2>Últimos 12 meses</h2>
+              <span class="flex items-center gap-[5px] text-[.8rem] text-tenue"><i class="ml-2 inline-block size-2.5 rounded-[2px] bg-marca"></i>Ventas <i class="ml-2 inline-block size-2.5 rounded-[2px] bg-acento"></i>Ganancia</span></div>
             <app-grafica [serie]="e.serie" />
           </section>
           <section class="tarjeta">
-            <div class="fila entre titulo"><h2>Pedidos por entregar</h2><a routerLink="../produccion" class="chico">Ver producción</a></div>
+            <div class="fila entre px-4 pt-3.5 pb-1.5"><h2>Pedidos por entregar</h2><a routerLink="../produccion" class="chico">Ver producción</a></div>
             <div class="lista">
               @for (v of e.pendientes; track v.id) {
                 <a class="renglon" [routerLink]="['../ventas', v.id]">
@@ -51,36 +51,27 @@ type Periodo = 'mes' | 'anterior' | 'anio' | 'doce';
             </div>
           </section>
         </div>
-        <div class="rejilla" style="align-content:start">
+        <div class="rejilla content-start">
           <section class="tarjeta">
-            <div class="fila entre titulo"><h2>Lo que más te deja</h2></div>
+            <div class="fila entre px-4 pt-3.5 pb-1.5"><h2>Lo que más te deja</h2></div>
             <div class="lista">
               @for (t of e.top; track t.descripcion) {
-                <div class="renglon" style="cursor:default"><span class="t">{{ t.descripcion }}</span><span class="d num">{{ t.ganancia | dinero }}</span>
+                <div class="renglon cursor-default hover:bg-transparent"><span class="t">{{ t.descripcion }}</span><span class="d num">{{ t.ganancia | dinero }}</span>
                   <span class="m">{{ t.cantidad }} vendidos · {{ t.ventas | dinero }}</span><span class="d m">{{ t.ventas ? (t.ganancia / t.ventas | pct) : '' }}</span></div>
               } @empty { <div class="vacio">Sin ventas en el periodo</div> }
             </div>
           </section>
           <section class="tarjeta">
-            <div class="fila entre titulo"><h2>Stock bajo</h2><a routerLink="../inventario" class="chico">Inventario</a></div>
+            <div class="fila entre px-4 pt-3.5 pb-1.5"><h2>Stock bajo</h2><a routerLink="../inventario" class="chico">Inventario</a></div>
             <div class="lista">
               @for (p of e.stockBajo; track p.id) {
-                <div class="renglon" style="cursor:default"><span class="t">{{ p.nombre }}</span><span class="d num bajo">{{ p.existencia }} {{ p.unidad }}</span><span class="m">Mínimo {{ p.minimo }}</span><span></span></div>
+                <div class="renglon cursor-default hover:bg-transparent"><span class="t">{{ p.nombre }}</span><span class="d num text-bad">{{ p.existencia }} {{ p.unidad }}</span><span class="m">Mínimo {{ p.minimo }}</span><span></span></div>
               } @empty { <div class="vacio"><b>Todo en orden</b>Ningún insumo está por debajo de su mínimo.</div> }
             </div>
           </section>
         </div>
       </div>
     } @else { <p class="tenue">Cargando…</p> }
-  `,
-  styles: `
-    .dos { display: grid; gap: 14px; }
-    @media (min-width: 1000px) { .dos { grid-template-columns: 1.4fr 1fr; } }
-    .titulo { padding: 14px 16px 6px; }
-    .leyenda { font-size: .8rem; color: var(--tenue); display: flex; align-items: center; gap: 5px; }
-    .leyenda i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-left: 8px; }
-    a.renglon { text-decoration: none; }
-    .bajo { color: var(--bad); }
   `,
 })
 export class Inicio implements OnInit {

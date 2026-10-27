@@ -25,31 +25,31 @@ const SUBLI: Preset[] = [
   selector: 'app-landing',
   imports: [FormsModule, RouterLink],
   template: `
-    <header class="barra">
-      <div class="contenedor fila entre">
-        <a class="logo" routerLink="/"><span class="marca-ico"></span>Grabix</a>
+    <header class="sticky top-0 z-10 border-b border-linea bg-superficie py-2.5">
+      <div class="mx-auto max-w-[1160px] margen-x fila entre">
+        <a class="flex items-center gap-[9px] font-titulo text-[1.3rem] font-extrabold text-tinta no-underline" routerLink="/"><span class="marca-ico size-[26px] rounded-[7px]"></span>Grabix</a>
         <nav class="fila">
-          <a href="#precios" class="btn sm enlace">Precios</a>
+          <a href="#precios" class="btn sm border-transparent max-[520px]:hidden">Precios</a>
           <a routerLink="/entrar" class="btn sm">Entrar</a>
           <a routerLink="/registro" class="btn sm pri">Prueba gratis</a>
         </nav>
       </div>
     </header>
 
-    <section class="heroe">
-      <div class="contenedor heroe-rejilla">
-        <div class="mensaje">
-          <p class="eyebrow">Para talleres de corte láser y sublimación</p>
-          <h1>¿Cuánto cobrar por esa pieza? Calcúlalo en 30 segundos.</h1>
-          <p class="sub">Material, minutos de máquina y tu margen. Después cotiza, manda el PDF por WhatsApp, descuenta tu inventario y ve cuánto ganas cada mes.</p>
-          <ul class="puntos">
+    <section class="bg-linear-to-b from-marca-suave to-fondo pt-9 pb-10">
+      <div class="mx-auto max-w-[1160px] margen-x grid items-start gap-7 min-[980px]:grid-cols-[.9fr_1.1fr] min-[980px]:gap-10">
+        <div class="flex flex-col gap-4 min-[980px]:pt-6">
+          <p class="text-[.78rem] font-bold tracking-[.08em] text-marca uppercase">Para talleres de corte láser y sublimación</p>
+          <h1 class="-mt-1.5 text-[clamp(1.9rem,4.5vw,2.9rem)] leading-[1.1]">¿Cuánto cobrar por esa pieza? Calcúlalo en 30 segundos.</h1>
+          <p class="max-w-[52ch] text-[1.08rem] text-tenue">Material, minutos de máquina y tu margen. Después cotiza, manda el PDF por WhatsApp, descuenta tu inventario y ve cuánto ganas cada mes.</p>
+          <ul class="grid list-disc gap-1.5 pl-[1.1em]">
             <li>Cotizaciones con PDF y WhatsApp</li>
             <li>Inventario con recetas: una taza descuenta la taza y el papel</li>
             <li>Varias sucursales, roles y estadísticas de ganancia</li>
           </ul>
         </div>
 
-        <div class="simulador tarjeta" id="simulador">
+        <div class="tarjeta flex flex-col gap-3.5 p-[18px] shadow-caja" id="simulador">
           <div class="fila entre">
             <h2>Simulador de precio</h2>
             <div class="chips">
@@ -82,13 +82,13 @@ const SUBLI: Preset[] = [
             <div class="campo"><label for="s-mg">Margen que quieres ganar: {{ e().margen }}%</label><input id="s-mg" type="range" min="20" max="80" step="5" [ngModel]="e().margen" (ngModelChange)="set('margen', $event)"></div>
           </div>
 
-          <div class="resultado">
-            <div>
-              <span class="k">Precio sugerido por pieza</span>
-              <span class="precio num">{{ $(r().precioPieza) }}</span>
-              <span class="k">Total del pedido: <b class="num">{{ $(r().precioTotal) }}</b></span>
+          <div class="grid gap-3.5 rounded-xl border border-linea bg-superficie-2 p-3.5 min-[560px]:grid-cols-2 min-[560px]:items-center">
+            <div class="flex flex-col gap-0.5">
+              <span class="text-[.85rem] text-tenue">Precio sugerido por pieza</span>
+              <span class="num text-[2.2rem] leading-[1.15] font-semibold text-marca">{{ $(r().precioPieza) }}</span>
+              <span class="text-[.85rem] text-tenue">Total del pedido: <b class="num">{{ $(r().precioTotal) }}</b></span>
             </div>
-            <dl class="desglose">
+            <dl class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-[3px] text-[.88rem] [&_dd]:text-right [&_dt]:text-tenue">
               @if (e().tipo === 'laser') {
                 <dt>Piezas por lámina</dt><dd class="num">{{ r().piezasPorHoja || 'No cabe' }}</dd>
                 <dt>Láminas necesarias</dt><dd class="num">{{ r().hojas }}</dd>
@@ -96,10 +96,10 @@ const SUBLI: Preset[] = [
               <dt>Material</dt><dd class="num">{{ $(r().material) }}</dd>
               <dt>Tiempo de máquina</dt><dd class="num">{{ $(r().maquina) }}</dd>
               <dt>Costo por pieza</dt><dd class="num">{{ $(r().costoPieza) }}</dd>
-              <dt>Tu ganancia</dt><dd class="num gan">{{ $(r().ganancia) }}</dd>
+              <dt>Tu ganancia</dt><dd class="num font-semibold text-ok">{{ $(r().ganancia) }}</dd>
             </dl>
           </div>
-          <div class="cta fila entre">
+          <div class="fila entre gap-2.5">
             <span class="tenue chico">¿Te sirvió? Guarda esta cotización, descárgala en PDF y mándala por WhatsApp.</span>
             <a routerLink="/registro" class="btn sec">Crear cuenta gratis</a>
           </div>
@@ -107,80 +107,42 @@ const SUBLI: Preset[] = [
       </div>
     </section>
 
-    <section class="contenedor seccion">
-      <h2 class="titulo-sec">Todo tu taller en un solo lugar</h2>
-      <div class="beneficios">
+    <section class="mx-auto max-w-[1160px] margen-x pt-11 pb-2">
+      <h2 class="mb-[18px] text-center text-[1.6rem]">Todo tu taller en un solo lugar</h2>
+      <div class="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3.5">
         @for (b of beneficios; track b.t) {
-          <article class="tarjeta pad"><h3>{{ b.t }}</h3><p>{{ b.d }}</p></article>
+          <article class="tarjeta pad"><h3>{{ b.t }}</h3><p class="mt-1.5 text-tenue">{{ b.d }}</p></article>
         }
       </div>
     </section>
 
-    <section class="contenedor seccion" id="precios">
-      <h2 class="titulo-sec">Planes</h2>
-      <p class="tenue centrado">{{ diasPrueba() }} días gratis con todas las funciones. Sin tarjeta para empezar.</p>
-      <div class="chips centrado-chips">
+    <section class="mx-auto max-w-[1160px] margen-x pt-11 pb-2" id="precios">
+      <h2 class="mb-2.5 text-center text-[1.6rem]">Planes</h2>
+      <p class="tenue text-center">{{ diasPrueba() }} días gratis con todas las funciones. Sin tarjeta para empezar.</p>
+      <div class="chips mt-3 mb-[18px] justify-center">
         <button class="chip" [class.on]="!anual()" (click)="anual.set(false)">Mensual</button>
         <button class="chip" [class.on]="anual()" (click)="anual.set(true)">Anual (2 meses gratis)</button>
       </div>
-      <div class="planes">
+      <div class="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] items-start gap-3.5">
         @for (p of planes(); track p.id; let i = $index) {
-          <article class="tarjeta plan" [class.recomendado]="i === 1">
-            @if (i === 1) { <span class="pill sec">El más elegido</span> }
+          <article class="tarjeta flex flex-col gap-2 p-5" [class]="i === 1 ? 'border-2 border-acento' : ''">
+            @if (i === 1) { <span class="pill sec self-start">El más elegido</span> }
             <h3>{{ p.nombre }}</h3>
-            <p class="precio-plan"><span class="num">{{ $(anual() ? p.precioAnual : p.precioMensual) }}</span> <span class="tenue">/ {{ anual() ? 'año' : 'mes' }}</span></p>
+            <p class="text-[1.6rem] font-semibold"><span class="num">{{ $(anual() ? p.precioAnual : p.precioMensual) }}</span> <span class="tenue">/ {{ anual() ? 'año' : 'mes' }}</span></p>
             <p class="tenue chico">{{ p.sucursales }} sucursal{{ p.sucursales > 1 ? 'es' : '' }} · {{ p.usuarios }} usuarios</p>
-            <ul>@for (x of p.incluye; track x) { <li>{{ x }}</li> }</ul>
+            <ul class="mt-1 mb-2.5 grid list-disc gap-1 pl-[1.1em] text-[.92rem]">@for (x of p.incluye; track x) { <li>{{ x }}</li> }</ul>
             <a routerLink="/registro" class="btn" [class.pri]="i === 1">Empezar prueba</a>
           </article>
         }
       </div>
     </section>
 
-    <footer class="pie contenedor fila entre">
+    <footer class="mx-auto max-w-[1160px] margen-x fila entre gap-1.5 pt-10 pb-7 text-[.88rem] text-tenue">
       <span>Grabix · Software para talleres de corte láser y sublimación</span>
       <span class="tenue">Hecho por Elikar Systems</span>
     </footer>
   `,
-  styles: `
-    :host { display: block; background: var(--fondo); }
-    .contenedor { max-width: 1160px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-    .barra { position: sticky; top: 0; z-index: 10; background: var(--superficie); border-bottom: 1px solid var(--linea); padding-block: 10px; }
-    .logo { display: flex; align-items: center; gap: 9px; font: 800 1.3rem var(--f-titulo); color: var(--tinta); text-decoration: none; }
-    .marca-ico { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(180deg, var(--marca) 0 72%, var(--acento) 72%); }
-    .enlace { border-color: transparent; }
-    @media (max-width: 520px) { .enlace { display: none; } }
-    .heroe { background: linear-gradient(180deg, var(--marca-suave), var(--fondo)); padding-block: 36px 40px; }
-    .heroe-rejilla { display: grid; gap: 28px; align-items: start; }
-    @media (min-width: 980px) { .heroe-rejilla { grid-template-columns: 0.9fr 1.1fr; gap: 40px; } .mensaje { padding-top: 24px; } }
-    .eyebrow { text-transform: uppercase; letter-spacing: .08em; font-size: .78rem; font-weight: 700; color: var(--marca); margin: 0 0 10px; }
-    h1 { font-size: clamp(1.9rem, 4.5vw, 2.9rem); line-height: 1.1; }
-    .sub { font-size: 1.08rem; color: var(--tenue); max-width: 52ch; }
-    .puntos { padding-left: 1.1em; display: grid; gap: 6px; }
-    .simulador { padding: 18px; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--sombra); }
-    .resultado { display: grid; gap: 14px; background: var(--superficie-2); border: 1px solid var(--linea); border-radius: 12px; padding: 14px; }
-    @media (min-width: 560px) { .resultado { grid-template-columns: 1fr 1fr; align-items: center; } }
-    .resultado > div { display: flex; flex-direction: column; gap: 2px; }
-    .k { color: var(--tenue); font-size: .85rem; }
-    .precio { font-size: 2.2rem; color: var(--marca); font-weight: 600; line-height: 1.15; }
-    .desglose { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; margin: 0; font-size: .88rem; }
-    dt { color: var(--tenue); } dd { margin: 0; text-align: right; }
-    .gan { color: var(--ok); font-weight: 600; }
-    .cta { gap: 10px; }
-    .seccion { padding-block: 44px 8px; }
-    .titulo-sec { font-size: 1.6rem; text-align: center; margin-bottom: 18px; }
-    .centrado { text-align: center; margin-top: -8px; }
-    .centrado-chips { justify-content: center; margin: 12px 0 18px; }
-    .beneficios { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-    .beneficios p { color: var(--tenue); margin: 6px 0 0; }
-    .planes { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); align-items: start; }
-    .plan { padding: 20px; display: flex; flex-direction: column; gap: 8px; }
-    .plan.recomendado { border: 2px solid var(--acento); }
-    .plan .pill { align-self: flex-start; }
-    .precio-plan { margin: 0; font-size: 1.6rem; font-weight: 600; }
-    .plan ul { padding-left: 1.1em; margin: 4px 0 10px; display: grid; gap: 4px; font-size: .92rem; }
-    .pie { padding-block: 40px 28px; color: var(--tenue); font-size: .88rem; gap: 6px; }
-  `,
+  host: { class: 'block bg-fondo' },
 })
 export class Landing implements OnInit {
   private api = inject(Api);

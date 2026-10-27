@@ -18,7 +18,7 @@ import { Icono } from '../ui/icono';
       </div>
       <a class="btn pri" routerLink="nueva"><app-icono nombre="mas1" />{{ esVenta ? 'Nueva venta' : 'Nueva cotización' }}</a>
     </div>
-    <div class="fila entre" style="margin-bottom:12px">
+    <div class="fila entre mb-3">
       <div class="chips">
         <button class="chip" [class.on]="!estado()" (click)="filtrar('')">Todas</button>
         @for (k of estados; track k) { <button class="chip" [class.on]="estado() === k" (click)="filtrar(k)">{{ mapa[k][0] }}</button> }
@@ -42,7 +42,6 @@ import { Icono } from '../ui/icono';
       <p class="tenue chico">{{ docs().length }} ventas · Total {{ total() | dinero }} · Saldo por cobrar {{ saldo() | dinero }}</p>
     }
   `,
-  styles: `a.renglon { text-decoration: none; }`,
 })
 export class DocLista implements OnInit {
   private api = inject(Api);

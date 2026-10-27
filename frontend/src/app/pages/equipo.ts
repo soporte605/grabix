@@ -32,7 +32,7 @@ import { Icono } from '../ui/icono';
           <div class="campo"><label for="s-t">Teléfono / WhatsApp</label><input id="s-t" type="tel" [(ngModel)]="e.telefono"></div>
           @if (e.id) { <label class="fila chico"><input type="checkbox" [(ngModel)]="e.activa"> Activa</label> }
         </div>
-        <ng-container pie><span style="flex:1"></span><button class="btn pri" (click)="guardar()">Guardar</button></ng-container>
+        <ng-container pie><span class="flex-1"></span><button class="btn pri" (click)="guardar()">Guardar</button></ng-container>
       </app-hoja>
     }
   `,
@@ -80,13 +80,13 @@ export class Sucursales implements OnInit {
       @for (u of lista(); track u.id) {
         <button class="renglon" (click)="abrir(u)">
           <span class="t">{{ u.nombre }}</span><span class="d"><span class="pill" [class]="u.activo ? 'acc' : 'mut'">{{ roles[u.rol].nombre }}</span></span>
-          <span class="m">{{ u.email }}@if (u.activo && !u.emailVerificado) { · <span class="pend">sin activar</span> }</span><span class="d m">{{ sucursal(u.sucursalId) }}</span>
+          <span class="m">{{ u.email }}@if (u.activo && !u.emailVerificado) { · <span class="font-semibold text-warn">sin activar</span> }</span><span class="d m">{{ sucursal(u.sucursalId) }}</span>
         </button>
       }
     </div>
-    <div class="tarjeta pad" style="margin-top:14px">
+    <div class="tarjeta pad mt-3.5">
       <h2>Qué puede hacer cada rol</h2>
-      <dl class="roles">@for (r of rolesLista; track r[0]) { <dt>{{ r[1].nombre }}</dt><dd>{{ r[1].desc }}</dd> }</dl>
+      <dl class="mt-2.5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">@for (r of rolesLista; track r[0]) { <dt class="font-semibold">{{ r[1].nombre }}</dt><dd class="text-tenue">{{ r[1].desc }}</dd> }</dl>
     </div>
     @if (e(); as e) {
       <app-hoja [titulo]="e.id ? e.nombre : 'Nuevo usuario'" (cerrar)="e_.set(null)">
@@ -108,12 +108,11 @@ export class Sucursales implements OnInit {
         <p class="tenue chico">{{ roles[e.rol].desc }}</p>
         <ng-container pie>
           @if (e.id && e.activo && !e.emailVerificado) { <button class="btn" (click)="invitar(e.id)" [disabled]="invitando()">{{ invitando() ? 'Enviando…' : 'Reenviar invitación' }}</button> }
-          <span style="flex:1"></span><button class="btn pri" (click)="guardar()">Guardar</button>
+          <span class="flex-1"></span><button class="btn pri" (click)="guardar()">Guardar</button>
         </ng-container>
       </app-hoja>
     }
   `,
-  styles: `.pend { color: var(--warn); font-weight: 600; } .roles { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 10px 0 0; } dt { font-weight: 600; } dd { margin: 0; color: var(--tenue); }`,
 })
 export class Usuarios implements OnInit {
   s = inject(SesionService);
@@ -162,19 +161,18 @@ const ACCIONES: Record<string, string> = {
     <div class="encabezado"><div><h1>Bitácora</h1><p>Quién hizo qué y cuándo.</p></div></div>
     <div class="tarjeta lista">
       @for (b of lista(); track b.id) {
-        <details class="renglon">
-          <summary><b>{{ b.usuarioNombre }}</b> {{ accion(b.accion) }} {{ b.entidad }} @if (b.entidadId) { #{{ b.entidadId }} }
+        <details class="renglon block cursor-default">
+          <summary class="cursor-pointer"><b>{{ b.usuarioNombre }}</b> {{ accion(b.accion) }} {{ b.entidad }} @if (b.entidadId) { #{{ b.entidadId }} }
             <span class="tenue chico"> · {{ b.creadoEn | date: 'dd/MM/yyyy HH:mm' }}</span></summary>
-          <pre>{{ b.detalle | json }}</pre>
+          <pre class="mt-2 font-mono text-[.78rem] whitespace-pre-wrap text-tenue wrap-anywhere">{{ b.detalle | json }}</pre>
         </details>
       } @empty { <div class="vacio">Sin movimientos</div> }
     </div>
-    <div class="fila" style="margin-top:12px">
+    <div class="fila mt-3">
       @if (pagina() > 1) { <button class="btn" (click)="ir(pagina() - 1)">Más recientes</button> }
       @if (lista().length === 50) { <button class="btn" (click)="ir(pagina() + 1)">Anteriores</button> }
     </div>
   `,
-  styles: `details.renglon { display: block; cursor: default; } summary { cursor: pointer; } pre { font-size: .78rem; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--tenue); margin: 8px 0 0; }`,
 })
 export class BitacoraPagina implements OnInit {
   private api = inject(Api);

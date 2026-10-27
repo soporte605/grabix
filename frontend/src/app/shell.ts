@@ -28,23 +28,26 @@ const MENU: Item[] = [
   selector: 'app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, Icono],
   template: `
-    <div class="app">
-      <aside class="lateral">
-        <a class="logo" routerLink="/app"><span class="marca-ico"></span><span><b>Grabix</b><small>{{ s.taller()?.nombre }}</small></span></a>
+    <div class="grid min-h-full lg:grid-cols-[240px_1fr]">
+      <aside class="sticky top-0 hidden h-screen flex-col gap-1 overflow-auto border-r border-linea bg-superficie px-3 py-5 lg:flex">
+        <a class="flex items-center gap-2.5 px-2 pb-[18px] text-tinta no-underline" routerLink="/app">
+          <span class="marca-ico"></span>
+          <span><b class="block font-titulo text-[1.25rem] font-extrabold">Grabix</b><small class="block max-w-40 truncate text-[.75rem] text-tenue">{{ s.taller()?.nombre }}</small></span>
+        </a>
         <nav>
           @for (m of menu(); track m.ruta) {
-            <a [routerLink]="m.ruta" routerLinkActive="on"><app-icono [nombre]="m.icono" />{{ m.texto }}</a>
+            <a [routerLink]="m.ruta" routerLinkActive="!bg-marca-suave !text-marca" [class]="ITEM + ' hover:bg-superficie-2'"><app-icono [nombre]="m.icono" />{{ m.texto }}</a>
           }
         </nav>
-        <button class="salir" (click)="s.salir()"><app-icono nombre="salir" />Salir</button>
+        <button [class]="ITEM + ' mt-auto !text-tenue hover:bg-superficie-2'" (click)="s.salir()"><app-icono nombre="salir" />Salir</button>
       </aside>
 
-      <div class="contenido">
-        <div class="superior">
+      <div class="min-w-0">
+        <div class="sticky top-0 z-20 flex items-center justify-between gap-2.5 border-b border-linea bg-superficie py-2.5 margen-x">
           <div class="fila">
             @if (s.multiSucursal()) {
               <label class="sr" for="suc">Sucursal</label>
-              <select id="suc" class="entrada sucursal" [value]="s.sucursal() ?? ''" (change)="cambiarSucursal($any($event.target).value)">
+              <select id="suc" class="entrada w-auto max-w-60 px-2.5 py-1.5 font-semibold" [value]="s.sucursal() ?? ''" (change)="cambiarSucursal($any($event.target).value)">
                 @for (x of s.perfil()!.sucursales; track x.id) { <option [value]="x.id">{{ x.nombre }}</option> }
                 @if (s.gerencia()) { <option value="">Todas las sucursales</option> }
               </select>
@@ -52,82 +55,48 @@ const MENU: Item[] = [
               <span class="pill mut">{{ s.nombreSucursal() }}</span>
             }
           </div>
-          <span class="tenue chico usuario">{{ s.perfil()?.usuario?.nombre }}</span>
+          <span class="chico truncate text-tenue">{{ s.perfil()?.usuario?.nombre }}</span>
         </div>
         @if (s.perfil()?.usuario?.emailVerificado === false) {
-          <div class="banner correo">
+          <div [class]="BANNER + ' items-center bg-marca-suave'">
             <span>Confirma tu correo <b>{{ s.perfil()!.usuario.email }}</b> con el enlace que te enviamos.</span>
-            <button class="cursor-pointer border-0 bg-transparent p-0 text-marca underline" (click)="reenviar()" [disabled]="reenviando()"><b>{{ reenviando() ? 'Enviando…' : 'Reenviar enlace' }}</b></button>
+            <button class="font-bold text-marca underline" (click)="reenviar()" [disabled]="reenviando()">{{ reenviando() ? 'Enviando…' : 'Reenviar enlace' }}</button>
           </div>
         }
         @if (aviso(); as a) {
-          <div class="banner" [class.vencido]="!a.vigente">
+          <div [class]="BANNER + (a.vigente ? ' bg-acento-suave' : ' bg-bad-suave text-bad')">
             {{ a.texto }}
             @if (s.rol() === 'dueno') { <a routerLink="ajustes">Ver planes</a> }
           </div>
         }
-        <main><router-outlet /></main>
+        <main class="mx-auto max-w-[1180px] pt-[18px] pb-[100px] margen-x lg:px-8 lg:pt-6 lg:pb-12"><router-outlet /></main>
       </div>
 
-      <nav class="pestanas">
+      <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-linea bg-superficie pt-1.5 pr-[max(6px,env(safe-area-inset-right,0px))] pb-[calc(6px+env(safe-area-inset-bottom,0px))] pl-[max(6px,env(safe-area-inset-left,0px))] lg:hidden">
         @for (m of principales(); track m.ruta) {
-          <a [routerLink]="m.ruta" routerLinkActive="on"><app-icono [nombre]="m.icono" />{{ m.texto }}</a>
+          <a [routerLink]="m.ruta" routerLinkActive="!text-marca" [class]="PESTANA"><app-icono class="text-[1.25rem]" [nombre]="m.icono" />{{ m.texto }}</a>
         }
-        <button (click)="mas.set(!mas())" [class.on]="mas()"><app-icono nombre="mas" />Más</button>
+        <button [class]="PESTANA" [class.!text-marca]="mas()" (click)="mas.set(!mas())"><app-icono class="text-[1.25rem]" nombre="mas" />Más</button>
       </nav>
       @if (mas()) {
-        <div class="menu-mas" (click)="mas.set(false)">
-          <div class="panel tarjeta">
-            @for (m of resto(); track m.ruta) { <a [routerLink]="m.ruta"><app-icono [nombre]="m.icono" />{{ m.texto }}</a> }
-            <button (click)="s.salir()"><app-icono nombre="salir" />Salir</button>
+        <div class="fixed inset-0 z-25 flex items-end bg-[rgba(8,20,30,.3)] px-3 pb-[calc(72px+env(safe-area-inset-bottom,0px))]" (click)="mas.set(false)">
+          <div class="tarjeta grid w-full grid-cols-2 gap-0.5 p-2 shadow-caja">
+            @for (m of resto(); track m.ruta) { <a [routerLink]="m.ruta" [class]="ITEM"><app-icono [nombre]="m.icono" />{{ m.texto }}</a> }
+            <button [class]="ITEM" (click)="s.salir()"><app-icono nombre="salir" />Salir</button>
           </div>
         </div>
       }
     </div>
-    @if (avisos.mensaje(); as m) { <div class="toast" [class.err]="m.tipo === 'error'" role="status">{{ m.texto }}</div> }
-  `,
-  styles: `
-    :host { display: block; min-height: 100%; }
-    .app { display: grid; min-height: 100%; }
-    .lateral { display: none; }
-    .contenido { min-width: 0; }
-    main { padding: 18px max(16px, env(safe-area-inset-right, 0px)) 100px max(16px, env(safe-area-inset-left, 0px)); max-width: 1180px; margin: 0 auto; }
-    @media (min-width: 960px) {
-      .app { grid-template-columns: 240px 1fr; }
-      .lateral { display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; padding: 20px 12px; background: var(--superficie); border-right: 1px solid var(--linea); overflow: auto; }
-      .pestanas { display: none !important; }
-      main { padding: 24px 32px 48px; }
+    @if (avisos.mensaje(); as m) {
+      <div class="fixed bottom-[calc(86px+env(safe-area-inset-bottom,0px))] left-1/2 z-60 max-w-[calc(100%-32px)] -translate-x-1/2 rounded-[10px] px-4 py-2.5 text-[.9rem] shadow-caja lg:bottom-6"
+        [class]="m.tipo === 'error' ? 'bg-bad text-white' : 'bg-tinta text-superficie'" role="status">{{ m.texto }}</div>
     }
-    .logo { display: flex; align-items: center; gap: 10px; padding: 0 8px 18px; text-decoration: none; color: var(--tinta); }
-    .logo b { font: 800 1.25rem var(--f-titulo); display: block; }
-    .logo small { display: block; color: var(--tenue); font-size: .75rem; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .marca-ico { width: 30px; height: 30px; border-radius: 8px; flex: none; background: linear-gradient(180deg, var(--marca) 0 72%, var(--acento) 72%); }
-    nav a, .salir, .panel a, .panel button { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; text-decoration: none; color: var(--tinta); font-weight: 500; background: none; border: 0; cursor: pointer; width: 100%; text-align: left; }
-    .lateral nav a:hover, .salir:hover { background: var(--superficie-2); }
-    .lateral nav a.on { background: var(--marca-suave); color: var(--marca); }
-    .salir { margin-top: auto; color: var(--tenue); }
-    .superior { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
-      background: var(--superficie); border-bottom: 1px solid var(--linea); position: sticky; top: 0; z-index: 20; }
-    .sucursal { width: auto; max-width: 240px; padding: 6px 10px; font-weight: 600; }
-    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-    .usuario { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .banner { margin: 12px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); padding: 10px 14px; border-radius: 10px; background: var(--acento-suave); font-size: .88rem; display: flex; gap: 10px; flex-wrap: wrap; }
-    .banner.correo { background: var(--marca-suave); align-items: center; }
-    .banner.vencido { background: var(--bad-suave); color: var(--bad); }
-    .pestanas { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(5, 1fr); background: var(--superficie); border-top: 1px solid var(--linea);
-      padding: 6px max(6px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(6px, env(safe-area-inset-left, 0px)); }
-    .pestanas a, .pestanas button { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: .68rem; color: var(--tenue); text-decoration: none; background: none; border: 0; padding: 4px 0; cursor: pointer; }
-    .pestanas app-icono { font-size: 1.25rem; }
-    .pestanas .on { color: var(--marca); }
-    .menu-mas { position: fixed; inset: 0; z-index: 25; background: rgba(8, 20, 30, .3); display: flex; align-items: flex-end; padding: 0 12px calc(72px + env(safe-area-inset-bottom, 0px)); }
-    .panel { width: 100%; padding: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; box-shadow: var(--sombra); }
-    .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(86px + env(safe-area-inset-bottom, 0px)); z-index: 60; background: var(--tinta); color: var(--superficie);
-      padding: 10px 16px; border-radius: 10px; font-size: .9rem; max-width: calc(100% - 32px); box-shadow: var(--sombra); }
-    .toast.err { background: var(--bad); color: #fff; }
-    @media (min-width: 960px) { .toast { bottom: 24px; } }
   `,
 })
 export class Shell {
+  readonly ITEM = 'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[9px] text-left font-medium text-tinta no-underline';
+  readonly PESTANA = 'flex flex-col items-center gap-0.5 py-1 text-[.68rem] text-tenue no-underline';
+  readonly BANNER = 'mx-[max(16px,env(safe-area-inset-left,0px))] mt-3 flex flex-wrap gap-2.5 rounded-[10px] px-3.5 py-2.5 text-[.88rem]';
   s = inject(SesionService);
   avisos = inject(AvisoService);
   private router = inject(Router);

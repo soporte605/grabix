@@ -12,7 +12,7 @@ import { SesionService } from '../core/sesion.service';
   template: `
     <div class="encabezado"><div><h1>Ajustes y plan</h1><p>Datos que aparecen en tus PDF y valores para calcular costos.</p></div></div>
     @if (t(); as t) {
-      <div class="rejilla" style="max-width:820px">
+      <div class="rejilla max-w-[820px]">
         <section class="caja">
           <h3>Tu negocio</h3>
           <div class="campos">
@@ -59,9 +59,9 @@ import { SesionService } from '../core/sesion.service';
             </p>
             @if (s.rol() === 'dueno') {
               <div class="chips"><button class="chip" [class.on]="!anual()" (click)="anual.set(false)">Mensual</button><button class="chip" [class.on]="anual()" (click)="anual.set(true)">Anual</button></div>
-              <div class="planes">
+              <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2.5">
                 @for (p of x.planes; track p.id) {
-                  <div class="tarjeta pad plan" [class.actual]="p.id === x.plan">
+                  <div class="tarjeta pad flex flex-col gap-1" [class]="p.id === x.plan ? 'border-2 border-marca' : ''">
                     <b>{{ p.nombre }}</b>
                     <span class="num">{{ anual() ? (p.precioAnual | dinero) + ' / año' : (p.precioMensual | dinero) + ' / mes' }}</span>
                     <span class="tenue chico">{{ p.sucursales }} sucursales · {{ p.usuarios }} usuarios</span>
@@ -75,11 +75,6 @@ import { SesionService } from '../core/sesion.service';
         }
       </div>
     }
-  `,
-  styles: `
-    .planes { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
-    .plan { display: flex; flex-direction: column; gap: 4px; }
-    .plan.actual { border: 2px solid var(--marca); }
   `,
 })
 export class Ajustes implements OnInit {

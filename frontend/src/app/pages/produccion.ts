@@ -18,15 +18,15 @@ const SIGUIENTE: Partial<Record<EstadoVenta, [EstadoVenta, string]>> = {
   imports: [FechaPipe, Icono],
   template: `
     <div class="encabezado"><div><h1>Producción</h1><p>Pedidos por hacer, ordenados por fecha de entrega.</p></div></div>
-    <div class="tablero">
+    <div class="grid gap-3.5 min-[900px]:grid-cols-3">
       @for (c of columnas; track c) {
-        <section class="columna">
-          <h2>{{ est[c][0] }} <span class="pill" [class]="est[c][1]">{{ de(c).length }}</span></h2>
+        <section class="flex min-w-0 flex-col gap-2.5">
+          <h2 class="flex items-center gap-2 text-base">{{ est[c][0] }} <span class="pill" [class]="est[c][1]">{{ de(c).length }}</span></h2>
           @for (v of de(c); track v.id) {
-            <article class="tarjeta pedido" [class.tarde]="v.entrega && v.entrega < hoy">
-              <div class="fila entre"><b class="num">{{ v.folio }}</b><span class="chico" [class.rojo]="v.entrega && v.entrega < hoy">Entrega {{ v.entrega ? (v.entrega | fecha) : 'sin fecha' }}</span></div>
+            <article class="tarjeta flex flex-col gap-1.5 p-3" [class.border-bad]="v.entrega && v.entrega < hoy">
+              <div class="fila entre"><b class="num">{{ v.folio }}</b><span class="chico" [class]="v.entrega && v.entrega < hoy ? 'font-semibold text-bad' : ''">Entrega {{ v.entrega ? (v.entrega | fecha) : 'sin fecha' }}</span></div>
               <div>{{ v.cliente?.nombre || v.clienteNombre || 'Mostrador' }}</div>
-              <ul>@for (i of v.items; track $index) { <li><b>{{ i.cantidad }}</b> × {{ i.descripcion }}</li> }</ul>
+              <ul class="list-disc pl-[1.1em] text-[.9rem]">@for (i of v.items; track $index) { <li><b>{{ i.cantidad }}</b> × {{ i.descripcion }}</li> }</ul>
               @if (v.notas) { <p class="chico tenue">{{ v.notas }}</p> }
               <div class="fila">
                 <button class="btn sm pri" (click)="mover(v, siguiente[c]![0])">{{ siguiente[c]![1] }}</button>
@@ -37,17 +37,6 @@ const SIGUIENTE: Partial<Record<EstadoVenta, [EstadoVenta, string]>> = {
         </section>
       }
     </div>
-  `,
-  styles: `
-    .tablero { display: grid; gap: 14px; }
-    @media (min-width: 900px) { .tablero { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    .columna { display: flex; flex-direction: column; gap: 10px; }
-    .columna h2 { display: flex; gap: 8px; align-items: center; font-size: 1rem; }
-    .pedido { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
-    .pedido.tarde { border-color: var(--bad); }
-    .rojo { color: var(--bad); font-weight: 600; }
-    ul { margin: 0; padding-left: 1.1em; font-size: .9rem; }
-    p { margin: 0; }
   `,
 })
 export class Produccion implements OnInit {

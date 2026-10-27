@@ -3,28 +3,15 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { mensajeError } from '../core/aviso.service';
 import { SesionService } from '../core/sesion.service';
-
-/** Estilos compartidos por las pantallas de cuenta (entrar, registro, recuperar, invitación). */
-export const ESTILOS_ACCESO = `
-    main { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
-      padding: 32px max(16px, env(safe-area-inset-right, 0px)) 32px max(16px, env(safe-area-inset-left, 0px)); background: linear-gradient(180deg, var(--marca-suave), var(--fondo)); }
-    :host { display: block; height: 100%; }
-    .logo { display: flex; align-items: center; gap: 9px; font: 800 1.4rem var(--f-titulo); color: var(--tinta); text-decoration: none; }
-    .marca-ico { width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(180deg, var(--marca) 0 72%, var(--acento) 72%); }
-    form { width: 100%; max-width: 420px; padding: 24px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--sombra); }
-    h1 { font-size: 1.4rem; } p { margin: 0; }
-    .centro { text-align: center; }
-    .ok { color: var(--ok); background: var(--ok-suave); padding: 10px 12px; border-radius: 8px; }
-`;
+import { MarcoAcceso } from '../ui/marco-acceso';
 
 /** Inicio de sesión y registro de un taller nuevo (misma pantalla, dos modos). */
 @Component({
   selector: 'app-acceso',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, MarcoAcceso],
   template: `
-    <main>
-      <a class="logo" routerLink="/"><span class="marca-ico"></span>Grabix</a>
-      <form class="tarjeta" (ngSubmit)="enviar()">
+    <app-marco-acceso>
+      <form class="contents" (ngSubmit)="enviar()">
         @if (modo() === 'registro') {
           <h1>Crea tu cuenta</h1>
           <p class="tenue">14 días gratis con todas las funciones. Sin tarjeta.</p>
@@ -41,14 +28,13 @@ export const ESTILOS_ACCESO = `
         }
         @if (error()) { <p class="error">{{ error() }}</p> }
         <button class="btn pri" [disabled]="cargando()">{{ cargando() ? 'Un momento…' : modo() === 'registro' ? 'Crear cuenta' : 'Entrar' }}</button>
-        <p class="chico tenue centro">
+        <p class="chico tenue text-center">
           @if (modo() === 'registro') { ¿Ya tienes cuenta? <a routerLink="/entrar">Entra aquí</a> }
           @else { ¿Aún no tienes cuenta? <a routerLink="/registro">Pruébalo gratis</a> }
         </p>
       </form>
-    </main>
+    </app-marco-acceso>
   `,
-  styles: ESTILOS_ACCESO,
 })
 export class Acceso {
   private sesion = inject(SesionService);

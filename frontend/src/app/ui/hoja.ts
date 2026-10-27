@@ -3,28 +3,18 @@ import { Component, HostListener, input, output } from '@angular/core';
 /** Panel modal: hoja inferior en el celular, ventana centrada en escritorio. */
 @Component({
   selector: 'app-hoja',
+  host: { class: 'fixed inset-0 z-50 flex items-end justify-center md:items-center md:p-6' },
   template: `
-    <div class="fondo" (click)="cerrar.emit()"></div>
-    <section class="hoja" role="dialog" aria-modal="true" [attr.aria-label]="titulo()">
-      <header><h2>{{ titulo() }}</h2><button class="x" (click)="cerrar.emit()" aria-label="Cerrar">×</button></header>
-      <div class="cuerpo"><ng-content /></div>
-      <footer><ng-content select="[pie]" /></footer>
+    <div class="absolute inset-0 bg-[rgba(8,20,30,.45)]" (click)="cerrar.emit()"></div>
+    <section class="relative flex max-h-[94%] w-full max-w-[780px] flex-col overflow-hidden rounded-t-2xl bg-fondo shadow-caja motion-safe:animate-sube md:max-h-full md:rounded-2xl"
+      role="dialog" aria-modal="true" [attr.aria-label]="titulo()">
+      <header class="flex items-center justify-between gap-2.5 border-b border-linea bg-superficie px-4 pt-3.5 pb-3">
+        <h2>{{ titulo() }}</h2>
+        <button class="px-1.5 py-0.5 text-[1.6rem] leading-none text-tenue" (click)="cerrar.emit()" aria-label="Cerrar">×</button>
+      </header>
+      <div class="flex flex-col gap-3.5 overflow-auto p-4"><ng-content /></div>
+      <footer class="flex flex-wrap gap-2 border-t border-linea bg-superficie px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] empty:hidden"><ng-content select="[pie]" /></footer>
     </section>
-  `,
-  styles: `
-    :host { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
-    @media (min-width: 760px) { :host { align-items: center; padding: 24px; } }
-    .fondo { position: absolute; inset: 0; background: rgba(8, 20, 30, .45); }
-    .hoja { position: relative; background: var(--fondo); width: 100%; max-width: 780px; max-height: 94%; display: flex; flex-direction: column;
-      border-radius: 16px 16px 0 0; box-shadow: var(--sombra); overflow: hidden; animation: sube .18s ease-out; }
-    @media (min-width: 760px) { .hoja { border-radius: 16px; max-height: 100%; } }
-    @media (prefers-reduced-motion: reduce) { .hoja { animation: none; } }
-    @keyframes sube { from { transform: translateY(16px); opacity: .6; } }
-    header { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 16px 12px; background: var(--superficie); border-bottom: 1px solid var(--linea); }
-    .cuerpo { overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-    footer { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--superficie); border-top: 1px solid var(--linea); }
-    footer:empty { display: none; }
-    .x { background: none; border: 0; font-size: 1.6rem; line-height: 1; cursor: pointer; color: var(--tenue); padding: 2px 6px; }
   `,
 })
 export class Hoja {

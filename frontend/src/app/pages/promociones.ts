@@ -50,7 +50,7 @@ import { Icono } from '../ui/icono';
         <ng-container pie>
           @if (s.verCostos()) {
             @if (e.id) { <app-confirmar (confirmado)="eliminar()" /> }
-            <span style="flex:1"></span><button class="btn pri" (click)="guardar()">Guardar</button>
+            <span class="flex-1"></span><button class="btn pri" (click)="guardar()">Guardar</button>
           }
         </ng-container>
       </app-hoja>
