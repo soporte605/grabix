@@ -1,11 +1,11 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AvisoService, mensajeError } from './core/aviso.service';
-import { TemaService } from './core/tema.service';
 import { Rol } from './core/modelos';
 import { SesionService } from './core/sesion.service';
 import { Icono } from './ui/icono';
 import { Logo } from './ui/logo';
+import { SelectorTema } from './ui/selector-tema';
 
 interface Item { ruta: string; texto: string; icono: string; roles: Rol[] }
 const TODOS: Rol[] = ['dueno', 'admin', 'encargado', 'vendedor', 'produccion'];
@@ -33,7 +33,7 @@ function leer() {
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icono, Logo],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icono, Logo, SelectorTema],
   template: `
     <div class="grid min-h-full transition-[grid-template-columns] duration-200" [class]="corto() ? 'lg:grid-cols-[72px_1fr]' : 'lg:grid-cols-[248px_1fr]'">
       <aside class="sticky top-0 hidden h-screen flex-col gap-1 overflow-x-hidden overflow-y-auto border-r border-linea bg-superficie px-3 py-5 lg:flex">
@@ -71,8 +71,7 @@ function leer() {
           </div>
           <div class="flex min-w-0 items-center gap-1">
             <span class="chico truncate text-tenue">{{ s.perfil()?.usuario?.nombre }}</span>
-            <button class="flex size-9 flex-none items-center justify-center rounded-lg text-[1.15rem] text-tenue hover:bg-superficie-2 hover:text-tinta"
-              (click)="tema.siguiente()" [attr.aria-label]="'Tema: ' + temaTxt()" [title]="'Tema: ' + temaTxt()"><app-icono [nombre]="temaIcono()" /></button>
+            <app-selector-tema />
           </div>
         </div>
         @if (s.perfil()?.usuario?.emailVerificado === false) {
@@ -114,9 +113,6 @@ export class Shell {
   readonly BANNER = 'mx-[max(16px,env(safe-area-inset-left,0px))] mt-3 flex flex-wrap gap-2.5 rounded-[10px] px-3.5 py-2.5 text-[.88rem]';
   s = inject(SesionService);
   avisos = inject(AvisoService);
-  tema = inject(TemaService);
-  temaIcono = computed(() => ({ sistema: 'pantalla', claro: 'sol', oscuro: 'luna' })[this.tema.tema()]);
-  temaTxt = computed(() => ({ sistema: 'automático (como tu dispositivo)', claro: 'claro', oscuro: 'oscuro' })[this.tema.tema()]);
   private router = inject(Router);
   mas = signal(false);
   /** Menú lateral colapsado (solo íconos). Se recuerda en este navegador. */

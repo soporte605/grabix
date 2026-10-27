@@ -161,7 +161,7 @@
       text-[.92rem] font-semibold whitespace-nowrap text-tinta no-underline hover:border-marca disabled:cursor-default disabled:opacity-55;
     & svg { @apply size-[17px]; }
     &.pri { @apply border-marca bg-marca text-sobre-marca hover:bg-marca-2; }
-    &.sec { @apply border-acento bg-acento text-marca; }
+    &.sec { @apply border-acento bg-acento text-[#001536] hover:brightness-95; }
     &.wa { @apply border-wa bg-wa text-white; }
     &.peligro { @apply text-bad; }
     &.peligro.armado { @apply border-bad bg-bad text-white; }

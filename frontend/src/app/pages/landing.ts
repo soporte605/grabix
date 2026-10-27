@@ -2,6 +2,9 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Logo } from '../ui/logo';
+import { Icono } from '../ui/icono';
+import { SelectorTema } from '../ui/selector-tema';
+import { AvisoService } from '../core/aviso.service';
 import { Api } from '../core/api.service';
 import { dinero } from '../core/formato';
 import { Plan } from '../core/modelos';
@@ -24,35 +27,41 @@ const SUBLI: Preset[] = [
 
 @Component({
   selector: 'app-landing',
-  imports: [FormsModule, RouterLink, Logo],
+  imports: [FormsModule, RouterLink, Logo, Icono, SelectorTema],
   template: `
-    <header class="sticky top-0 z-10 border-b border-linea bg-superficie py-2.5">
+    <header class="sticky top-0 z-30 border-b border-linea bg-superficie/90 py-2.5 backdrop-blur">
       <div class="mx-auto max-w-[1160px] margen-x fila entre">
         <a class="no-underline" routerLink="/" aria-label="Grabix, inicio"><app-logo [tamano]="30" /></a>
-        <nav class="fila">
-          <a href="#precios" class="btn sm border-transparent max-[520px]:hidden">Precios</a>
-          <a routerLink="/entrar" class="btn sm">Entrar</a>
-          <a routerLink="/registro" class="btn sm pri">Prueba gratis</a>
+        <nav class="hidden items-center gap-1 text-[.92rem] font-medium md:flex">
+          @for (n of navegacion; track n.id) { <a [href]="'#' + n.id" class="rounded-lg px-3 py-1.5 text-tinta no-underline hover:bg-superficie-2">{{ n.texto }}</a> }
         </nav>
+        <div class="flex items-center gap-1.5">
+          <app-selector-tema />
+          <a routerLink="/entrar" class="btn sm max-[400px]:hidden">Entrar</a>
+          <a routerLink="/registro" class="btn sm pri">Prueba gratis</a>
+        </div>
       </div>
     </header>
 
-    <section class="bg-linear-to-b from-marca-suave to-fondo pt-9 pb-10">
-      <div class="mx-auto max-w-[1160px] margen-x grid items-start gap-7 min-[980px]:grid-cols-[.9fr_1.1fr] min-[980px]:gap-10">
-        <div class="flex flex-col gap-4 min-[980px]:pt-6">
-          <p class="text-[.78rem] font-bold tracking-[.08em] text-marca uppercase">Para talleres de corte láser y sublimación</p>
-          <h1 class="-mt-1.5 text-[clamp(1.9rem,4.5vw,2.9rem)] leading-[1.1]">¿Cuánto cobrar por esa pieza? Calcúlalo en 30 segundos.</h1>
-          <p class="max-w-[52ch] text-[1.08rem] text-tenue">Material, minutos de máquina y tu margen. Después cotiza, manda el PDF por WhatsApp, descuenta tu inventario y ve cuánto ganas cada mes.</p>
-          <ul class="grid list-disc gap-1.5 pl-[1.1em]">
-            <li>Cotizaciones con PDF y WhatsApp</li>
-            <li>Inventario con recetas: una taza descuenta la taza y el papel</li>
-            <li>Varias sucursales, roles y estadísticas de ganancia</li>
+    <!-- Hero + simulador -->
+    <section class="relative overflow-hidden bg-linear-to-b from-marca-suave to-fondo pt-10 pb-14">
+      <div class="mx-auto max-w-[1160px] margen-x grid items-start gap-8 min-[980px]:grid-cols-[.9fr_1.1fr] min-[980px]:gap-12">
+        <div class="flex flex-col gap-5 min-[980px]:sticky min-[980px]:top-24 min-[980px]:pt-8">
+          <span class="pill sec self-start">Para talleres de corte láser y sublimación</span>
+          <h1 class="text-[clamp(2rem,4.6vw,3.1rem)] leading-[1.05] tracking-[-.035em]">¿Estás cobrando lo justo por cada pieza?</h1>
+          <p class="max-w-[50ch] text-[1.1rem] text-tenue">Calcula en 30 segundos el precio correcto con tu material, minutos de máquina y margen. Compara con lo que cobras hoy y mándale la cotización a tu cliente por WhatsApp. Gratis y sin registrarte.</p>
+          <div class="fila gap-2.5">
+            <a href="#simulador" class="btn pri min-h-11 px-5 lg:hidden">Calcular mi precio</a>
+            <a routerLink="/registro" class="btn min-h-11 px-5 lg:border-marca lg:bg-marca lg:text-sobre-marca lg:hover:bg-marca-2">Prueba {{ diasPrueba() }} días gratis</a>
+          </div>
+          <ul class="flex flex-wrap gap-x-5 gap-y-1.5 text-[.88rem] text-tenue">
+            @for (c of confianza; track c) { <li class="flex items-center gap-1.5"><app-icono class="text-acento-2" nombre="ok" />{{ c }}</li> }
           </ul>
         </div>
 
-        <div class="tarjeta flex flex-col gap-3.5 p-[18px] shadow-caja" id="simulador">
+        <div class="tarjeta flex flex-col gap-3.5 p-[18px] shadow-caja sm:p-6" id="simulador">
           <div class="fila entre">
-            <h2>Simulador de precio</h2>
+            <h2 class="flex items-center gap-2"><app-icono class="text-acento-2" nombre="rayo" />Simulador de precio</h2>
             <div class="chips">
               <button class="chip" [class.on]="e().tipo === 'laser'" (click)="tipo('laser')">Corte / grabado láser</button>
               <button class="chip" [class.on]="e().tipo === 'sublimacion'" (click)="tipo('sublimacion')">Sublimación</button>
@@ -81,13 +90,15 @@ const SUBLI: Preset[] = [
             <div class="campo"><label for="s-d">Diseño (cobro único)</label><input id="s-d" type="number" inputmode="decimal" [ngModel]="e().diseno" (ngModelChange)="set('diseno', $event)"></div>
             <div class="campo"><label for="s-t">Tu costo por minuto de máquina</label><input id="s-t" type="number" inputmode="decimal" [ngModel]="e().tarifaMinuto" (ngModelChange)="set('tarifaMinuto', $event)"></div>
             <div class="campo"><label for="s-mg">Margen que quieres ganar: {{ e().margen }}%</label><input id="s-mg" type="range" min="20" max="80" step="5" [ngModel]="e().margen" (ngModelChange)="set('margen', $event)"></div>
+            <div class="campo todo"><label for="s-hoy">¿Cuánto cobras hoy por pieza? <span class="font-normal">(opcional, para compararlo)</span></label>
+              <input id="s-hoy" type="number" inputmode="decimal" placeholder="Ej. 18" [ngModel]="hoy() || null" (ngModelChange)="hoy.set(+$event || 0)"></div>
           </div>
 
-          <div class="grid gap-3.5 rounded-xl border border-linea bg-superficie-2 p-3.5 min-[560px]:grid-cols-2 min-[560px]:items-center">
+          <div class="grid gap-3.5 rounded-xl border border-linea bg-superficie-2 p-4 min-[560px]:grid-cols-2 min-[560px]:items-center">
             <div class="flex flex-col gap-0.5">
               <span class="text-[.85rem] text-tenue">Precio sugerido por pieza</span>
-              <span class="num text-[2.2rem] leading-[1.15] font-semibold text-marca">{{ $(r().precioPieza) }}</span>
-              <span class="text-[.85rem] text-tenue">Total del pedido: <b class="num">{{ $(r().precioTotal) }}</b></span>
+              <span class="num text-[2.4rem] leading-[1.1] font-semibold text-marca">{{ $(r().precioPieza) }}</span>
+              <span class="text-[.85rem] text-tenue">Total del pedido: <b class="num text-tinta">{{ $(r().precioTotal) }}</b></span>
             </div>
             <dl class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-[3px] text-[.88rem] [&_dd]:text-right [&_dt]:text-tenue">
               @if (e().tipo === 'laser') {
@@ -100,61 +111,231 @@ const SUBLI: Preset[] = [
               <dt>Tu ganancia</dt><dd class="num font-semibold text-ok">{{ $(r().ganancia) }}</dd>
             </dl>
           </div>
-          <div class="fila entre gap-2.5">
-            <span class="tenue chico">¿Te sirvió? Guarda esta cotización, descárgala en PDF y mándala por WhatsApp.</span>
+
+          @if (diagnostico(); as d) {
+            <div class="flex items-start gap-2.5 rounded-xl px-3.5 py-3 text-[.92rem]" role="status"
+              [class]="d.tipo === 'bad' ? 'bg-bad-suave text-bad' : d.tipo === 'warn' ? 'bg-warn-suave text-warn' : 'bg-ok-suave text-ok'">
+              <app-icono class="mt-0.5 text-[1.1rem]" [nombre]="d.tipo === 'ok' ? 'ok' : 'alerta'" />
+              <span><b class="font-bold">{{ d.titulo }}</b> {{ d.texto }}</span>
+            </div>
+          }
+
+          <div class="grid gap-2 min-[480px]:grid-cols-2">
+            <a class="btn wa min-h-11" [href]="whatsapp()" target="_blank" rel="noopener"><app-icono nombre="wa" />Mandar a mi cliente</a>
+            <button class="btn min-h-11" (click)="copiar()">{{ copiado() ? '¡Copiada!' : 'Copiar cotización' }}</button>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-2.5 border-t border-dashed border-linea pt-3.5">
+            <span class="tenue chico max-w-[36ch]">Guárdala con folio, hazla PDF con tu logo y lleva el control de tus pedidos.</span>
             <a routerLink="/registro" class="btn sec">Crear cuenta gratis</a>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="mx-auto max-w-[1160px] margen-x pt-11 pb-2">
-      <h2 class="mb-[18px] text-center text-[1.6rem]">Todo tu taller en un solo lugar</h2>
-      <div class="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3.5">
-        @for (b of beneficios; track b.t) {
-          <article class="tarjeta pad"><h3>{{ b.t }}</h3><p class="mt-1.5 text-tenue">{{ b.d }}</p></article>
+    <!-- Antes / con Grabix -->
+    <section class="mx-auto max-w-[1160px] margen-x py-14" id="por-que">
+      <p class="text-center text-[.78rem] font-bold tracking-[.08em] text-acento-2 uppercase">Por qué Grabix</p>
+      <h2 class="mx-auto mt-2 max-w-[24ch] text-center text-[clamp(1.5rem,3vw,2.1rem)] leading-tight">Deja la libreta, el Excel y los chats perdidos</h2>
+      <div class="mt-8 grid gap-4 md:grid-cols-2">
+        <article class="tarjeta p-6">
+          <h3 class="mb-3 text-tenue">Hoy, sin sistema</h3>
+          <ul class="grid gap-2.5">@for (x of antes; track x) { <li class="flex items-start gap-2.5"><span class="mt-0.5 flex size-5 flex-none items-center justify-center rounded-full bg-bad-suave text-[.8rem] font-bold text-bad">×</span>{{ x }}</li> }</ul>
+        </article>
+        <article class="tarjeta border-2 border-acento p-6">
+          <h3 class="mb-3 text-acento-2">Con Grabix</h3>
+          <ul class="grid gap-2.5">@for (x of despues; track x) { <li class="flex items-start gap-2.5"><span class="mt-0.5 flex size-5 flex-none items-center justify-center rounded-full bg-ok-suave text-ok"><app-icono nombre="ok" /></span>{{ x }}</li> }</ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- Vista previa del producto -->
+    <section class="bg-superficie py-14" id="funciones">
+      <div class="mx-auto max-w-[1160px] margen-x">
+        <p class="text-center text-[.78rem] font-bold tracking-[.08em] text-acento-2 uppercase">Así se ve tu taller</p>
+        <h2 class="mx-auto mt-2 max-w-[26ch] text-center text-[clamp(1.5rem,3vw,2.1rem)] leading-tight">Cuánto vendes, cuánto ganas y qué falta entregar, en una pantalla</h2>
+
+        <div class="mx-auto mt-8 max-w-[980px] overflow-hidden rounded-2xl border border-linea bg-fondo shadow-caja" aria-label="Vista de ejemplo del panel de Grabix" role="img">
+          <div class="flex items-center gap-1.5 border-b border-linea bg-superficie px-4 py-2.5" aria-hidden="true">
+            <span class="size-2.5 rounded-full bg-bad/60"></span><span class="size-2.5 rounded-full bg-warn/60"></span><span class="size-2.5 rounded-full bg-ok/60"></span>
+            <span class="ml-3 truncate rounded-md bg-superficie-2 px-3 py-0.5 text-[.75rem] text-tenue">grabix · Inicio · Datos de ejemplo</span>
+          </div>
+          <div class="grid grid-cols-[52px_1fr] sm:grid-cols-[180px_1fr]" aria-hidden="true">
+            <div class="flex flex-col gap-1 border-r border-linea bg-superficie p-2.5">
+              @for (m of menuDemo; track m.t; let i = $index) {
+                <span class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[.82rem]" [class]="i === 0 ? 'bg-marca-suave text-marca font-semibold' : 'text-tenue'"><app-icono [nombre]="m.i" /><span class="max-sm:hidden">{{ m.t }}</span></span>
+              }
+            </div>
+            <div class="flex min-w-0 flex-col gap-3 p-3 sm:p-5">
+              <div class="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+                @for (k of kpisDemo; track k.l; let i = $index) {
+                  <div class="rounded-xl border px-3 py-2.5" [class]="i === 0 ? 'border-[#002150] bg-[#002150] text-white' : 'border-linea bg-superficie'">
+                    <p class="text-[.65rem] font-bold tracking-[.07em] uppercase opacity-75">{{ k.l }}</p>
+                    <p class="num mt-0.5 text-[1.05rem]">{{ k.v }}</p>
+                  </div>
+                }
+              </div>
+              <div class="grid gap-3 md:grid-cols-[1.3fr_1fr]">
+                <div class="rounded-xl border border-linea bg-superficie p-3.5">
+                  <p class="mb-3 text-[.85rem] font-bold">Ventas y ganancia</p>
+                  <div class="flex h-28 items-end gap-1.5">
+                    @for (b of barrasDemo; track $index) {
+                      <div class="flex h-full flex-1 items-end gap-0.5"><span class="flex-1 rounded-t-sm bg-marca" [style.height.%]="b[0]"></span><span class="flex-1 rounded-t-sm bg-acento" [style.height.%]="b[1]"></span></div>
+                    }
+                  </div>
+                </div>
+                <div class="rounded-xl border border-linea bg-superficie p-3.5">
+                  <p class="mb-2 text-[.85rem] font-bold">Por entregar</p>
+                  @for (p of pedidosDemo; track p.c) {
+                    <div class="flex items-center justify-between gap-2 border-t border-linea py-2 text-[.8rem] first-of-type:border-t-0">
+                      <span class="min-w-0 truncate">{{ p.c }}</span><span class="pill" [class]="p.e === 'Listo' ? 'ok' : 'warn'">{{ p.e }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-12 grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4">
+          @for (b of beneficios; track b.t) {
+            <article class="flex gap-3.5">
+              <span class="flex size-10 flex-none items-center justify-center rounded-xl bg-marca-suave text-[1.2rem] text-marca"><app-icono [nombre]="b.i" /></span>
+              <div><h3>{{ b.t }}</h3><p class="mt-1 text-[.94rem] text-tenue">{{ b.d }}</p></div>
+            </article>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- Cómo funciona -->
+    <section class="mx-auto max-w-[1160px] margen-x py-14" id="como-funciona">
+      <p class="text-center text-[.78rem] font-bold tracking-[.08em] text-acento-2 uppercase">Cómo funciona</p>
+      <h2 class="mt-2 text-center text-[clamp(1.5rem,3vw,2.1rem)]">Del mensaje del cliente a la entrega</h2>
+      <ol class="mt-8 grid gap-4 md:grid-cols-3">
+        @for (p of pasos; track p.t; let i = $index) {
+          <li class="tarjeta relative p-6">
+            <span class="num flex size-9 items-center justify-center rounded-full bg-marca text-[.95rem] font-semibold text-sobre-marca">{{ i + 1 }}</span>
+            <h3 class="mt-4 text-[1.05rem]">{{ p.t }}</h3><p class="mt-1.5 text-tenue">{{ p.d }}</p>
+          </li>
+        }
+      </ol>
+    </section>
+
+    <!-- Planes -->
+    <section class="bg-superficie py-14" id="precios">
+      <div class="mx-auto max-w-[1160px] margen-x">
+        <p class="text-center text-[.78rem] font-bold tracking-[.08em] text-acento-2 uppercase">Precios</p>
+        <h2 class="mt-2 text-center text-[clamp(1.5rem,3vw,2.1rem)]">Un plan para cada tamaño de taller</h2>
+        <p class="tenue mt-2 text-center">{{ diasPrueba() }} días gratis con todas las funciones. Sin tarjeta para empezar.</p>
+        <div class="chips mt-4 mb-7 justify-center">
+          <button class="chip" [class.on]="!anual()" (click)="anual.set(false)">Mensual</button>
+          <button class="chip" [class.on]="anual()" (click)="anual.set(true)">Anual (2 meses gratis)</button>
+        </div>
+        <div class="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] items-start gap-4">
+          @for (p of planes(); track p.id; let i = $index) {
+            <article class="tarjeta flex flex-col gap-2 p-6" [class]="i === 1 ? 'border-2 border-acento shadow-caja' : ''">
+              @if (i === 1) { <span class="pill sec self-start">El más elegido</span> }
+              <h3 class="text-[1.1rem]">{{ p.nombre }}</h3>
+              <p class="text-[1.7rem] font-semibold"><span class="num">{{ $(anual() ? p.precioAnual : p.precioMensual) }}</span> <span class="text-[1rem] font-normal text-tenue">/ {{ anual() ? 'año' : 'mes' }}</span></p>
+              <p class="tenue chico">{{ p.sucursales }} sucursal{{ p.sucursales > 1 ? 'es' : '' }} · {{ p.usuarios }} usuarios</p>
+              <ul class="mt-2 mb-3 grid gap-1.5 text-[.92rem]">@for (x of p.incluye; track x) { <li class="flex items-start gap-2"><app-icono class="mt-0.5 text-acento-2" nombre="ok" />{{ x }}</li> }</ul>
+              <a routerLink="/registro" class="btn min-h-11" [class.pri]="i === 1">Empezar prueba gratis</a>
+            </article>
+          } @empty {
+            <p class="tenue text-center">Los precios se cargan en un momento.</p>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- Preguntas frecuentes -->
+    <section class="mx-auto max-w-[820px] margen-x py-14" id="preguntas">
+      <h2 class="text-center text-[clamp(1.5rem,3vw,2.1rem)]">Preguntas frecuentes</h2>
+      <div class="mt-7 flex flex-col gap-2.5">
+        @for (f of preguntas; track f.p) {
+          <details class="group tarjeta px-5 py-4 open:shadow-caja">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold [&::-webkit-details-marker]:hidden">
+              {{ f.p }}<span class="text-[1.3rem] leading-none text-tenue transition-transform group-open:rotate-45" aria-hidden="true">+</span>
+            </summary>
+            <p class="mt-2.5 text-tenue">{{ f.r }}</p>
+          </details>
         }
       </div>
     </section>
 
-    <section class="mx-auto max-w-[1160px] margen-x pt-11 pb-2" id="precios">
-      <h2 class="mb-2.5 text-center text-[1.6rem]">Planes</h2>
-      <p class="tenue text-center">{{ diasPrueba() }} días gratis con todas las funciones. Sin tarjeta para empezar.</p>
-      <div class="chips mt-3 mb-[18px] justify-center">
-        <button class="chip" [class.on]="!anual()" (click)="anual.set(false)">Mensual</button>
-        <button class="chip" [class.on]="anual()" (click)="anual.set(true)">Anual (2 meses gratis)</button>
-      </div>
-      <div class="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] items-start gap-3.5">
-        @for (p of planes(); track p.id; let i = $index) {
-          <article class="tarjeta flex flex-col gap-2 p-5" [class]="i === 1 ? 'border-2 border-acento' : ''">
-            @if (i === 1) { <span class="pill sec self-start">El más elegido</span> }
-            <h3>{{ p.nombre }}</h3>
-            <p class="text-[1.6rem] font-semibold"><span class="num">{{ $(anual() ? p.precioAnual : p.precioMensual) }}</span> <span class="tenue">/ {{ anual() ? 'año' : 'mes' }}</span></p>
-            <p class="tenue chico">{{ p.sucursales }} sucursal{{ p.sucursales > 1 ? 'es' : '' }} · {{ p.usuarios }} usuarios</p>
-            <ul class="mt-1 mb-2.5 grid list-disc gap-1 pl-[1.1em] text-[.92rem]">@for (x of p.incluye; track x) { <li>{{ x }}</li> }</ul>
-            <a routerLink="/registro" class="btn" [class.pri]="i === 1">Empezar prueba</a>
-          </article>
-        }
+    <!-- Llamado final -->
+    <section class="margen-x pb-14">
+      <div class="relative mx-auto max-w-[1160px] overflow-hidden rounded-3xl bg-[#002150] px-6 py-12 text-center text-white sm:px-12">
+        <div class="pointer-events-none absolute -top-20 -right-16 size-72 rounded-full bg-[#67be28] opacity-25 blur-3xl" aria-hidden="true"></div>
+        <h2 class="relative mx-auto max-w-[22ch] text-[clamp(1.6rem,3.4vw,2.3rem)] leading-tight">Empieza hoy a cobrar lo justo por cada pieza</h2>
+        <p class="relative mx-auto mt-3 max-w-[48ch] text-white/75">{{ diasPrueba() }} días gratis con todas las funciones. Cargamos datos de ejemplo para que lo conozcas en minutos.</p>
+        <div class="relative mt-6 flex flex-wrap justify-center gap-2.5">
+          <a routerLink="/registro" class="btn sec min-h-11 px-6">Crear mi cuenta gratis</a>
+          <a href="#simulador" class="btn min-h-11 border-white/30 bg-transparent px-6 text-white hover:border-white">Probar el simulador</a>
+        </div>
       </div>
     </section>
 
-    <footer class="mx-auto max-w-[1160px] margen-x fila entre gap-1.5 pt-10 pb-7 text-[.88rem] text-tenue">
-      <span>Grabix · Software para talleres de corte láser y sublimación</span>
-      <span class="tenue">Hecho por Elikar Systems</span>
+    <footer class="border-t border-linea">
+      <div class="mx-auto max-w-[1160px] margen-x flex flex-wrap items-center justify-between gap-3 py-7 text-[.88rem] text-tenue">
+        <app-logo [tamano]="24" />
+        <span>Software para talleres de corte láser y sublimación · Hecho por Elikar Systems</span>
+        <a href="mailto:soporte@elikarsystems.com" class="text-tenue">soporte&#64;elikarsystems.com</a>
+      </div>
     </footer>
   `,
   host: { class: 'block bg-fondo' },
 })
 export class Landing implements OnInit {
   private api = inject(Api);
-  beneficios = [
-    { t: 'Cotiza y envía por WhatsApp', d: 'Folio, descuentos y promociones. El cliente recibe el resumen y la liga a su PDF.' },
-    { t: 'Inventario que se descuenta solo', d: 'Arma recetas: una taza sublimada usa una taza blanca y una hoja de papel. Al vender se descuentan.' },
-    { t: 'Costos reales', d: 'Material, minutos de máquina y extras. Sabes cuánto ganas en cada pedido antes de aceptarlo.' },
-    { t: 'Ventas, anticipos y saldos', d: 'Del pedido a producción y entrega, con pagos parciales y lo que te deben.' },
-    { t: 'Sucursales y roles', d: 'Inventario y folios por sucursal, traspasos, y permisos: el vendedor no ve tus costos.' },
-    { t: 'Estadísticas', d: 'Ventas, ganancia y margen por mes, lo que más te deja y alertas de stock bajo.' },
+  private avisos = inject(AvisoService);
+  navegacion = [
+    { id: 'simulador', texto: 'Simulador' },
+    { id: 'funciones', texto: 'Funciones' },
+    { id: 'precios', texto: 'Precios' },
+    { id: 'preguntas', texto: 'Preguntas' },
   ];
+  confianza = ['Sin tarjeta', 'Cancela cuando quieras', 'Funciona en tu celular'];
+  antes = [
+    'Calculas el precio "a ojo" y a veces pierdes sin darte cuenta.',
+    'Las cotizaciones se quedan en el chat y nadie les da seguimiento.',
+    'Te enteras de que se acabó el material cuando ya tienes el pedido.',
+    'No sabes cuánto ganaste en el mes hasta que haces cuentas.',
+  ];
+  despues = [
+    'Cada precio sale de tus costos reales y del margen que eliges.',
+    'Cotización con folio y PDF, enviada por WhatsApp en un toque.',
+    'El inventario se descuenta solo y te avisa cuando hay stock bajo.',
+    'Ventas, ganancia y lo que te deben, al día y por sucursal.',
+  ];
+  beneficios = [
+    { i: 'cotizaciones', t: 'Cotiza y envía por WhatsApp', d: 'Folio, descuentos y promociones. El cliente recibe el resumen y la liga a su PDF.' },
+    { i: 'inventario', t: 'Inventario que se descuenta solo', d: 'Arma recetas: una taza sublimada usa una taza blanca y una hoja de papel. Al vender se descuentan.' },
+    { i: 'rayo', t: 'Costos reales', d: 'Material, minutos de máquina y extras. Sabes cuánto ganas en cada pedido antes de aceptarlo.' },
+    { i: 'ventas', t: 'Ventas, anticipos y saldos', d: 'Del pedido a producción y entrega, con pagos parciales y lo que te deben.' },
+    { i: 'sucursales', t: 'Sucursales y roles', d: 'Inventario y folios por sucursal, traspasos, y permisos: el vendedor no ve tus costos.' },
+    { i: 'inicio', t: 'Estadísticas', d: 'Ventas, ganancia y margen por mes, lo que más te deja y alertas de stock bajo.' },
+  ];
+  pasos = [
+    { t: 'Cotiza en segundos', d: 'Elige el producto y la cantidad. Grabix calcula material, máquina y margen, y mandas el PDF por WhatsApp.' },
+    { t: 'Produce sin perder nada', d: 'La cotización aceptada pasa a producción. Tu equipo ve qué sigue y el inventario se descuenta solo.' },
+    { t: 'Cobra y mide', d: 'Registra anticipos y saldos, entrega, y mira cuánto ganaste por producto, por mes y por sucursal.' },
+  ];
+  preguntas = [
+    { p: '¿Necesito tarjeta para la prueba?', r: 'No. Creas tu cuenta con tu correo y usas todas las funciones durante la prueba. Al terminar eliges un plan si te convenció.' },
+    { p: '¿Funciona en el celular?', r: 'Sí. Grabix funciona en el navegador del celular, la tablet o la computadora, y puedes instalarlo como app en tu pantalla de inicio.' },
+    { p: '¿Sirve si hago corte láser y también sublimación?', r: 'Sí. Puedes tener productos de los dos tipos, con sus propios costos de material, papel, tinta y minutos de máquina o plancha.' },
+    { p: '¿Puedo tener varias sucursales y empleados?', r: 'Sí. Cada sucursal tiene su inventario y sus folios, y cada empleado entra con su usuario. Tú decides qué puede ver cada quien.' },
+    { p: '¿Puedo cancelar cuando quiera?', r: 'Sí. No hay plazos forzosos. Si cancelas, puedes seguir consultando tu información.' },
+    { p: '¿Mis datos están seguros?', r: 'Cada taller tiene su información separada, las contraseñas se guardan cifradas y solo tu equipo puede entrar a tu cuenta.' },
+  ];
+  menuDemo = [
+    { i: 'inicio', t: 'Inicio' }, { i: 'cotizaciones', t: 'Cotizaciones' }, { i: 'ventas', t: 'Ventas' },
+    { i: 'produccion', t: 'Producción' }, { i: 'inventario', t: 'Inventario' }, { i: 'clientes', t: 'Clientes' },
+  ];
+  kpisDemo = [{ l: 'Ventas del mes', v: '$48,320' }, { l: 'Ganancia', v: '$21,410' }, { l: 'Por cobrar', v: '$6,900' }, { l: 'Pedidos', v: '37' }];
+  barrasDemo = [[38, 18], [52, 24], [45, 20], [64, 30], [58, 27], [76, 36], [70, 33], [92, 44]];
+  pedidosDemo = [{ c: '120 llaveros MDF · Escuela', e: 'En proceso' }, { c: '24 tazas · Boda Ruiz', e: 'Listo' }, { c: 'Letrero acrílico · Café', e: 'En proceso' }];
 
   e = signal<EntradaSimulador>({
     tipo: 'laser', cantidad: 50, costoHoja: 45, anchoHoja: 60, altoHoja: 40, anchoPieza: 6, altoPieza: 4,
@@ -166,6 +347,46 @@ export class Landing implements OnInit {
   planes = signal<Plan[]>([]);
   diasPrueba = signal(14);
   anual = signal(false);
+  /** Lo que el taller cobra hoy por pieza, para compararlo con el precio sugerido. */
+  hoy = signal(0);
+  copiado = signal(false);
+
+  diagnostico = computed(() => {
+    const hoy = this.hoy(), r = this.r(), q = Math.max(1, Math.floor(this.e().cantidad || 1));
+    if (!hoy || !r.precioPieza) return null;
+    if (hoy < r.costoPieza)
+      return { tipo: 'bad', titulo: 'Estás perdiendo dinero.', texto: `Cada pieza te cuesta ${dinero(r.costoPieza)} y la cobras en ${dinero(hoy)}. En este pedido pierdes ${dinero((r.costoPieza - hoy) * q)}.` };
+    if (hoy < r.precioPieza)
+      return { tipo: 'warn', titulo: `Dejas de ganar ${dinero((r.precioPieza - hoy) * q)} en este pedido.`, texto: `Tu margen real es de ${Math.round((1 - r.costoPieza / hoy) * 100)}%, no del ${this.e().margen}% que quieres.` };
+    return { tipo: 'ok', titulo: 'Vas bien.', texto: `Tu precio cubre costos y deja ${Math.round((1 - r.costoPieza / hoy) * 100)}% de margen.` };
+  });
+
+  /** Texto de la cotización para el cliente final. */
+  textoCotizacion = computed(() => {
+    const e = this.e(), r = this.r(), q = Math.max(1, Math.floor(e.cantidad || 1));
+    const p = this.presets()[this.preset()]?.nombre ?? '';
+    const que = e.tipo === 'laser' ? `${q} piezas de ${e.anchoPieza}×${e.altoPieza} cm en ${p}` : `${q} × ${p} sublimado`;
+    return [
+      'Hola, te comparto la cotización:',
+      `• ${que}`,
+      `• Precio por pieza: ${dinero(r.precioPieza)}`,
+      e.diseno ? `• Diseño: incluido en el total` : '',
+      `Total: ${dinero(r.precioTotal)}`,
+      '',
+      '¿Te la confirmo?',
+    ].filter((x, i, a) => x || a[i - 1]).join('\n');
+  });
+  whatsapp = computed(() => `https://wa.me/?text=${encodeURIComponent(this.textoCotizacion())}`);
+
+  async copiar() {
+    try {
+      await navigator.clipboard.writeText(this.textoCotizacion());
+      this.copiado.set(true);
+      setTimeout(() => this.copiado.set(false), 2000);
+    } catch {
+      this.avisos.error('No se pudo copiar. Selecciona el texto y cópialo a mano.');
+    }
+  }
 
   async ngOnInit() {
     try {

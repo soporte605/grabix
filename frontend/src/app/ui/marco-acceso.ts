@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Icono } from './icono';
 import { Logo } from './logo';
+import { SelectorTema } from './selector-tema';
 
 /**
  * Marco de las pantallas de cuenta (entrar, registro, recuperar, invitación).
@@ -9,7 +10,7 @@ import { Logo } from './logo';
  */
 @Component({
   selector: 'app-marco-acceso',
-  imports: [RouterLink, Logo, Icono],
+  imports: [RouterLink, Logo, Icono, SelectorTema],
   host: { class: 'block min-h-full' },
   template: `
     <div class="grid min-h-dvh lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
@@ -38,7 +39,8 @@ import { Logo } from './logo';
       </aside>
 
       <!-- Formulario -->
-      <main class="margen-x flex flex-col items-center justify-center gap-7 bg-linear-to-b from-marca-suave to-fondo py-10 lg:bg-none lg:bg-superficie">
+      <main class="relative margen-x flex flex-col items-center justify-center gap-7 bg-linear-to-b from-marca-suave to-fondo py-10 lg:bg-none lg:bg-superficie">
+        <div class="absolute top-3 right-3"><app-selector-tema /></div>
         <a class="no-underline lg:hidden" routerLink="/" aria-label="Grabix, inicio"><app-logo [tamano]="34" /></a>
         <div class="tarjeta flex w-full max-w-[420px] flex-col gap-3.5 p-6 shadow-caja sm:p-8 lg:max-w-[400px] lg:border-0 lg:p-0 lg:shadow-none
           [&_h1]:text-[1.65rem] [&_h1]:tracking-[-.03em] [&_.campo_input]:min-h-11 [&_.btn.pri]:min-h-11 [&_.btn.pri]:text-[.95rem]">
