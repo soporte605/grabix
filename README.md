@@ -79,7 +79,7 @@ Igual que FincaPro y SiloPro:
 ## Identidad visual
 Logo, colores, tipografías y reglas de uso en [`docs/MARCA.md`](docs/MARCA.md).
 
-Colores de Elikar Systems (azul marino `#002150` y verde `#67BE28`, los mismos de SiloPro; provisionales hasta tener la paleta oficial) y fuentes de Google (Montserrat, Inter, JetBrains Mono).
+Colores de Elikar Systems (azul marino `#002150` y verde `#67BE28`, los mismos de SiloPro; provisionales hasta tener la paleta oficial) y fuentes de Google (Plus Jakarta Sans para todo el sistema y JetBrains Mono para cifras).
 
 El diseño usa **Tailwind CSS v4**, igual que SiloPro y FincaPro. Todo vive en `frontend/src/styles.css`:
 - `:root` con los colores y fuentes; `@theme` los expone como utilidades (`bg-marca`, `text-tenue`, `border-linea`, `font-titulo`, `shadow-caja`…). Para cambiar la marca basta con cambiar `:root`.

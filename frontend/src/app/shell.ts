@@ -26,22 +26,34 @@ const MENU: Item[] = [
   { ruta: 'ajustes', texto: 'Ajustes y plan', icono: 'ajustes', roles: GER },
 ];
 
+const CLAVE_MENU = 'grabix.menu-corto';
+function leer() {
+  try { return localStorage.getItem(CLAVE_MENU); } catch { return null; }
+}
+
 @Component({
   selector: 'app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, Icono, Logo],
   template: `
-    <div class="grid min-h-full lg:grid-cols-[240px_1fr]">
-      <aside class="sticky top-0 hidden h-screen flex-col gap-1 overflow-auto border-r border-linea bg-superficie px-3 py-5 lg:flex">
-        <a class="flex items-center gap-2.5 px-2 pb-[18px] text-tinta no-underline" routerLink="/app">
-          <app-logo [tamano]="32" [texto]="false" />
-          <span><b class="block font-titulo text-[1.25rem] font-extrabold">Grabix</b><small class="block max-w-40 truncate text-[.75rem] text-tenue">{{ s.taller()?.nombre }}</small></span>
-        </a>
-        <nav>
+    <div class="grid min-h-full transition-[grid-template-columns] duration-200" [class]="corto() ? 'lg:grid-cols-[72px_1fr]' : 'lg:grid-cols-[248px_1fr]'">
+      <aside class="sticky top-0 hidden h-screen flex-col gap-1 overflow-x-hidden overflow-y-auto border-r border-linea bg-superficie px-3 py-5 lg:flex">
+        <div class="flex items-center gap-1 pb-[18px]" [class.flex-col]="corto()">
+          <a class="flex min-w-0 flex-1 items-center gap-2.5 px-2 text-tinta no-underline" [class.!px-0]="corto()" routerLink="/app" [title]="corto() ? 'Grabix · ' + (s.taller()?.nombre ?? '') : ''">
+            <app-logo [tamano]="32" [texto]="false" />
+            @if (!corto()) { <span class="min-w-0"><b class="block font-titulo text-[1.2rem] font-extrabold tracking-[-.02em]">Grabix</b><small class="block truncate text-[.75rem] text-tenue">{{ s.taller()?.nombre }}</small></span> }
+          </a>
+          <button class="flex size-9 flex-none items-center justify-center rounded-lg text-[1.15rem] text-tenue hover:bg-superficie-2 hover:text-tinta" (click)="alternarMenu()"
+            [attr.aria-label]="corto() ? 'Expandir menú' : 'Colapsar menú'" [title]="corto() ? 'Expandir menú' : 'Colapsar menú'" [attr.aria-expanded]="!corto()">
+            <app-icono [nombre]="corto() ? 'panel-abrir' : 'panel'" />
+          </button>
+        </div>
+        <nav class="flex flex-col gap-0.5">
           @for (m of menu(); track m.ruta) {
-            <a [routerLink]="m.ruta" routerLinkActive="!bg-marca-suave !text-marca" [class]="ITEM + ' hover:bg-superficie-2'"><app-icono [nombre]="m.icono" />{{ m.texto }}</a>
+            <a [routerLink]="m.ruta" routerLinkActive="!bg-marca-suave !text-marca" [class]="ITEM + ' hover:bg-superficie-2' + (corto() ? CORTO : '')"
+              [title]="corto() ? m.texto : ''" [attr.aria-label]="corto() ? m.texto : null"><app-icono class="text-[1.1rem]" [nombre]="m.icono" />@if (!corto()) { <span class="truncate">{{ m.texto }}</span> }</a>
           }
         </nav>
-        <button [class]="ITEM + ' mt-auto !text-tenue hover:bg-superficie-2'" (click)="s.salir()"><app-icono nombre="salir" />Salir</button>
+        <button [class]="ITEM + ' mt-auto !text-tenue hover:bg-superficie-2' + (corto() ? CORTO : '')" (click)="s.salir()" [title]="corto() ? 'Salir' : ''" [attr.aria-label]="corto() ? 'Salir' : null"><app-icono class="text-[1.1rem]" nombre="salir" />@if (!corto()) { Salir }</button>
       </aside>
 
       <div class="min-w-0">
@@ -97,6 +109,7 @@ const MENU: Item[] = [
 })
 export class Shell {
   readonly ITEM = 'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[9px] text-left font-medium text-tinta no-underline';
+  readonly CORTO = ' justify-center !px-0';
   readonly PESTANA = 'flex flex-col items-center gap-0.5 py-1 text-[.68rem] text-tenue no-underline';
   readonly BANNER = 'mx-[max(16px,env(safe-area-inset-left,0px))] mt-3 flex flex-wrap gap-2.5 rounded-[10px] px-3.5 py-2.5 text-[.88rem]';
   s = inject(SesionService);
@@ -106,6 +119,12 @@ export class Shell {
   temaTxt = computed(() => ({ sistema: 'automático (como tu dispositivo)', claro: 'claro', oscuro: 'oscuro' })[this.tema.tema()]);
   private router = inject(Router);
   mas = signal(false);
+  /** Menú lateral colapsado (solo íconos). Se recuerda en este navegador. */
+  corto = signal(leer() === '1');
+  alternarMenu() {
+    this.corto.update((v) => !v);
+    try { localStorage.setItem(CLAVE_MENU, this.corto() ? '1' : '0'); } catch {}
+  }
   menu = computed(() => MENU.filter((m) => m.roles.includes(this.s.rol()!)));
   principales = computed(() => this.menu().slice(0, 4));
   resto = computed(() => this.menu().slice(4));

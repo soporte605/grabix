@@ -28,8 +28,9 @@
   --bad: #b8350f; --bad-suave: #f9e0d8;
   --wa: #1f9d55;
 
-  --f-titulo: 'Montserrat', system-ui, 'Segoe UI', sans-serif;
-  --f-texto: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Una sola familia para todo el sistema: Plus Jakarta Sans (títulos en 700–800, textos en 400–600). */
+  --f-titulo: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-texto: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --f-num: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
 
   --sombra: 0 10px 30px rgba(15, 35, 55, .14);
@@ -137,7 +138,7 @@
   a { @apply text-marca underline; }
   button:not(:disabled), [role='button']:not(:disabled) { @apply cursor-pointer; }
   :focus-visible { @apply outline-2 outline-offset-2 outline-marca; }
-  h1, h2, h3 { @apply font-titulo tracking-[-.01em] text-balance; }
+  h1, h2, h3 { @apply font-titulo tracking-[-.02em] text-balance; }
   h1 { @apply text-[1.6rem] font-extrabold; }
   h2 { @apply text-[1.1rem] font-bold; }
   h3 { @apply text-[.95rem] font-bold; }

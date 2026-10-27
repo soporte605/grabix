@@ -15,28 +15,46 @@ import { MarcoAcceso } from '../ui/marco-acceso';
     <app-marco-acceso>
       <form class="contents" (ngSubmit)="enviar()">
         @if (modo() === 'registro') {
-          <h1>Crea tu cuenta</h1>
-          <p class="tenue">14 días gratis con todas las funciones. Sin tarjeta.</p>
-          <div class="campo"><label for="a-t">Nombre de tu taller</label><input id="a-t" name="taller" [(ngModel)]="taller" required autocomplete="organization"></div>
-          <div class="campo"><label for="a-n">Tu nombre</label><input id="a-n" name="nombre" [(ngModel)]="nombre" required autocomplete="name"></div>
-          <div class="campo"><label for="a-w">WhatsApp del taller</label><input id="a-w" name="tel" type="tel" [(ngModel)]="telefono" autocomplete="tel"></div>
+          <div>
+            <span class="pill sec mb-3">14 días gratis · Sin tarjeta</span>
+            <h1>Crea tu cuenta</h1>
+            <p class="mt-1 tenue">Configura tu taller en menos de un minuto.</p>
+          </div>
+          <fieldset class="campos">
+            <legend class="mb-2 text-[.72rem] font-bold tracking-[.08em] text-tenue uppercase">Tu taller</legend>
+            <div class="campo todo"><label for="a-t">Nombre del taller</label><input id="a-t" name="taller" [(ngModel)]="taller" required autocomplete="organization" placeholder="Ej. Láser y Diseño MX"></div>
+            <div class="campo"><label for="a-n">Tu nombre</label><input id="a-n" name="nombre" [(ngModel)]="nombre" required autocomplete="name"></div>
+            <div class="campo"><label for="a-w">WhatsApp <span class="font-normal">(opcional)</span></label><input id="a-w" name="tel" type="tel" [(ngModel)]="telefono" autocomplete="tel"></div>
+          </fieldset>
+          <p class="mt-1 mb-[-4px] text-[.72rem] font-bold tracking-[.08em] text-tenue uppercase">Tu acceso</p>
         } @else {
-          <h1>Entra a tu taller</h1>
+          <div>
+            <h1>Bienvenido de nuevo</h1>
+            <p class="mt-1 tenue">Entra para ver tus cotizaciones, ventas y producción.</p>
+          </div>
         }
-        <div class="campo"><label for="a-e">Correo</label><input id="a-e" name="email" type="email" [(ngModel)]="email" required autocomplete="email"></div>
+        <div class="campo"><label for="a-e">Correo</label><input id="a-e" name="email" type="email" [(ngModel)]="email" required autocomplete="email" placeholder="tu@taller.com"></div>
         <app-campo-clave entrada="a-p" [(valor)]="password" [medidor]="modo() === 'registro'" [personales]="[email, nombre, taller]"
           [autocomplete]="modo() === 'registro' ? 'new-password' : 'current-password'">
-          @if (modo() === 'entrar') { <a etiqueta class="chico float-right font-normal tracking-normal" routerLink="/olvide-contrasena" [queryParams]="email ? { email } : {}">¿La olvidaste?</a> }
+          @if (modo() === 'entrar') { <a etiqueta class="chico float-right font-semibold tracking-normal no-underline hover:underline" routerLink="/olvide-contrasena" [queryParams]="email ? { email } : {}">¿La olvidaste?</a> }
         </app-campo-clave>
         @if (modo() === 'registro') {
-          <label class="fila chico"><input type="checkbox" name="ej" [(ngModel)]="conEjemplos"> Cargar datos de ejemplo para conocer la app</label>
+          <label class="flex items-start gap-2.5 rounded-lg border border-linea bg-superficie-2 px-3 py-2.5 text-[.86rem]">
+            <input class="mt-1" type="checkbox" name="ej" [(ngModel)]="conEjemplos">
+            <span><b class="font-semibold">Cargar datos de ejemplo</b><br><span class="tenue">Clientes, materiales y cotizaciones para conocer la app. Los puedes borrar después.</span></span>
+          </label>
         }
-        @if (error()) { <p class="error">{{ error() }}</p> }
-        <button class="btn pri" [disabled]="cargando()">{{ cargando() ? 'Un momento…' : modo() === 'registro' ? 'Crear cuenta' : 'Entrar' }}</button>
-        <p class="chico tenue text-center">
-          @if (modo() === 'registro') { ¿Ya tienes cuenta? <a routerLink="/entrar">Entra aquí</a> }
-          @else { ¿Aún no tienes cuenta? <a routerLink="/registro">Pruébalo gratis</a> }
-        </p>
+        @if (error()) { <p class="error rounded-lg bg-bad-suave px-3 py-2" role="alert">{{ error() }}</p> }
+        <button class="btn pri mt-1 w-full" [disabled]="cargando()">{{ cargando() ? 'Un momento…' : modo() === 'registro' ? 'Crear mi cuenta gratis' : 'Entrar' }}</button>
+        <div class="my-1 flex items-center gap-3 text-[.8rem] text-tenue" aria-hidden="true"><span class="h-px flex-1 bg-linea"></span>o<span class="h-px flex-1 bg-linea"></span></div>
+        @if (modo() === 'registro') {
+          <a class="btn w-full" routerLink="/entrar">Ya tengo cuenta, entrar</a>
+        } @else {
+          <a class="btn w-full" routerLink="/registro">Crear una cuenta gratis</a>
+        }
+        @if (modo() === 'registro') {
+          <p class="text-center text-[.76rem] text-tenue">Al crear tu cuenta aceptas que te enviemos correos sobre tu cuenta y tu suscripción.</p>
+        }
       </form>
     </app-marco-acceso>
   `,

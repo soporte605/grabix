@@ -13,7 +13,7 @@ Grabix es un producto de **Elikar Systems**. Hereda los colores de Elikar (los m
 
 **Isotipo:** cuadro azul marino redondeado con una **"G" blanca** que un **rayo láser verde** está cortando. El rayo baja hasta la punta de la G, donde está el punto de corte. Así se cuenta en un solo dibujo qué hace el sistema: corte y grabado láser.
 
-**Logotipo:** "Grabix" en Montserrat ExtraBold (800), con un interletrado ligeramente cerrado (-1 %).
+**Logotipo:** "Grabix" en Plus Jakarta Sans ExtraBold (800), con un interletrado cerrado (-2 %).
 
 Reglas:
 - Deja alrededor del isotipo un espacio libre de al menos ¼ de su ancho.
@@ -36,8 +36,7 @@ Son provisionales hasta que Elikar entregue su paleta oficial. Se cambian solo e
 
 ## Tipografías
 
-- **Montserrat** (600–800): títulos y logotipo.
-- **Inter** (400–600): textos e interfaz.
+- **Plus Jakarta Sans** (400–800): una sola familia para todo el sistema. Títulos y logotipo en 700–800 con interletrado cerrado; textos e interfaz en 400–600. Es geométrica pero muy legible en tamaños chicos, y en una sola descarga cubre todo.
 - **JetBrains Mono** (500): importes, folios y cantidades (cifras tabulares).
 
 ## Voz
