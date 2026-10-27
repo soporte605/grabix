@@ -13,3 +13,20 @@ export class LoginDto {
   @IsEmail({}, { message: 'Correo no válido' }) email: string;
   @IsString() password: string;
 }
+
+export class TokenDto {
+  @IsString() @MinLength(10) @MaxLength(200) token: string;
+}
+
+export class OlvideDto {
+  @IsEmail({}, { message: 'Correo no válido' }) email: string;
+}
+
+export class RestablecerDto extends TokenDto {
+  @IsString() @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' }) @MaxLength(100) password: string;
+}
+
+export class CambiarContrasenaDto {
+  @IsString() actual: string;
+  @IsString() @MinLength(8, { message: 'La contraseña nueva debe tener al menos 8 caracteres' }) @MaxLength(100) nueva: string;
+}

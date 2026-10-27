@@ -1,5 +1,5 @@
 # Levanta todo con:  docker compose up -d --build
-# Web:  http://localhost:8080   ·   API: http://localhost:8080/api
+# Web:  http://localhost:8080   ·   API: http://localhost:8080/api   ·   Correos de prueba (Mailpit): http://localhost:8025
 services:
   db:
     image: mysql:8.0
@@ -36,6 +36,21 @@ services:
       JWT_SECRET: ${JWT_SECRET:-cambia-este-secreto}
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
       PAGOS_MODO: ${PAGOS_MODO:-demo}
+      # Correo: con RESEND_API_KEY se usa Resend; si no, el SMTP (por defecto Mailpit, que no entrega a nadie).
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-Grabix <no-responder@grabix.local>}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+
+  # Bandeja de pruebas: atrapa todos los correos que manda la API y los muestra en el navegador.
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_PUERTO:-8025}:8025"
 
   web:
     build: ./frontend

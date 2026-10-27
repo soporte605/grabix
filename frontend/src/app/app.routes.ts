@@ -11,6 +11,10 @@ export const routes: Routes = [
   { path: '', loadComponent: () => import('./pages/landing').then((m) => m.Landing), title: 'Grabix · Software para talleres de corte láser y sublimación' },
   { path: 'entrar', canActivate: [sinSesion], loadComponent: () => import('./pages/acceso').then((m) => m.Acceso), data: { modo: 'entrar' }, title: 'Entrar · Grabix' },
   { path: 'registro', canActivate: [sinSesion], loadComponent: () => import('./pages/acceso').then((m) => m.Acceso), data: { modo: 'registro' }, title: 'Crear cuenta · Grabix' },
+  { path: 'verificar-correo', loadComponent: () => import('./pages/cuenta').then((m) => m.VerificarCorreo), title: 'Confirmar correo · Grabix' },
+  { path: 'olvide-contrasena', loadComponent: () => import('./pages/cuenta').then((m) => m.OlvideContrasena), title: 'Recuperar contraseña · Grabix' },
+  { path: 'restablecer-contrasena', loadComponent: () => import('./pages/cuenta').then((m) => m.Restablecer), data: { modo: 'recuperacion' }, title: 'Nueva contraseña · Grabix' },
+  { path: 'invitacion', loadComponent: () => import('./pages/cuenta').then((m) => m.Restablecer), data: { modo: 'invitacion' }, title: 'Invitación · Grabix' },
   {
     path: 'app',
     canActivate: [conSesion],

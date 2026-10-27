@@ -46,6 +46,15 @@ export class Sucursales implements OnInit {
   e = this.e_.asReadonly();
   async ngOnInit() { this.lista.set(await this.api.get('/sucursales')); }
   editar(x: Sucursal) { this.e_.set({ ...x }); }
+  invitando = signal(false);
+  async invitar(id: number) {
+    this.invitando.set(true);
+    try {
+      await this.api.post(`/usuarios/${id}/invitar`);
+      this.aviso.ok('Invitación reenviada');
+    } catch (err) { this.aviso.error(mensajeError(err)); }
+    finally { this.invitando.set(false); }
+  }
   async guardar() {
     const e = this.e()!;
     const body = { nombre: e.nombre, direccion: e.direccion ?? '', telefono: e.telefono ?? '', activa: e.activa ?? true };
@@ -71,7 +80,7 @@ export class Sucursales implements OnInit {
       @for (u of lista(); track u.id) {
         <button class="renglon" (click)="abrir(u)">
           <span class="t">{{ u.nombre }}</span><span class="d"><span class="pill" [class]="u.activo ? 'acc' : 'mut'">{{ roles[u.rol].nombre }}</span></span>
-          <span class="m">{{ u.email }}</span><span class="d m">{{ sucursal(u.sucursalId) }}</span>
+          <span class="m">{{ u.email }}@if (u.activo && !u.emailVerificado) { · <span class="pend">sin activar</span> }</span><span class="d m">{{ sucursal(u.sucursalId) }}</span>
         </button>
       }
     </div>
@@ -92,15 +101,19 @@ export class Sucursales implements OnInit {
               <select id="u-s" [(ngModel)]="e.sucursalId"><option [ngValue]="null">Todas</option>@for (x of s.perfil()!.sucursales; track x.id) { <option [ngValue]="x.id">{{ x.nombre }}</option> }</select>
             </div>
           }
-          <div class="campo"><label for="u-p">{{ e.id ? 'Nueva contraseña (opcional)' : 'Contraseña inicial' }}</label><input id="u-p" type="password" autocomplete="new-password" [(ngModel)]="e.password"></div>
+          <div class="campo"><label for="u-p">{{ e.id ? 'Nueva contraseña (opcional)' : 'Contraseña inicial (opcional)' }}</label><input id="u-p" type="password" autocomplete="new-password" [(ngModel)]="e.password"></div>
+          @if (!e.id) { <p class="tenue chico todo">Si la dejas vacía, le enviamos un correo de invitación para que cree la suya.</p> }
           @if (e.id) { <label class="fila chico"><input type="checkbox" [(ngModel)]="e.activo"> Activo</label> }
         </div>
         <p class="tenue chico">{{ roles[e.rol].desc }}</p>
-        <ng-container pie><span style="flex:1"></span><button class="btn pri" (click)="guardar()">Guardar</button></ng-container>
+        <ng-container pie>
+          @if (e.id && e.activo && !e.emailVerificado) { <button class="btn" (click)="invitar(e.id)" [disabled]="invitando()">{{ invitando() ? 'Enviando…' : 'Reenviar invitación' }}</button> }
+          <span style="flex:1"></span><button class="btn pri" (click)="guardar()">Guardar</button>
+        </ng-container>
       </app-hoja>
     }
   `,
-  styles: `.roles { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 10px 0 0; } dt { font-weight: 600; } dd { margin: 0; color: var(--tenue); }`,
+  styles: `.pend { color: var(--warn); font-weight: 600; } .roles { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 10px 0 0; } dt { font-weight: 600; } dd { margin: 0; color: var(--tenue); }`,
 })
 export class Usuarios implements OnInit {
   s = inject(SesionService);
@@ -115,19 +128,29 @@ export class Usuarios implements OnInit {
   async ngOnInit() { this.lista.set(await this.api.get('/usuarios')); }
   sucursal(id: number | null) { return id ? this.s.perfil()?.sucursales.find((x) => x.id === id)?.nombre ?? '' : 'Todas las sucursales'; }
   abrir(u?: Usuario) { this.e_.set(u ? { ...u, password: '' } : { nombre: '', email: '', rol: 'vendedor', sucursalId: this.s.sucursal(), activo: true, password: '' }); }
+  invitando = signal(false);
+  async invitar(id: number) {
+    this.invitando.set(true);
+    try {
+      await this.api.post(`/usuarios/${id}/invitar`);
+      this.aviso.ok('Invitación reenviada');
+    } catch (err) { this.aviso.error(mensajeError(err)); }
+    finally { this.invitando.set(false); }
+  }
   async guardar() {
     const e = this.e()!;
     const body = { nombre: e.nombre, email: e.email, rol: e.rol, sucursalId: e.sucursalId, activo: e.activo, ...(e.password ? { password: e.password } : {}) };
     try {
-      if (e.id) await this.api.put(`/usuarios/${e.id}`, body); else await this.api.post('/usuarios', body);
+      const r = e.id ? await this.api.put<{ invitado?: boolean }>(`/usuarios/${e.id}`, body) : await this.api.post<{ invitado?: boolean }>('/usuarios', body);
       this.e_.set(null);
       this.lista.set(await this.api.get('/usuarios'));
-      this.aviso.ok('Usuario guardado');
+      this.aviso.ok(r.invitado ? `Invitación enviada a ${e.email}` : 'Usuario guardado');
     } catch (err) { this.aviso.error(mensajeError(err)); }
   }
 }
 
 const ACCIONES: Record<string, string> = {
+  invitar: 'Reenvió invitación a',
   crear: 'Creó', actualizar: 'Modificó', eliminar: 'Eliminó', desactivar: 'Desactivó', estado: 'Cambió estado de', pago: 'Registró pago en',
   'ajuste-inventario': 'Ajustó inventario de', traspaso: 'Traspasó', 'activar-plan': 'Activó plan',
 };

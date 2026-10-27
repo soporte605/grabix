@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { AvisoService } from './core/aviso.service';
+import { AvisoService, mensajeError } from './core/aviso.service';
 import { Rol } from './core/modelos';
 import { SesionService } from './core/sesion.service';
 import { Icono } from './ui/icono';
@@ -54,6 +54,12 @@ const MENU: Item[] = [
           </div>
           <span class="tenue chico usuario">{{ s.perfil()?.usuario?.nombre }}</span>
         </div>
+        @if (s.perfil()?.usuario?.emailVerificado === false) {
+          <div class="banner correo">
+            <span>Confirma tu correo <b>{{ s.perfil()!.usuario.email }}</b> con el enlace que te enviamos.</span>
+            <button class="enlace" (click)="reenviar()" [disabled]="reenviando()">{{ reenviando() ? 'Enviando…' : 'Reenviar enlace' }}</button>
+          </div>
+        }
         @if (aviso(); as a) {
           <div class="banner" [class.vencido]="!a.vigente">
             {{ a.texto }}
@@ -106,6 +112,8 @@ const MENU: Item[] = [
     .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     .usuario { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .banner { margin: 12px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); padding: 10px 14px; border-radius: 10px; background: var(--acento-suave); font-size: .88rem; display: flex; gap: 10px; flex-wrap: wrap; }
+    .banner.correo { background: var(--marca-suave); align-items: center; }
+    .enlace { background: none; border: 0; padding: 0; color: var(--marca); font-weight: 700; text-decoration: underline; cursor: pointer; }
     .banner.vencido { background: var(--bad-suave); color: var(--bad); }
     .pestanas { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(5, 1fr); background: var(--superficie); border-top: 1px solid var(--linea);
       padding: 6px max(6px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(6px, env(safe-area-inset-left, 0px)); }
@@ -135,6 +143,20 @@ export class Shell {
     if (x.estado === 'prueba') return { vigente: true, texto: `Prueba gratuita: te quedan ${x.diasRestantes} días.` };
     return null;
   });
+
+  reenviando = signal(false);
+  async reenviar() {
+    this.reenviando.set(true);
+    try {
+      const r = await this.s.reenviarActivacion();
+      if (r.yaVerificado) await this.s.cargar();
+      else this.avisos.ok('Listo, revisa tu correo (y la carpeta de spam)');
+    } catch (e) {
+      this.avisos.error(mensajeError(e));
+    } finally {
+      this.reenviando.set(false);
+    }
+  }
 
   cambiarSucursal(v: string) {
     this.s.elegirSucursal(v ? Number(v) : null);

@@ -4,6 +4,7 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
+import { CorreoModule } from './correo/correo.service';
 import { CatalogoModule } from './catalogo/catalogo.module';
 import { AuthGuard } from './common/auth.guard';
 import { BitacoraModule } from './common/bitacora.service';
@@ -36,6 +37,7 @@ import { OrganizacionModule } from './organizacion/organizacion.module';
       signOptions: { expiresIn: '7d' },
     }),
     BitacoraModule,
+    CorreoModule,
     CatalogoModule,
     OrganizacionModule,
     AuthModule,

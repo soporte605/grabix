@@ -39,6 +39,17 @@ import { SesionService } from '../core/sesion.service';
         </section>
         <div><button class="btn pri" (click)="guardar()">Guardar ajustes</button></div>
 
+        <form class="caja" (ngSubmit)="cambiarClave()">
+          <h3>Tu contraseña</h3>
+          <input type="email" name="usuario" [value]="s.perfil()?.usuario?.email" autocomplete="username" hidden>
+          <div class="campos c3">
+            <div class="campo"><label for="c-a">Contraseña actual</label><input id="c-a" name="actual" type="password" autocomplete="current-password" [(ngModel)]="clave.actual"></div>
+            <div class="campo"><label for="c-n">Contraseña nueva</label><input id="c-n" name="nueva" type="password" autocomplete="new-password" minlength="8" [(ngModel)]="clave.nueva"></div>
+            <div class="campo"><label for="c-n2">Repite la nueva</label><input id="c-n2" name="nueva2" type="password" autocomplete="new-password" [(ngModel)]="clave.nueva2"></div>
+          </div>
+          <div class="fila"><button class="btn">Cambiar contraseña</button><span class="tenue chico">Se cerrará tu sesión en otros dispositivos.</span></div>
+        </form>
+
         @if (s.perfil()?.suscripcion; as x) {
           <section class="caja">
             <h3>Tu plan</h3>
@@ -89,6 +100,17 @@ export class Ajustes implements OnInit {
       });
       await this.s.cargar();
       this.aviso.ok('Ajustes guardados');
+    } catch (e) { this.aviso.error(mensajeError(e)); }
+  }
+  clave = { actual: '', nueva: '', nueva2: '' };
+  async cambiarClave() {
+    const c = this.clave;
+    if (c.nueva.length < 8) return this.aviso.error('La contraseña nueva debe tener al menos 8 caracteres');
+    if (c.nueva !== c.nueva2) return this.aviso.error('Las contraseñas nuevas no coinciden');
+    try {
+      await this.s.cambiarContrasena(c.actual, c.nueva);
+      this.clave = { actual: '', nueva: '', nueva2: '' };
+      this.aviso.ok('Contraseña cambiada');
     } catch (e) { this.aviso.error(mensajeError(e)); }
   }
   async pagar(plan: string) {

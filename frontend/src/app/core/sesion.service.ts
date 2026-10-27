@@ -35,6 +35,35 @@ export class SesionService {
     this.aplicar(await firstValueFrom(this.http.post<Perfil & { token: string }>('/api/auth/registro', datos)));
   }
 
+  /** Confirma el correo con el enlace que llegó por correo. */
+  async verificarCorreo(token: string) {
+    await firstValueFrom(this.http.post('/api/auth/correo/verificar', { token }));
+    if (this.token()) await this.cargar();
+  }
+
+  reenviarActivacion() {
+    return firstValueFrom(this.http.post<{ enviado?: boolean; yaVerificado?: boolean }>('/api/auth/correo/reenviar', {}));
+  }
+
+  olvide(email: string) {
+    return firstValueFrom(this.http.post('/api/auth/contrasena/olvide', { email }));
+  }
+
+  /** A quién pertenece un enlace de recuperación o invitación. */
+  enlace(token: string) {
+    return firstValueFrom(this.http.post<{ tipo: 'recuperacion' | 'invitacion'; nombre: string; email: string; taller: string }>('/api/auth/contrasena/enlace', { token }));
+  }
+
+  /** Guarda la contraseña nueva desde el enlace y deja la sesión iniciada. */
+  async restablecer(token: string, password: string) {
+    this.aplicar(await firstValueFrom(this.http.post<Perfil & { token: string }>('/api/auth/contrasena/restablecer', { token, password })));
+  }
+
+  /** Cambia la contraseña con sesión; las demás sesiones se cierran y esta recibe un token nuevo. */
+  async cambiarContrasena(actual: string, nueva: string) {
+    this.aplicar(await firstValueFrom(this.http.post<Perfil & { token: string }>('/api/auth/contrasena', { actual, nueva })));
+  }
+
   /** Recarga el perfil (rol, sucursales, suscripción). Devuelve false si la sesión ya no es válida. */
   async cargar(): Promise<boolean> {
     if (!this.token()) return false;

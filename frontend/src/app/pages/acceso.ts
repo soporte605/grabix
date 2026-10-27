@@ -4,6 +4,19 @@ import { Router, RouterLink } from '@angular/router';
 import { mensajeError } from '../core/aviso.service';
 import { SesionService } from '../core/sesion.service';
 
+/** Estilos compartidos por las pantallas de cuenta (entrar, registro, recuperar, invitación). */
+export const ESTILOS_ACCESO = `
+    main { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+      padding: 32px max(16px, env(safe-area-inset-right, 0px)) 32px max(16px, env(safe-area-inset-left, 0px)); background: linear-gradient(180deg, var(--marca-suave), var(--fondo)); }
+    :host { display: block; height: 100%; }
+    .logo { display: flex; align-items: center; gap: 9px; font: 800 1.4rem var(--f-titulo); color: var(--tinta); text-decoration: none; }
+    .marca-ico { width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(180deg, var(--marca) 0 72%, var(--acento) 72%); }
+    form { width: 100%; max-width: 420px; padding: 24px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--sombra); }
+    h1 { font-size: 1.4rem; } p { margin: 0; }
+    .centro { text-align: center; }
+    .ok { color: var(--ok); background: var(--ok-suave); padding: 10px 12px; border-radius: 8px; }
+`;
+
 /** Inicio de sesión y registro de un taller nuevo (misma pantalla, dos modos). */
 @Component({
   selector: 'app-acceso',
@@ -22,7 +35,7 @@ import { SesionService } from '../core/sesion.service';
           <h1>Entra a tu taller</h1>
         }
         <div class="campo"><label for="a-e">Correo</label><input id="a-e" name="email" type="email" [(ngModel)]="email" required autocomplete="email"></div>
-        <div class="campo"><label for="a-p">Contraseña</label><input id="a-p" name="pass" type="password" [(ngModel)]="password" required [attr.autocomplete]="modo() === 'registro' ? 'new-password' : 'current-password'"></div>
+        <div class="campo"><div class="fila entre"><label for="a-p">Contraseña</label>@if (modo() === 'entrar') { <a class="chico" routerLink="/olvide-contrasena" [queryParams]="email ? { email } : {}">¿La olvidaste?</a> }</div><input id="a-p" name="pass" type="password" [(ngModel)]="password" required [attr.minlength]="modo() === 'registro' ? 8 : null" [attr.autocomplete]="modo() === 'registro' ? 'new-password' : 'current-password'"></div>
         @if (modo() === 'registro') {
           <label class="fila chico"><input type="checkbox" name="ej" [(ngModel)]="conEjemplos"> Cargar datos de ejemplo para conocer la app</label>
         }
@@ -35,16 +48,7 @@ import { SesionService } from '../core/sesion.service';
       </form>
     </main>
   `,
-  styles: `
-    main { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
-      padding: 32px max(16px, env(safe-area-inset-right, 0px)) 32px max(16px, env(safe-area-inset-left, 0px)); background: linear-gradient(180deg, var(--marca-suave), var(--fondo)); }
-    :host { display: block; height: 100%; }
-    .logo { display: flex; align-items: center; gap: 9px; font: 800 1.4rem var(--f-titulo); color: var(--tinta); text-decoration: none; }
-    .marca-ico { width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(180deg, var(--marca) 0 72%, var(--acento) 72%); }
-    form { width: 100%; max-width: 420px; padding: 24px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--sombra); }
-    h1 { font-size: 1.4rem; } p { margin: 0; }
-    .centro { text-align: center; }
-  `,
+  styles: ESTILOS_ACCESO,
 })
 export class Acceso {
   private sesion = inject(SesionService);

@@ -9,7 +9,7 @@ export interface Taller {
   plan: string; estadoSuscripcion: string; pruebaHasta: string | null; pagadoHasta: string | null;
 }
 export interface Sucursal { id: number; nombre: string; direccion: string; telefono: string; activa: boolean }
-export interface Usuario { id: number; nombre: string; email: string; rol: Rol; sucursalId: number | null; activo?: boolean }
+export interface Usuario { id: number; nombre: string; email: string; rol: Rol; sucursalId: number | null; activo?: boolean; emailVerificado?: boolean }
 export interface Plan { id: string; nombre: string; precioMensual: number; precioAnual: number; sucursales: number; usuarios: number; incluye: string[] }
 export interface Suscripcion {
   plan: string; estado: string; vigente: boolean; vence: string | null; diasRestantes: number | null;

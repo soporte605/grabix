@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Put, Query } from '@nestjs/common';
+import { Body, HttpCode, Controller, Get, Param, ParseIntPipe, Patch, Post, Put, Query } from '@nestjs/common';
 import { Rol } from '../entities';
 import { GERENCIA, Roles, Ses, type Sesion, SinSuscripcion } from '../common/sesion';
 import { ActivarPlanDto, SucursalDto, TallerDto, UsuarioDto } from './organizacion.dto';
@@ -51,6 +51,11 @@ export class OrganizacionController {
   @Put('usuarios/:id') @Roles(...GERENCIA)
   editarUsuario(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number, @Body() dto: UsuarioDto) {
     return this.org.guardarUsuario(s, dto, id);
+  }
+
+  @Post('usuarios/:id/invitar') @Roles(...GERENCIA) @HttpCode(200)
+  invitar(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number) {
+    return this.org.invitar(s, id);
   }
 
   @Get('bitacora') @Roles(...GERENCIA)

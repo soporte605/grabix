@@ -1,5 +1,7 @@
-// Prueba rápida de punta a punta contra la API: node scripts/smoke.mjs [http://localhost:3000/api]
+// Prueba rápida de punta a punta contra la API: node scripts/smoke.mjs [http://localhost:3000/api] [http://localhost:8025]
+// El segundo parámetro es Mailpit (viene en docker compose) para leer los correos de activación, recuperación e invitación.
 const API = process.argv[2] ?? 'http://localhost:3000/api';
+const MAILPIT = process.argv[3] ?? 'http://localhost:8025';
 let token = '';
 let sucursal = '';
 async function api(method, path, body, t = token) {
@@ -12,6 +14,19 @@ async function api(method, path, body, t = token) {
   const data = ct.includes('json') ? await r.json() : await r.arrayBuffer();
   return { status: r.status, data };
 }
+/** Busca el último correo enviado a `para` con el asunto indicado y devuelve su texto. */
+async function correo(para, asunto) {
+  for (let i = 0; i < 20; i++) {
+    const q = await (await fetch(`${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${para}" subject:"${asunto}"`)}`)).json();
+    if (q.messages?.length) {
+      const m = await (await fetch(`${MAILPIT}/api/v1/message/${q.messages[0].ID}`)).json();
+      return m.Text;
+    }
+    await new Promise((res) => setTimeout(res, 250));
+  }
+  return '';
+}
+const tokenDeCorreo = async (para, asunto) => (await correo(para, asunto)).match(/token=([\w-]+)/)?.[1];
 const ok = (c, m) => { if (!c) { console.error('✗', m); process.exitCode = 1; } else console.log('✓', m); };
 
 const email = `dueno${Date.now()}@ejemplo.com`;
@@ -20,6 +35,20 @@ ok(r.status === 201 && r.data.token, 'registro con datos de ejemplo');
 token = r.data.token;
 sucursal = String(r.data.sucursales[0].id);
 ok(r.data.suscripcion.vigente && r.data.suscripcion.estado === 'prueba', 'prueba gratuita vigente');
+ok(r.data.usuario.emailVerificado === false, 'la cuenta entra sin confirmar el correo');
+
+r = await api('POST', '/usuarios', { nombre: 'Antes de confirmar', email: 'x' + email, rol: 'vendedor' });
+ok(r.status === 403 && r.data.code === 'EMAIL_NO_VERIFICADO', 'invitar usuarios pide correo confirmado');
+r = await api('POST', '/auth/correo/reenviar');
+ok(r.status === 429, 'reenviar la activación tiene espera de un minuto');
+const tAct = await tokenDeCorreo(email, 'Confirma tu correo');
+ok(!!tAct, 'llegó el correo de activación');
+r = await api('POST', '/auth/correo/verificar', { token: tAct }, '');
+ok(r.status === 200, 'correo confirmado con el enlace');
+r = await api('POST', '/auth/correo/verificar', { token: tAct }, '');
+ok(r.status === 400, 'el enlace de activación no se puede reusar');
+r = await api('GET', '/auth/yo');
+ok(r.data.usuario.emailVerificado === true, 'el perfil ya aparece confirmado');
 
 r = await api('GET', '/productos');
 const prods = r.data;
@@ -79,6 +108,35 @@ ok(r.status === 403, 'el vendedor no puede ver compras');
 r = await api('GET', '/estadisticas', null, tv);
 ok(r.status === 403, 'el vendedor no ve estadísticas');
 sucursal = sucGuardada;
+
+// Invitación: el usuario se crea sin contraseña y la elige desde el correo.
+const emailInv = 'p' + email;
+r = await api('POST', '/usuarios', { nombre: 'Producción', email: emailInv, rol: 'produccion', sucursalId: suc2 });
+ok(r.status === 201 && r.data.invitado === true, 'usuario invitado por correo');
+const tInv = await tokenDeCorreo(emailInv, 'te invitó');
+r = await api('POST', '/auth/contrasena/enlace', { token: tInv }, '');
+ok(r.data.tipo === 'invitacion' && r.data.taller === 'Taller de prueba', 'el enlace de invitación muestra el taller');
+r = await api('POST', '/auth/contrasena/restablecer', { token: tInv, password: 'nueva-clave-1' }, '');
+ok(r.status === 200 && r.data.token && r.data.usuario.emailVerificado, 'invitación aceptada y sesión iniciada');
+
+// Recuperación de contraseña
+r = await api('POST', '/auth/contrasena/olvide', { email: 'nadie@ejemplo.com' }, '');
+ok(r.status === 204, 'olvidé contraseña no revela si el correo existe');
+const tViejo = token;
+r = await api('POST', '/auth/contrasena/olvide', { email }, '');
+const tRec = await tokenDeCorreo(email, 'Restablece tu contraseña');
+ok(r.status === 204 && !!tRec, 'llegó el correo de recuperación');
+await new Promise((res) => setTimeout(res, 1100));
+r = await api('POST', '/auth/contrasena/restablecer', { token: tRec, password: 'otra-clave-22' }, '');
+ok(r.status === 200 && r.data.token, 'contraseña restablecida');
+token = r.data.token;
+r = await api('POST', '/auth/contrasena/restablecer', { token: tRec, password: 'otra-clave-33' }, '');
+ok(r.status === 400, 'el enlace de recuperación funciona una sola vez');
+r = await api('GET', '/auth/yo', null, tViejo);
+ok(r.status === 401, 'las sesiones anteriores se cerraron');
+r = await api('POST', '/auth/login', { email, password: 'otra-clave-22' }, '');
+ok(r.status === 200, 'entra con la contraseña nueva');
+ok((await correo(email, 'Tu contraseña de Grabix cambió')).includes('cambió'), 'aviso de contraseña cambiada');
 
 r = await api('GET', '/bitacora');
 ok(r.data.length > 5, `bitácora con ${r.data.length} registros`);

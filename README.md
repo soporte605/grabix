@@ -7,7 +7,8 @@ Sistema por suscripción para talleres de **corte/grabado láser y sublimación*
 | `frontend/` | Angular 20 (componentes standalone + signals) |
 | `backend/` | NestJS 11 + TypeORM |
 | Base de datos | MySQL 8 |
-| Despliegue | Docker Compose (MySQL + API + Nginx) |
+| Correo | Resend (producción) o SMTP; Mailpit en desarrollo |
+| Despliegue | Docker Compose (MySQL + API + Nginx + Mailpit) |
 
 ## Levantarlo con Docker
 
@@ -18,6 +19,7 @@ docker compose up -d --build
 
 - App: http://localhost:8080
 - API: http://localhost:8080/api
+- Correos de prueba (Mailpit): http://localhost:8025
 - MySQL desde tu máquina: `localhost:3307` (usuario y contraseña del `.env`)
 
 Al registrarte puedes marcar "Cargar datos de ejemplo" para ver la app con información.
@@ -26,14 +28,17 @@ Al registrarte puedes marcar "Cargar datos de ejemplo" para ver la app con infor
 
 ```bash
 docker compose up -d db                       # solo MySQL
+docker compose up -d mailpit                  # bandeja de correos en :8025 (SMTP en :1025, ver nota)
 cd backend && npm install && DB_PORT=3307 DB_SYNC=true PAGOS_MODO=demo npm run start:dev
 cd frontend && npm install && npm start       # http://localhost:4200 (proxy a la API en :3000)
 ```
 
-Prueba de punta a punta de la API (registro, cotización, venta, inventario, roles):
+Sin `SMTP_HOST` ni `RESEND_API_KEY`, la API escribe los correos en la consola. Para verlos en Mailpit sin Docker en la API, publica el puerto 1025 del contenedor y usa `SMTP_HOST=localhost SMTP_PORT=1025`.
+
+Prueba de punta a punta de la API (registro, correos, cotización, venta, inventario, roles):
 
 ```bash
-node scripts/smoke.mjs http://localhost:3000/api
+node scripts/smoke.mjs http://localhost:8080/api http://localhost:8025
 ```
 
 ## Cómo está organizado
@@ -58,13 +63,21 @@ node scripts/smoke.mjs http://localhost:3000/api
 - Folios consecutivos por taller (`COT-0001`, `VTA-0001`, `CMP-0001`) con bloqueo para ventas simultáneas.
 - El PDF se genera en el servidor (pdfkit). WhatsApp abre `wa.me` con el resumen y una **liga pública al PDF** (`/api/publico/documentos/<token>.pdf`), así el cliente lo abre sin cuenta.
 
+### Cuenta y correos
+Igual que FincaPro y SiloPro:
+- Al **registrarse** se entra de inmediato y llega un correo de bienvenida con el botón **Confirmar mi correo** (vence en 48 h). Mientras no se confirma, la app muestra un aviso con "Reenviar" (máximo uno por minuto). Elegir plan e invitar usuarios piden el correo confirmado (`403` con `code: EMAIL_NO_VERIFICADO`).
+- **Olvidé mi contraseña**: el enlace vence en 1 hora y funciona una sola vez; la respuesta es igual exista o no el correo. Al restablecer o cambiar la contraseña se cierran las demás sesiones y llega un aviso.
+- **Invitaciones**: al crear un usuario sin contraseña, recibe un correo para crearla (vence en 7 días). Se puede reenviar desde Usuarios.
+- Los enlaces se guardan como hash SHA-256 en `tokens_cuenta`; cada correo enviado, simulado o fallido queda en `correos_log`.
+- Proveedor: **Resend** si hay `RESEND_API_KEY`; si no, **SMTP** (Gmail, Brevo, SES o Mailpit); si no hay ninguno, solo se escribe en el log. Plantillas en `backend/src/correo/correo.service.ts`.
+
 ### Suscripción
 - Registro = **14 días de prueba**. Planes en `backend/src/common/suscripcion.ts`.
 - Con la suscripción vencida se puede consultar, pero no registrar (HTTP 402).
 - `PAGOS_MODO=demo` activa planes sin cobrar. **Pendiente:** conectar Stripe o Mercado Pago (webhook que llame a la activación).
 
 ## Identidad visual
-Colores y fuentes están en un solo lugar: el bloque `:root` de `frontend/src/styles.scss` (fuentes de Google: Montserrat, Inter, JetBrains Mono). Los colores del PDF se ajustan con `PDF_COLOR_ACENTO` y `PDF_COLOR_SECUNDARIO`.
+Colores de Elikar Systems (azul marino `#002150` y verde `#67BE28`, los mismos de SiloPro; provisionales hasta tener la paleta oficial). Colores y fuentes están en un solo lugar: el bloque `:root` de `frontend/src/styles.scss` (fuentes de Google: Montserrat, Inter, JetBrains Mono). Los colores del PDF se ajustan con `PDF_COLOR_ACENTO` y `PDF_COLOR_SECUNDARIO`.
 
 ## Antes de producción
 - `DB_SYNC=false` y migraciones de TypeORM.

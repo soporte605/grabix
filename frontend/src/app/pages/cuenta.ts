@@ -1,0 +1,178 @@
+import { Component, inject, input, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import { mensajeError } from '../core/aviso.service';
+import { SesionService } from '../core/sesion.service';
+import { ESTILOS_ACCESO } from './acceso';
+
+/** Abre el enlace de confirmación que llega por correo al registrarse. */
+@Component({
+  selector: 'app-verificar-correo',
+  imports: [RouterLink],
+  template: `
+    <main>
+      <a class="logo" routerLink="/"><span class="marca-ico"></span>Grabix</a>
+      <form class="tarjeta" (submit)="$event.preventDefault()">
+        @switch (estado()) {
+          @case ('cargando') { <h1>Confirmando tu correo…</h1> }
+          @case ('ok') {
+            <h1>¡Correo confirmado!</h1>
+            <p class="ok">Ya puedes invitar a tu equipo, elegir un plan y recuperar tu contraseña si la olvidas.</p>
+            <a class="btn pri" [routerLink]="s.token() ? '/app' : '/entrar'">{{ s.token() ? 'Ir a mi taller' : 'Entrar' }}</a>
+          }
+          @case ('error') {
+            <h1>No pudimos confirmar tu correo</h1>
+            <p class="error">{{ error() }}</p>
+            @if (s.token()) {
+              <p class="tenue chico">Pide otro enlace desde el aviso amarillo dentro de tu taller.</p>
+              <a class="btn pri" routerLink="/app">Ir a mi taller</a>
+            } @else {
+              <p class="tenue chico">Entra a tu cuenta y pide otro enlace desde el aviso de la parte superior.</p>
+              <a class="btn pri" routerLink="/entrar">Entrar</a>
+            }
+          }
+        }
+      </form>
+    </main>
+  `,
+  styles: ESTILOS_ACCESO,
+})
+export class VerificarCorreo implements OnInit {
+  s = inject(SesionService);
+  token = input('');
+  estado = signal<'cargando' | 'ok' | 'error'>('cargando');
+  error = signal('');
+
+  async ngOnInit() {
+    try {
+      await this.s.verificarCorreo(this.token());
+      this.estado.set('ok');
+    } catch (e) {
+      this.error.set(mensajeError(e));
+      this.estado.set('error');
+    }
+  }
+}
+
+/** Pide el correo para mandar el enlace de recuperación. */
+@Component({
+  selector: 'app-olvide',
+  imports: [FormsModule, RouterLink],
+  template: `
+    <main>
+      <a class="logo" routerLink="/"><span class="marca-ico"></span>Grabix</a>
+      <form class="tarjeta" (ngSubmit)="enviar()">
+        <h1>Recupera tu contraseña</h1>
+        @if (enviado()) {
+          <p class="ok">Si <b>{{ correo }}</b> tiene una cuenta, te llegará un correo con un enlace para crear una contraseña nueva. Vence en 1 hora.</p>
+          <p class="tenue chico">¿No lo ves? Revisa la carpeta de spam o promociones.</p>
+          <a class="btn" routerLink="/entrar">Volver a entrar</a>
+        } @else {
+          <p class="tenue">Escribe el correo con el que entras y te mandamos un enlace.</p>
+          <div class="campo"><label for="o-e">Correo</label><input id="o-e" name="email" type="email" [(ngModel)]="correo" required autocomplete="email"></div>
+          @if (error()) { <p class="error">{{ error() }}</p> }
+          <button class="btn pri" [disabled]="cargando()">{{ cargando() ? 'Enviando…' : 'Enviar enlace' }}</button>
+          <p class="chico tenue centro"><a routerLink="/entrar">Volver a entrar</a></p>
+        }
+      </form>
+    </main>
+  `,
+  styles: ESTILOS_ACCESO,
+})
+export class OlvideContrasena implements OnInit {
+  private s = inject(SesionService);
+  email = input('');
+  correo = '';
+  enviado = signal(false);
+  cargando = signal(false);
+  error = signal('');
+
+  ngOnInit() { this.correo = this.email(); }
+
+  async enviar() {
+    this.error.set('');
+    this.cargando.set(true);
+    try {
+      await this.s.olvide(this.correo);
+      this.enviado.set(true);
+    } catch (e) {
+      this.error.set(mensajeError(e));
+    } finally {
+      this.cargando.set(false);
+    }
+  }
+}
+
+/** Crear contraseña desde un enlace de recuperación o de invitación. Al terminar deja la sesión iniciada. */
+@Component({
+  selector: 'app-restablecer',
+  imports: [FormsModule, RouterLink],
+  template: `
+    <main>
+      <a class="logo" routerLink="/"><span class="marca-ico"></span>Grabix</a>
+      <form class="tarjeta" (ngSubmit)="guardar()">
+        @if (datos(); as d) {
+          @if (d.tipo === 'invitacion') {
+            <h1>Bienvenido a {{ d.taller }}</h1>
+            <p class="tenue">Hola {{ d.nombre }}, crea tu contraseña para entrar con <b>{{ d.email }}</b>.</p>
+          } @else {
+            <h1>Crea una contraseña nueva</h1>
+            <p class="tenue">Para la cuenta <b>{{ d.email }}</b>.</p>
+          }
+          <input type="email" name="usuario" [value]="d.email" autocomplete="username" hidden>
+          <div class="campo"><label for="r-p">Contraseña nueva</label><input id="r-p" name="pass" type="password" [(ngModel)]="password" required minlength="8" autocomplete="new-password"></div>
+          <div class="campo"><label for="r-p2">Repite la contraseña</label><input id="r-p2" name="pass2" type="password" [(ngModel)]="password2" required autocomplete="new-password"></div>
+          <p class="tenue chico">Mínimo 8 caracteres.</p>
+          @if (error()) { <p class="error">{{ error() }}</p> }
+          <button class="btn pri" [disabled]="cargando()">{{ cargando() ? 'Guardando…' : d.tipo === 'invitacion' ? 'Crear contraseña y entrar' : 'Guardar y entrar' }}</button>
+        } @else if (invalido()) {
+          <h1>Este enlace ya no sirve</h1>
+          <p class="error">{{ invalido() }}</p>
+          @if (modo() === 'invitacion') {
+            <p class="tenue chico">Pídele a quien te invitó que te reenvíe la invitación desde Usuarios.</p>
+          } @else {
+            <a class="btn pri" routerLink="/olvide-contrasena">Pedir otro enlace</a>
+          }
+        } @else {
+          <h1>Revisando el enlace…</h1>
+        }
+      </form>
+    </main>
+  `,
+  styles: ESTILOS_ACCESO,
+})
+export class Restablecer implements OnInit {
+  private s = inject(SesionService);
+  private router = inject(Router);
+  token = input('');
+  modo = input<'recuperacion' | 'invitacion'>('recuperacion');
+  datos = signal<{ tipo: 'recuperacion' | 'invitacion'; nombre: string; email: string; taller: string } | null>(null);
+  invalido = signal('');
+  password = '';
+  password2 = '';
+  cargando = signal(false);
+  error = signal('');
+
+  async ngOnInit() {
+    try {
+      this.datos.set(await this.s.enlace(this.token()));
+    } catch (e) {
+      this.invalido.set(mensajeError(e));
+    }
+  }
+
+  async guardar() {
+    this.error.set('');
+    if (this.password.length < 8) return this.error.set('La contraseña debe tener al menos 8 caracteres');
+    if (this.password !== this.password2) return this.error.set('Las contraseñas no coinciden');
+    this.cargando.set(true);
+    try {
+      await this.s.restablecer(this.token(), this.password);
+      this.router.navigateByUrl('/app');
+    } catch (e) {
+      this.error.set(mensajeError(e));
+    } finally {
+      this.cargando.set(false);
+    }
+  }
+}

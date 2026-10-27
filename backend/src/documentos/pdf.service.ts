@@ -10,8 +10,8 @@ const TINTA = '#13222b';
 const GRIS = '#5a6a74';
 const LINEA = '#d6dee2';
 /** Colores de marca; se reemplazan al definir la identidad visual. */
-const ACENTO = process.env.PDF_COLOR_ACENTO ?? '#0b5c8a';
-const SEGUNDO = process.env.PDF_COLOR_SECUNDARIO ?? '#f08a24';
+const ACENTO = process.env.PDF_COLOR_ACENTO ?? '#002150';
+const SEGUNDO = process.env.PDF_COLOR_SECUNDARIO ?? '#67BE28';
 
 export const fmtFecha = (f?: string | null) => (f ? String(f).slice(0, 10).split('-').reverse().join('/') : '');
 

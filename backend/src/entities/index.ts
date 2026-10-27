@@ -99,6 +99,38 @@ export class Usuario {
   /** null = acceso a todas las sucursales. */
   @Column({ type: 'int', nullable: true }) sucursalId: number | null;
   @Column({ default: true }) activo: boolean;
+  /** Se confirma con el enlace de activación o al aceptar una invitación. */
+  @Column({ default: false }) emailVerificado: boolean;
+  /** Las sesiones emitidas antes de esta fecha dejan de valer (cambio o restablecimiento de contraseña). */
+  @Column({ type: 'datetime', precision: 3, nullable: true }) claveCambiadaEn: Date | null;
+  @CreateDateColumn() creadoEn: Date;
+}
+
+/** Enlaces de un solo uso enviados por correo. Se guarda solo el hash del token. */
+@Entity('tokens_cuenta')
+export class TokenCuenta {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() usuarioId: number;
+  /** activacion | recuperacion | invitacion */
+  @Column({ length: 20 }) tipo: string;
+  @Index({ unique: true }) @Column({ length: 64 }) hash: string;
+  @Column({ type: 'datetime' }) expira: Date;
+  @Column({ type: 'datetime', nullable: true }) usado: Date | null;
+  @CreateDateColumn() creadoEn: Date;
+}
+
+/** Registro de cada correo que sale (o falla) para poder revisar entregas. */
+@Entity('correos_log')
+export class CorreoLog {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column({ length: 160 }) para: string;
+  @Column({ length: 200 }) asunto: string;
+  /** activacion | recuperacion | invitacion | contrasena_cambiada */
+  @Column({ length: 30 }) tipo: string;
+  /** enviado | fallido | simulado (sin proveedor configurado) */
+  @Column({ length: 12 }) estado: string;
+  @Column({ length: 12 }) proveedor: string;
+  @Column({ type: 'text', nullable: true }) error: string | null;
   @CreateDateColumn() creadoEn: Date;
 }
 
@@ -335,6 +367,8 @@ export const ENTIDADES = [
   Taller,
   Sucursal,
   Usuario,
+  TokenCuenta,
+  CorreoLog,
   Producto,
   ProductoComponente,
   Existencia,

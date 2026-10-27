@@ -1,14 +1,16 @@
 /* =========================================================================
    IDENTIDAD VISUAL
    Todos los colores y fuentes de la app salen de estas variables.
-   Para aplicar la marca (Elikar Systems) basta con cambiar este bloque.
+   Colores de Elikar Systems (azul marino + verde), los mismos que usan SiloPro y
+   FincaPro, tomados de elikarsystems.com. Si Elikar entrega una paleta oficial,
+   basta con cambiar este bloque.
    ========================================================================= */
 :root {
-  --marca: #0b5c8a;          /* color principal */
-  --marca-2: #0a4466;        /* principal oscuro (hover, encabezados) */
-  --marca-suave: #e1eef6;
-  --acento: #f08a24;         /* color secundario */
-  --acento-suave: #fdeedd;
+  --marca: #002150;          /* color principal: azul marino Elikar */
+  --marca-2: #001536;        /* principal oscuro (hover) */
+  --marca-suave: #e6ecf4;
+  --acento: #67be28;         /* color secundario: verde Elikar */
+  --acento-suave: #edf7e4;
   --sobre-marca: #ffffff;
 
   --fondo: #f2f5f8;
@@ -54,7 +56,7 @@ h3 { font-size: .95rem; font-weight: 700; }
 .btn:disabled { opacity: .55; cursor: default; }
 .btn.pri { background: var(--marca); border-color: var(--marca); color: var(--sobre-marca); }
 .btn.pri:hover { background: var(--marca-2); }
-.btn.sec { background: var(--acento); border-color: var(--acento); color: #fff; }
+.btn.sec { background: var(--acento); border-color: var(--acento); color: var(--marca); }
 .btn.wa { background: var(--wa); border-color: var(--wa); color: #fff; }
 .btn.peligro { color: var(--bad); }
 .btn.peligro.armado { background: var(--bad); border-color: var(--bad); color: #fff; }

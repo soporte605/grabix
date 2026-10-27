@@ -32,7 +32,7 @@ export class AuthGuard implements CanActivate {
     const req = ctx.switchToHttp().getRequest();
     const [tipo, token] = String(req.headers.authorization ?? '').split(' ');
     if (tipo !== 'Bearer' || !token) throw new UnauthorizedException('Inicia sesión para continuar');
-    let payload: { sub: number };
+    let payload: { sub: number; iat?: number };
     try {
       payload = await this.jwt.verifyAsync(token);
     } catch {
@@ -40,6 +40,8 @@ export class AuthGuard implements CanActivate {
     }
     const u = await this.usuarios.findOneBy({ id: payload.sub });
     if (!u || !u.activo) throw new UnauthorizedException('Usuario inactivo');
+    if (u.claveCambiadaEn && (payload.iat ?? 0) < Math.floor(u.claveCambiadaEn.getTime() / 1000))
+      throw new UnauthorizedException('Tu contraseña cambió, vuelve a iniciar sesión');
 
     const roles = meta<Rol[]>(ROLES);
     if (roles && !roles.includes(u.rol)) throw new ForbiddenException('Tu rol no tiene permiso para esta acción');
@@ -66,6 +68,7 @@ export class AuthGuard implements CanActivate {
       rol: u.rol,
       sucursalAsignada: u.sucursalId,
       sucursal,
+      emailVerificado: u.emailVerificado,
     };
     req.sesion = sesion;
     return true;

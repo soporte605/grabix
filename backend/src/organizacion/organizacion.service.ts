@@ -1,10 +1,13 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 import { Repository } from 'typeorm';
 import { Bitacora, EstadoSuscripcion, Rol, Sucursal, Taller, Usuario } from '../entities';
 import { BitacoraService } from '../common/bitacora.service';
-import { Sesion } from '../common/sesion';
+import { CorreoService } from '../correo/correo.service';
+import { TokensService } from '../correo/tokens.service';
+import { exigirCorreo, Sesion } from '../common/sesion';
 import { hoy, limites, PLANES, sumarDias } from '../common/suscripcion';
 import { existe } from '../common/util';
 import { ActivarPlanDto, SucursalDto, TallerDto, UsuarioDto } from './organizacion.dto';
@@ -17,6 +20,8 @@ export class OrganizacionService {
     @InjectRepository(Usuario) private usuarios: Repository<Usuario>,
     @InjectRepository(Bitacora) private bitacoraRepo: Repository<Bitacora>,
     private bitacora: BitacoraService,
+    private correo: CorreoService,
+    private tokens: TokensService,
   ) {}
 
   taller(s: Sesion) {
@@ -36,6 +41,7 @@ export class OrganizacionService {
   async activarPlan(s: Sesion, dto: ActivarPlanDto) {
     if (process.env.PAGOS_MODO !== 'demo')
       throw new BadRequestException('Los pagos en línea aún no están habilitados');
+    exigirCorreo(s);
     const t = await this.taller(s);
     const base = t.pagadoHasta && t.pagadoHasta > hoy() ? t.pagadoHasta : hoy();
     t.plan = dto.plan;
@@ -89,8 +95,9 @@ export class OrganizacionService {
       const n = await this.usuarios.countBy({ tallerId: s.tallerId, activo: true });
       if (n >= limites(t).usuarios)
         throw new ForbiddenException(`Tu plan permite ${limites(t).usuarios} usuarios. Mejora tu plan para agregar más.`);
-      if (!dto.password) throw new BadRequestException('Asigna una contraseña inicial');
-      u = this.usuarios.create({ tallerId: s.tallerId });
+      exigirCorreo(s);
+      // Sin contraseña inicial, la persona la crea desde el correo de invitación.
+      u = this.usuarios.create({ tallerId: s.tallerId, passwordHash: await bcrypt.hash(randomBytes(24).toString('hex'), 10) });
     }
     u.nombre = dto.nombre.trim();
     u.email = email;
@@ -101,8 +108,27 @@ export class OrganizacionService {
     if (dto.password) u.passwordHash = await bcrypt.hash(dto.password, 10);
     const r = await this.usuarios.save(u);
     await this.bitacora.registrar(s, id ? 'actualizar' : 'crear', 'usuario', r.id, { nombre: u.nombre, email, rol: u.rol, sucursalId: u.sucursalId });
+    if (!id && !dto.password) await this.enviarInvitacion(s, r);
     const { passwordHash: _omit, ...publico } = r;
-    return publico;
+    return { ...publico, invitado: !id && !dto.password };
+  }
+
+  /** Reenvía la invitación a un usuario que aún no confirma su correo. */
+  async invitar(s: Sesion, id: number) {
+    exigirCorreo(s);
+    const u = existe(await this.usuarios.findOneBy({ id, tallerId: s.tallerId, activo: true }), 'Usuario');
+    if (u.emailVerificado) throw new BadRequestException('Este usuario ya activó su cuenta');
+    if (!this.tokens.puedeEnviar(`invitacion:${u.id}`))
+      throw new HttpException('Ya se envió una invitación hace menos de un minuto', HttpStatus.TOO_MANY_REQUESTS);
+    await this.enviarInvitacion(s, u);
+    await this.bitacora.registrar(s, 'invitar', 'usuario', u.id, { email: u.email });
+    return { enviado: true };
+  }
+
+  private async enviarInvitacion(s: Sesion, u: Usuario) {
+    const t = await this.taller(s);
+    const token = await this.tokens.crear(u.id, 'invitacion');
+    await this.correo.invitacion(u.email, u.nombre, t.nombre, s.nombre, this.correo.url(`/invitacion?token=${token}`));
   }
 
   listarBitacora(s: Sesion, pagina = 1) {

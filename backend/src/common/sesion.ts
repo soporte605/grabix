@@ -1,4 +1,4 @@
-import { createParamDecorator, ExecutionContext, SetMetadata } from '@nestjs/common';
+import { createParamDecorator, ExecutionContext, ForbiddenException, SetMetadata } from '@nestjs/common';
 import { Rol } from '../entities';
 
 export interface Sesion {
@@ -10,6 +10,7 @@ export interface Sesion {
   sucursalAsignada: number | null;
   /** Sucursal con la que se está trabajando (null = todas). */
   sucursal: number | null;
+  emailVerificado: boolean;
 }
 
 export const ES_PUBLICO = 'publico';
@@ -31,3 +32,9 @@ export const Ses = createParamDecorator((_: unknown, ctx: ExecutionContext): Ses
 export const GERENCIA = [Rol.Dueno, Rol.Admin];
 /** Roles que pueden ver costos y ganancias. */
 export const VEN_COSTOS = [Rol.Dueno, Rol.Admin, Rol.Encargado];
+
+/** Acciones que piden correo confirmado (elegir plan, invitar). El acceso normal no se bloquea. */
+export function exigirCorreo(s: Sesion) {
+  if (!s.emailVerificado)
+    throw new ForbiddenException({ code: 'EMAIL_NO_VERIFICADO', message: 'Confirma tu correo para hacer esto. Revisa tu bandeja o pide otro enlace.' });
+}
