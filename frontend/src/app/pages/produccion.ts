@@ -1,8 +1,9 @@
 import { Esqueleto } from '../ui/esqueleto';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
-import { FechaPipe } from '../core/formato';
+import { FechaPipe, hoy, sumarDias } from '../core/formato';
 import { EST_VTA, EstadoVenta, Venta } from '../core/modelos';
 import { Icono } from '../ui/icono';
 
@@ -16,9 +17,15 @@ const SIGUIENTE: Partial<Record<EstadoVenta, [EstadoVenta, string]>> = {
 /** Tablero de pedidos por hacer: pendiente → en producción → listo → entregado. */
 @Component({
   selector: 'app-produccion',
-  imports: [FechaPipe, Icono, Esqueleto],
+  imports: [FormsModule, FechaPipe, Icono, Esqueleto],
   template: `
     <div class="encabezado"><div><h1>Producción</h1><p>Pedidos por hacer, ordenados por fecha de entrega.</p></div></div>
+    <div class="mb-3 flex flex-col gap-2.5">
+      <input class="buscar" type="search" placeholder="Buscar por folio, cliente o producto" [ngModel]="q()" (ngModelChange)="q.set($event)" aria-label="Buscar">
+      <div class="chips" role="group" aria-label="Fecha de entrega">
+        @for (o of entregas; track o[0]) { <button class="chip" [class.on]="entrega() === o[0]" (click)="entrega.set(o[0])">{{ o[1] }}</button> }
+      </div>
+    </div>
     @if (!listo()) { <app-esqueleto tipo="tablero" /> } @else {
     <div class="grid gap-3.5 min-[900px]:grid-cols-3">
       @for (c of columnas; track c) {
@@ -48,7 +55,22 @@ export class Produccion implements OnInit {
   est = EST_VTA;
   columnas = COLUMNAS;
   siguiente = SIGUIENTE;
-  hoy = new Date().toISOString().slice(0, 10);
+  hoy = hoy();
+  q = signal('');
+  entrega = signal<'todas' | 'atrasados' | 'hoy' | 'semana'>('todas');
+  entregas = [['todas', 'Todas'], ['atrasados', 'Atrasados'], ['hoy', 'Para hoy'], ['semana', 'Próximos 7 días']] as const;
+  private filtradas = computed(() => {
+    const q = this.q().trim().toLowerCase(), e = this.entrega(), h = this.hoy, sem = sumarDias(h, 7);
+    return this.ventas().filter((v) => {
+      const f = v.entrega ? String(v.entrega).slice(0, 10) : '';
+      if (e === 'atrasados' && !(f && f < h)) return false;
+      if (e === 'hoy' && f !== h) return false;
+      if (e === 'semana' && !(f && f >= h && f <= sem)) return false;
+      if (!q) return true;
+      const t = `${v.folio} ${v.cliente?.nombre ?? ''} ${v.clienteNombre ?? ''} ${v.items.map((i) => i.descripcion).join(' ')}`.toLowerCase();
+      return t.includes(q);
+    });
+  });
   ventas = signal<Venta[]>([]);
   listo = signal(false);
 
@@ -58,7 +80,7 @@ export class Produccion implements OnInit {
     this.ventas.set(vs.sort((a, b) => String(a.entrega ?? '9').localeCompare(String(b.entrega ?? '9'))));
     this.listo.set(true);
   }
-  de(e: EstadoVenta) { return this.ventas().filter((v) => v.estado === e); }
+  de(e: EstadoVenta) { return this.filtradas().filter((v) => v.estado === e); }
   async mover(v: Venta, estado: EstadoVenta) {
     try {
       await this.api.patch(`/ventas/${v.id}/estado`, { estado });

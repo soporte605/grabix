@@ -298,12 +298,19 @@ export class DocumentosService {
 
   /* ---------- compras ---------- */
 
-  compras(s: Sesion) {
-    return this.ds.manager.find(Compra, {
-      where: { tallerId: s.tallerId, ...this.filtroSucursal(s) },
-      order: { fecha: 'DESC', id: 'DESC' },
-      take: 300,
-    });
+  compras(s: Sesion, f: FiltroDto = {}) {
+    const qb = this.ds.manager
+      .createQueryBuilder(Compra, 'c')
+      .leftJoinAndSelect('c.items', 'i')
+      .where('c.tallerId = :t', { t: s.tallerId })
+      .orderBy('c.fecha', 'DESC')
+      .addOrderBy('c.id', 'DESC')
+      .take(300);
+    if (s.sucursal) qb.andWhere('c.sucursalId = :s', { s: s.sucursal });
+    if (f.desde) qb.andWhere('c.fecha >= :desde', { desde: f.desde });
+    if (f.hasta) qb.andWhere('c.fecha <= :hasta', { hasta: f.hasta });
+    if (f.q) qb.andWhere(new Brackets((w) => w.where('c.folio LIKE :q', { q: `%${f.q}%` }).orWhere('c.proveedor LIKE :q')));
+    return qb.getMany();
   }
 
   /** Registra la compra: suma existencias y recalcula el costo promedio ponderado. */

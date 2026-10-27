@@ -4,10 +4,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { ConfirmarService } from '../core/confirmar.service';
-import { DineroPipe, FechaPipe, hoy, PctPipe, sumarDias } from '../core/formato';
+import { PosService } from '../core/pos.service';
+import { dinero, DineroPipe, FechaPipe, hoy, PctPipe, sumarDias } from '../core/formato';
 import { Cliente, Cotizacion, EST_COT, EST_VTA, Producto, Promocion, Renglon, Venta } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { Confirmar } from '../ui/confirmar';
+import { Buscador } from '../ui/buscador';
 import { Hoja } from '../ui/hoja';
 import { Icono } from '../ui/icono';
 
@@ -20,7 +22,7 @@ interface Form {
 
 @Component({
   selector: 'app-doc-editor',
-  imports: [FormsModule, DineroPipe, FechaPipe, PctPipe, Icono, Confirmar, Hoja],
+  imports: [FormsModule, Buscador, DineroPipe, FechaPipe, PctPipe, Icono, Confirmar, Hoja],
   template: `
     <app-hoja [titulo]="titulo()" ancho="1000px" (cerrar)="cerrar()">
       @if (doc(); as d) {
@@ -32,10 +34,7 @@ interface Form {
         <div class="campos c3">
           <div class="campo todo">
             <label for="d-cli">Cliente</label>
-            <select id="d-cli" [(ngModel)]="f.clienteId" (ngModelChange)="tocar()">
-              <option [ngValue]="null">— Cliente nuevo o de mostrador —</option>
-              @for (c of clientes(); track c.id) { <option [ngValue]="c.id">{{ c.nombre }}</option> }
-            </select>
+            <app-buscador idCampo="d-cli" [opciones]="opsClientes()" [conVacio]="true" vacio="Cliente nuevo o de mostrador" placeholder="Buscar por nombre o teléfono…" [(ngModel)]="f.clienteId" (ngModelChange)="tocar()" />
           </div>
           @if (f.clienteId == null) {
             <div class="campo"><label for="d-cn">Nombre</label><input id="d-cn" [(ngModel)]="f.clienteNombre" (ngModelChange)="tocar()"></div>
@@ -61,12 +60,7 @@ interface Form {
         @for (it of f.items; track $index; let i = $index) {
           <div class="grid grid-cols-[minmax(0,1fr)_30px] gap-1.5 rounded-[10px] border border-linea bg-superficie-2 p-2.5">
             <div class="grid grid-cols-6 gap-1.5">
-              <select class="entrada col-span-6 p-2 sm:col-span-3" [(ngModel)]="it.productoId" (ngModelChange)="elegir(it)" aria-label="Artículo">
-                <option [ngValue]="null">Concepto libre</option>
-                @for (g of grupos(); track g.t) {
-                  <optgroup [label]="g.t">@for (p of g.ps; track p.id) { <option [ngValue]="p.id">{{ p.nombre }}</option> }</optgroup>
-                }
-              </select>
+              <app-buscador class="col-span-6 sm:col-span-3" [opciones]="opsProductos()" [conVacio]="true" vacio="Concepto libre" etiqueta="Artículo" placeholder="Buscar producto o servicio…" [(ngModel)]="it.productoId" (ngModelChange)="elegir(it)" />
               <input class="entrada col-span-6 p-2 sm:col-span-3" [(ngModel)]="it.descripcion" (ngModelChange)="tocar()" placeholder="Descripción" aria-label="Descripción">
               <input class="entrada col-span-2 p-2" type="number" inputmode="decimal" [(ngModel)]="it.cantidad" (ngModelChange)="tocar()" placeholder="Cant." aria-label="Cantidad">
               <input class="entrada col-span-2 p-2" type="number" inputmode="decimal" [(ngModel)]="it.precio" (ngModelChange)="tocar()" placeholder="Precio c/u" aria-label="Precio unitario">
@@ -95,16 +89,6 @@ interface Form {
         </div>
       </section>
 
-      @if (esVenta && !id) {
-        <section class="caja">
-          <h3>Anticipo</h3>
-          <div class="campos">
-            <div class="campo"><label for="d-an">Monto recibido</label><input id="d-an" type="number" inputmode="decimal" [(ngModel)]="f.anticipo"></div>
-            <div class="campo"><label for="d-me">Forma de pago</label><select id="d-me" [(ngModel)]="f.metodo">@for (m of metodos; track m) { <option>{{ m }}</option> }</select></div>
-          </div>
-        </section>
-      }
-
       <div class="campo"><label for="d-no">Notas {{ esVenta ? 'del pedido' : '(aparecen en el PDF)' }}</label><textarea id="d-no" [(ngModel)]="f.notas" (ngModelChange)="tocar()"></textarea></div>
 
       <section class="caja">
@@ -122,6 +106,31 @@ interface Form {
           }
         </div>
       </section>
+
+      @if (esVenta && !id) {
+        <section class="caja">
+          <div class="fila entre"><h3>Cobro</h3>
+            <div class="chips" role="group" aria-label="Cuánto paga">
+              <button class="chip" [class.on]="f.anticipo > 0 && f.anticipo === r2(t().total)" (click)="abonar(1)">Paga todo</button>
+              <button class="chip" [class.on]="f.anticipo > 0 && f.anticipo === r2(t().total / 2)" (click)="abonar(.5)">Anticipo 50%</button>
+              <button class="chip" [class.on]="!f.anticipo" (click)="abonar(0)">Sin pago</button>
+            </div>
+          </div>
+          <div class="campos c3">
+            <div class="campo"><label for="d-me">Forma de pago</label><select id="d-me" [(ngModel)]="f.metodo" (ngModelChange)="tocar()">@for (m of metodos; track m) { <option>{{ m }}</option> }</select></div>
+            <div class="campo"><label for="d-an">Abona ahora</label><input id="d-an" type="number" inputmode="decimal" [(ngModel)]="f.anticipo" (ngModelChange)="tocar()"></div>
+            @if (f.metodo === 'Efectivo') {
+              <div class="campo"><label for="d-pc">Paga con (efectivo)</label><input id="d-pc" type="number" inputmode="decimal" placeholder="Opcional" [(ngModel)]="pagaCon" (ngModelChange)="tocar()"></div>
+            }
+          </div>
+          @if (cobro().cambio > 0 || cobro().falta > 0) {
+            <div class="flex flex-wrap gap-2.5">
+              @if (cobro().cambio > 0) { <p class="rounded-xl bg-ok-suave px-3.5 py-2 text-ok">Cambio <b class="num text-[1.2rem]">{{ cobro().cambio | dinero }}</b></p> }
+              @if (cobro().falta > 0) { <p class="rounded-xl bg-warn-suave px-3.5 py-2 text-warn">Le faltan <b class="num">{{ cobro().falta | dinero }}</b> para cubrir lo que abona</p> }
+            </div>
+          }
+        </section>
+      }
 
       @if (venta(); as v) {
         <section class="caja">
@@ -143,9 +152,10 @@ interface Form {
         @if (id) { <app-confirmar [pregunta]="esVenta ? '¿Eliminar esta venta?' : '¿Eliminar esta cotización?'" [detalle]="esVenta ? 'El inventario que descontó se devuelve. No se puede deshacer.' : 'No se puede deshacer.'" (confirmado)="eliminar()" /> }
         <button class="btn" (click)="pdf()" [disabled]="ocupado()"><app-icono nombre="pdf" />PDF</button>
         <button class="btn wa" (click)="whatsapp()" [disabled]="ocupado()"><app-icono nombre="wa" />WhatsApp</button>
+        @if (esVenta && id) { <button class="btn" (click)="ticket()" [disabled]="ocupado()"><app-icono nombre="imprimir" />Ticket</button> }
         @if (!esVenta && id && f.estado !== 'aceptada') { <button class="btn" (click)="convertir()" [disabled]="ocupado()">Convertir en venta</button> }
         <span class="flex-1"></span>
-        <button class="btn pri" (click)="guardar(true)" [disabled]="ocupado()">{{ ocupado() ? 'Guardando…' : 'Guardar' }}</button>
+        <button class="btn pri min-w-32 max-sm:flex-1" (click)="guardar(true)" [disabled]="ocupado()">{{ ocupado() ? 'Guardando…' : esVenta && !id ? 'Registrar venta' : 'Guardar' }}</button>
       </ng-container>
     </app-hoja>
   `,
@@ -157,6 +167,7 @@ export class DocEditor implements OnInit {
   private router = inject(Router);
   private ruta = inject(ActivatedRoute);
   private confirmar = inject(ConfirmarService);
+  private pos = inject(PosService);
   private lista = this.ruta.snapshot.data['tipo'] === 'ventas' ? '/app/ventas' : '/app/cotizaciones';
   esVenta = this.ruta.snapshot.data['tipo'] === 'ventas';
   base = this.esVenta ? '/ventas' : '/cotizaciones';
@@ -175,6 +186,14 @@ export class DocEditor implements OnInit {
   sucio = false;
   pago: number | null = null;
   metodoPago = 'Efectivo';
+  pagaCon: number | null = null;
+  r2 = (n: number) => Math.round(n * 100) / 100;
+  cobro = computed(() => {
+    this.cambios();
+    const abona = Number(this.f.anticipo) || 0, con = Number(this.pagaCon) || 0;
+    if (this.f.metodo !== 'Efectivo' || !con) return { cambio: 0, falta: 0 };
+    return { cambio: this.r2(Math.max(0, con - abona)), falta: this.r2(Math.max(0, abona - con)) };
+  });
 
   f: Form = {
     clienteId: null, clienteNombre: '', clienteTelefono: '', guardarCliente: true,
@@ -192,6 +211,11 @@ export class DocEditor implements OnInit {
     const ps = this.productos().filter((p) => p.activo);
     const g = (tipo: string, t: string) => ({ t, ps: ps.filter((p) => p.tipo === tipo) });
     return [g('producto', 'Productos'), g('servicio', 'Servicios'), g('insumo', 'Insumos')].filter((x) => x.ps.length);
+  });
+  opsClientes = computed(() => this.clientes().map((c) => ({ valor: c.id, texto: c.nombre, detalle: c.telefono || undefined })));
+  opsProductos = computed(() => {
+    const m = this.s.moneda();
+    return this.grupos().flatMap((g) => g.ps.map((p) => ({ valor: p.id, texto: p.nombre, grupo: g.t, detalle: dinero(p.precio, m) })));
   });
   promos = computed(() => {
     const h = hoy();
@@ -242,6 +266,16 @@ export class DocEditor implements OnInit {
     this.cambios.update((x) => x + 1);
   }
 
+  abonar(p: number) { this.f.anticipo = this.r2(this.t().total * p); this.tocar(); }
+
+  /** Abre el ticket de esta venta (guarda antes si hay cambios). */
+  async ticket() {
+    const id = await this.asegurar();
+    if (!id) return;
+    this.pos.hecha.set({ id, nueva: false });
+    this.router.navigate([this.lista]);
+  }
+
   tocar() { this.sucio = true; this.cambios.update((x) => x + 1); }
   costoDe(i: Renglon) { return this.productos().find((p) => p.id === i.productoId)?.costoUnitario ?? i.costo ?? 0; }
   agregar() { this.f.items.push({ productoId: null, descripcion: '', cantidad: 1, precio: 0 }); this.tocar(); }
@@ -281,8 +315,13 @@ export class DocEditor implements OnInit {
       } else body['vigenciaDias'] = Number(this.f.vigenciaDias) || 15;
       const r = this.id ? await this.api.put<{ id: number }>(`${this.base}/${this.id}`, body) : await this.api.post<{ id: number }>(this.base, body);
       this.sucio = false;
-      this.aviso.ok(this.esVenta ? 'Venta guardada' : 'Cotización guardada');
-      if (salir) this.router.navigate([this.lista]);
+      if (!(salir && this.esVenta && !this.id)) this.aviso.ok(this.esVenta ? 'Venta guardada' : 'Cotización guardada');
+      if (salir && this.esVenta && !this.id) {
+        // Venta nueva: se cierra el editor y se muestra la ventana de venta realizada con el ticket.
+        const c = this.cobro();
+        this.pos.hecha.set({ id: r.id, nueva: true, recibido: c.cambio > 0 ? Number(this.pagaCon) : undefined, cambio: c.cambio || undefined });
+        this.router.navigate([this.lista]);
+      } else if (salir) this.router.navigate([this.lista]);
       else if (!this.id) {
         this.id = r.id;
         this.router.navigate([this.lista, r.id], { replaceUrl: true });

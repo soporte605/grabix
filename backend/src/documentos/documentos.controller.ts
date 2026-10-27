@@ -115,8 +115,8 @@ export class DocumentosController {
 
   /* compras */
   @Get('compras') @Roles(...VEN_COSTOS)
-  compras(@Ses() s: Sesion) {
-    return this.docs.compras(s);
+  compras(@Ses() s: Sesion, @Query() f: FiltroDto) {
+    return this.docs.compras(s, f);
   }
 
   @Post('compras') @Roles(...VEN_COSTOS)

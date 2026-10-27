@@ -1,9 +1,10 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Logo } from '../ui/logo';
 import { Icono } from '../ui/icono';
 import { SelectorTema } from '../ui/selector-tema';
+import { Hoja } from '../ui/hoja';
 import { AvisoService } from '../core/aviso.service';
 import { Api } from '../core/api.service';
 import { dinero } from '../core/formato';
@@ -27,7 +28,7 @@ const SUBLI: Preset[] = [
 
 @Component({
   selector: 'app-landing',
-  imports: [FormsModule, RouterLink, Logo, Icono, SelectorTema],
+  imports: [FormsModule, RouterLink, Logo, Icono, SelectorTema, Hoja],
   template: `
     <header class="sticky top-0 z-30 border-b border-linea bg-superficie/90 py-2.5 backdrop-blur">
       <div class="mx-auto max-w-[1200px] margen-x fila entre">
@@ -110,7 +111,13 @@ const SUBLI: Preset[] = [
         </div>
 
         <div class="mt-8 grid items-start gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
-          <div class="tarjeta flex flex-col gap-4 p-[18px] sm:p-6">
+          <div class="tarjeta relative flex flex-col gap-4 p-[18px] sm:p-6">
+            @if (agotado()) {
+              <button type="button" class="absolute inset-0 z-20 flex cursor-pointer items-end justify-center rounded-[inherit] bg-superficie/40 p-4 backdrop-blur-[1.5px]" (click)="limite.set(true)" aria-label="Seguir cotizando">
+                <span class="btn pri min-h-11 shadow-caja">Seguir cotizando con tu cuenta gratis</span>
+              </button>
+            }
+            <fieldset class="contents" [disabled]="agotado()">
             <div class="chips" role="group" aria-label="Tipo de trabajo">
               <button class="chip" [class.on]="e().tipo === 'laser'" (click)="tipo('laser')">Corte / grabado láser</button>
               <button class="chip" [class.on]="e().tipo === 'sublimacion'" (click)="tipo('sublimacion')">Sublimación</button>
@@ -140,6 +147,7 @@ const SUBLI: Preset[] = [
               <div class="campo todo"><label for="s-hoy">Tu precio actual por pieza <span class="font-normal">(opcional, para comparar)</span></label>
                 <input id="s-hoy" type="number" inputmode="decimal" placeholder="Ej. 18" [ngModel]="hoy() || null" (ngModelChange)="hoy.set(+$event || 0)"></div>
             </div>
+            </fieldset>
             <a href="#resultado" class="sticky bottom-3 z-10 -mx-1 flex items-center justify-between gap-3 rounded-xl bg-[#002150] px-4 py-3 text-white no-underline shadow-caja lg:hidden">
               <span class="text-[.85rem] text-white/75">Precio por pieza<br><b class="num text-[1.35rem] text-white">{{ $(r().precioPieza) }}</b></span>
               <span class="text-[.85rem] font-semibold">Ver detalle ↓</span>
@@ -172,10 +180,16 @@ const SUBLI: Preset[] = [
               </div>
             }
             <div class="grid gap-2 min-[480px]:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              <a class="btn wa min-h-11" [href]="whatsapp()" target="_blank" rel="noopener"><app-icono nombre="wa" />Enviar por WhatsApp</a>
+              <a class="btn wa min-h-11" [href]="whatsapp()" target="_blank" rel="noopener" (click)="compartir($event)"><app-icono nombre="wa" />Enviar por WhatsApp</a>
               <button class="btn min-h-11" (click)="copiar()">{{ copiado() ? '¡Copiada!' : 'Copiar cotización' }}</button>
             </div>
             <div class="flex flex-col gap-2.5 border-t border-dashed border-linea pt-4">
+              @if (cupo(); as c) {
+                <p class="chico font-semibold" [class]="c.restantes ? 'text-marca' : 'text-warn'">
+                  {{ c.restantes ? (c.restantes === 1 ? 'Te queda 1 cotización gratis.' : 'Te quedan ' + c.restantes + ' cotizaciones gratis.') : 'Ya usaste tus ' + c.limite + ' cotizaciones gratis.' }}
+                  <span class="font-normal text-tenue">Con tu cuenta cotizas sin límite.</span>
+                </p>
+              }
               <p class="tenue chico">En Grabix cada cotización se guarda con folio, se convierte en PDF con tu logo y pasa a producción cuando el cliente acepta.</p>
               <a routerLink="/registro" class="btn sec min-h-11">Crear cuenta gratis</a>
             </div>
@@ -333,6 +347,24 @@ const SUBLI: Preset[] = [
         <a href="mailto:soporte@elikarsystems.com" class="text-tenue">soporte&#64;elikarsystems.com</a>
       </div>
     </footer>
+
+    @if (limite()) {
+      <app-hoja titulo="¿Quieres seguir cotizando?" ancho="460px" (cerrar)="limite.set(false)">
+        <div class="flex flex-col gap-3">
+          <span class="flex size-12 items-center justify-center rounded-2xl bg-marca-suave text-[1.5rem] text-marca"><app-icono nombre="cotizaciones" /></span>
+          <p>Ya usaste tus {{ cupo()?.limite ?? 3 }} cotizaciones gratis. Crea tu cuenta y sigue cotizando sin límite durante {{ diasPrueba() }} días.</p>
+          <ul class="grid gap-2 text-[.93rem]">
+            @for (b of ventajasCuenta; track b) { <li class="flex items-start gap-2"><app-icono nombre="ok" class="mt-0.5 text-ok" />{{ b }}</li> }
+          </ul>
+          <p class="chico tenue">Sin tarjeta. Tu cuenta queda lista en un minuto.</p>
+        </div>
+        <ng-container pie>
+          <a class="btn" routerLink="/entrar">Ya tengo cuenta</a>
+          <span class="flex-1"></span>
+          <a class="btn pri min-h-11" routerLink="/registro">Crear cuenta gratis</a>
+        </ng-container>
+      </app-hoja>
+    }
   `,
   host: { class: 'block bg-fondo' },
 })
@@ -410,6 +442,50 @@ export class Landing implements OnInit {
   hoy = signal(0);
   copiado = signal(false);
 
+  /* Cotizaciones gratis: se cuentan por visitante en el servidor (por IP). */
+  cupo = signal<{ usos: number; limite: number; restantes: number } | null>(null);
+  limite = signal(false);
+  agotado = computed(() => this.cupo()?.restantes === 0);
+  ventajasCuenta = ['Tus materiales, costos y precios guardados', 'Cotizaciones con folio y PDF con tu logo', 'Envío por WhatsApp, ventas, inventario y producción'];
+  private contadas = new Set<string>();
+  private espera?: ReturnType<typeof setTimeout>;
+  private tocado = false;
+  private clave = computed(() => JSON.stringify([this.e(), this.preset()]));
+
+  constructor() {
+    // Una cotización cuenta cuando el visitante cambia datos y deja el resultado quieto unos segundos.
+    effect(() => {
+      const k = this.clave();
+      untracked(() => {
+        clearTimeout(this.espera);
+        if (this.tocado) this.espera = setTimeout(() => this.contar(k), 2500);
+      });
+    });
+  }
+
+  /** Registra la cotización actual si no se ha contado. Devuelve false si ya no le quedan. */
+  private async contar(k = this.clave()) {
+    if (this.contadas.has(k)) return true;
+    if (this.agotado()) { this.limite.set(true); return false; }
+    try {
+      const r = await this.api.post<{ permitido: boolean; usos: number; limite: number; restantes: number }>('/publico/cotizador');
+      this.cupo.set(r);
+      if (!r.permitido) { this.limite.set(true); return false; }
+      this.contadas.add(k);
+      if (!r.restantes) setTimeout(() => this.limite.set(true), 1200);
+      return true;
+    } catch {
+      return true; // Sin API no se bloquea.
+    }
+  }
+
+  /** WhatsApp también cuenta como cotización. */
+  async compartir(ev: Event) {
+    if (this.contadas.has(this.clave())) return;
+    if (this.agotado()) { ev.preventDefault(); this.limite.set(true); return; }
+    void this.contar();
+  }
+
   diagnostico = computed(() => {
     const hoy = this.hoy(), r = this.r(), q = Math.max(1, Math.floor(this.e().cantidad || 1));
     if (!hoy || !r.precioPieza) return null;
@@ -438,6 +514,7 @@ export class Landing implements OnInit {
   whatsapp = computed(() => `https://wa.me/?text=${encodeURIComponent(this.textoCotizacion())}`);
 
   async copiar() {
+    if (!this.contadas.has(this.clave()) && !(await this.contar())) return;
     try {
       await navigator.clipboard.writeText(this.textoCotizacion());
       this.copiado.set(true);
@@ -448,6 +525,7 @@ export class Landing implements OnInit {
   }
 
   async ngOnInit() {
+    this.api.get<{ usos: number; limite: number; restantes: number }>('/publico/cotizador').then((c) => this.cupo.set(c), () => {});
     try {
       const r = await this.api.get<{ diasPrueba: number; planes: Plan[] }>('/publico/planes');
       this.planes.set(r.planes);
@@ -456,12 +534,14 @@ export class Landing implements OnInit {
   }
 
   $ = (n: number) => dinero(n);
-  set<K extends keyof EntradaSimulador>(k: K, v: EntradaSimulador[K]) { this.e.update((x) => ({ ...x, [k]: typeof x[k] === 'number' ? Number(v) || 0 : v })); }
+  set<K extends keyof EntradaSimulador>(k: K, v: EntradaSimulador[K]) { this.tocado = true; this.e.update((x) => ({ ...x, [k]: typeof x[k] === 'number' ? Number(v) || 0 : v })); }
   tipo(t: 'laser' | 'sublimacion') {
+    this.tocado = true;
     this.e.update((x) => ({ ...x, tipo: t, cantidad: t === 'laser' ? 50 : 12, minutos: t === 'laser' ? 3 : 4, extra: 0 }));
     this.usarPreset(0);
   }
   usarPreset(i: number) {
+    this.tocado = true;
     this.preset.set(i);
     this.e.update((x) => ({ ...x, ...this.presets()[i].valores }));
   }

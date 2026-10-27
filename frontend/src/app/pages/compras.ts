@@ -7,18 +7,24 @@ import { DineroPipe, FechaPipe, hoy } from '../core/formato';
 import { Compra, CompraItem, Producto } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { Confirmar } from '../ui/confirmar';
+import { Buscador } from '../ui/buscador';
+import { FiltroFechas, Rango } from '../ui/filtro-fechas';
 import { Hoja } from '../ui/hoja';
 import { Icono } from '../ui/icono';
 
 @Component({
   selector: 'app-compras',
-  imports: [FormsModule, DineroPipe, FechaPipe, Hoja, Icono, Confirmar, Esqueleto],
+  imports: [FormsModule, FiltroFechas, Buscador, DineroPipe, FechaPipe, Hoja, Icono, Confirmar, Esqueleto],
   template: `
     <div class="encabezado">
       <div><h1>Compras</h1><p>Cada compra suma existencias en {{ s.nombreSucursal() }} y actualiza el costo promedio.</p></div>
       <button class="btn pri" (click)="nueva()" [disabled]="!s.sucursal()"><app-icono nombre="mas1" />Registrar compra</button>
     </div>
     @if (!s.sucursal()) { <p class="tenue">Elige una sucursal arriba para registrar compras.</p> }
+    <div class="mb-3 flex flex-wrap items-center gap-2">
+      <input class="buscar min-w-0 flex-1" type="search" placeholder="Buscar por folio o proveedor" [(ngModel)]="q" (ngModelChange)="buscar()" aria-label="Buscar">
+      <app-filtro-fechas [rango]="rango" (rangoChange)="rango = $event; cargar()" />
+    </div>
     <div class="tarjeta lista">
       @if (!listo()) { <app-esqueleto /> } @else {
       @for (c of compras(); track c.id) {
@@ -26,7 +32,7 @@ import { Icono } from '../ui/icono';
           <span class="t">{{ c.proveedor || 'Proveedor' }}</span><span class="d num">{{ c.total | dinero }}</span>
           <span class="m"><span class="num">{{ c.folio }}</span> · {{ c.fecha | fecha }} · {{ c.items.length }} concepto{{ c.items.length === 1 ? '' : 's' }}</span><span></span>
         </button>
-      } @empty { <div class="vacio"><b>Sin compras</b>Registra lo que compras a tus proveedores para conocer tu costo real.</div> }
+      } @empty { <div class="vacio"><b>Sin compras</b>{{ q || rango.desde || rango.hasta ? 'Prueba con otra búsqueda o cambia las fechas.' : 'Registra lo que compras a tus proveedores para conocer tu costo real.' }}</div> }
     }
     </div>
 
@@ -41,10 +47,7 @@ import { Icono } from '../ui/icono';
           <p class="tenue chico">Si eliges un artículo del inventario se suman existencias. Si no, queda como gasto (luz, mantenimiento, etc.).</p>
           @for (i of f.items; track $index; let k = $index) {
             <div class="grid grid-cols-2 gap-1.5 rounded-[10px] border border-linea bg-superficie-2 p-2.5 min-[700px]:grid-cols-[2fr_2fr_1fr_1fr_auto]">
-              <select class="entrada" [(ngModel)]="i.productoId" (ngModelChange)="elegir(i)" aria-label="Artículo">
-                <option [ngValue]="null">Gasto u otro concepto</option>
-                @for (p of comprables(); track p.id) { <option [ngValue]="p.id">{{ p.nombre }}</option> }
-              </select>
+              <app-buscador [opciones]="opsComprables()" [conVacio]="true" vacio="Gasto u otro concepto" etiqueta="Artículo" [(ngModel)]="i.productoId" (ngModelChange)="elegir(i)" />
               <input class="entrada" [(ngModel)]="i.descripcion" placeholder="Descripción" aria-label="Descripción">
               <input class="entrada" type="number" inputmode="decimal" [(ngModel)]="i.cantidad" placeholder="Cant." aria-label="Cantidad">
               <input class="entrada" type="number" inputmode="decimal" [(ngModel)]="i.costo" placeholder="Costo c/u" aria-label="Costo unitario">
@@ -81,12 +84,24 @@ export class Compras implements OnInit {
   f = this.f_.asReadonly();
   ver = signal<Compra | null>(null);
   comprables = computed(() => this.productos().filter((p) => p.activo && p.controlaStock));
+  opsComprables = computed(() => this.comprables().map((p) => ({ valor: p.id, texto: p.nombre, grupo: p.tipo === 'insumo' ? 'Insumos' : 'Productos' })).sort((a, b) => a.grupo.localeCompare(b.grupo)));
 
   async ngOnInit() {
     await this.cargar();
     this.productos.set(await this.api.get('/productos'));
   }
-  async cargar() { this.compras.set(await this.api.get('/compras')); this.listo.set(true); }
+  q = '';
+  rango: Rango = { desde: '', hasta: '' };
+  private t?: ReturnType<typeof setTimeout>;
+  buscar() { clearTimeout(this.t); this.t = setTimeout(() => this.cargar(), 250); }
+  async cargar() {
+    const p: Record<string, string> = {};
+    if (this.q.trim()) p['q'] = this.q.trim();
+    if (this.rango.desde) p['desde'] = this.rango.desde;
+    if (this.rango.hasta) p['hasta'] = this.rango.hasta;
+    this.compras.set(await this.api.get('/compras', p));
+    this.listo.set(true);
+  }
   vacio(): CompraItem { return { productoId: null, descripcion: '', cantidad: 1, costo: 0 }; }
   nueva() { this.f_.set({ proveedor: '', fecha: hoy(), notas: '', items: [this.vacio()] }); }
   elegir(i: CompraItem) { const p = this.productos().find((x) => x.id === i.productoId); if (p) { i.descripcion = p.nombre; i.costo = p.costo ?? 0; } }

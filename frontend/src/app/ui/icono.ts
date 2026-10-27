@@ -3,6 +3,11 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { inject } from '@angular/core';
 
 const P: Record<string, string> = {
+  buscar: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
+  abajo: '<path d="M6 9l6 6 6-6"/>',
+  imprimir: '<path d="M7 9V3h10v6M7 18H4v-8h16v8h-3"/><path d="M7 14h10v7H7z"/>',
+  calendario: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  descargar: '<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>',
   inicio: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
   cotizaciones: '<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/>',
   ventas: '<path d="M3 5h2l2.4 10h10.2L20 8H6.2"/><circle cx="9" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/>',

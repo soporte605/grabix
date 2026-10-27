@@ -117,7 +117,7 @@ export class PdfService {
     const m = (n: number) => this.money(n, taller.moneda);
     const nombre = cliente?.nombre || d.clienteNombre;
     const lineas = d.items.map((i) => `• ${+i.cantidad.toFixed(4)} × ${i.descripcion}: ${m(i.cantidad * i.precio)}`).join('\n');
-    let t = `Hola${nombre ? ' ' + nombre : ''} 👋\n`;
+    let t = `Hola${nombre ? ' ' + nombre : ''},\n`;
     t += tipo === 'venta' ? `Confirmamos tu pedido *${d.folio}* en ${taller.nombre}:\n\n` : `Te comparto la cotización *${d.folio}* de ${taller.nombre}:\n\n`;
     t += lineas + '\n\n';
     if (d.descuento) t += `Subtotal: ${m(d.subtotal)}\nDescuento: -${m(d.descuento)}\n`;

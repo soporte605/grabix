@@ -7,6 +7,7 @@ import { DineroPipe, PctPipe } from '../core/formato';
 import { Componente, Producto, TIPOS, TipoProducto } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { Confirmar } from '../ui/confirmar';
+import { Buscador } from '../ui/buscador';
 import { Hoja } from '../ui/hoja';
 import { Icono } from '../ui/icono';
 
@@ -15,7 +16,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
 
 @Component({
   selector: 'app-inventario',
-  imports: [FormsModule, DineroPipe, PctPipe, Hoja, Icono, Confirmar, Esqueleto],
+  imports: [FormsModule, Buscador, DineroPipe, PctPipe, Hoja, Icono, Confirmar, Esqueleto],
   template: `
     <div class="encabezado">
       <div><h1>Inventario</h1><p>{{ s.nombreSucursal() }} @if (s.verCostos()) { · Valor <span class="num">{{ valor() | dinero }}</span> }</p></div>
@@ -65,10 +66,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
             <p class="tenue chico">Si lo armas con insumos (una taza sublimada = 1 taza blanca + 1 hoja de papel), agrégalos. Al venderlo se descuentan del inventario.</p>
             @for (c of e.componentes; track $index; let i = $index) {
               <div class="fila">
-                <select class="entrada flex-1" [(ngModel)]="c.insumoId" (ngModelChange)="calc()" aria-label="Insumo">
-                  <option [ngValue]="0">Elige insumo</option>
-                  @for (x of insumos(); track x.id) { <option [ngValue]="x.id">{{ x.nombre }}</option> }
-                </select>
+                <app-buscador class="flex-1" [opciones]="opsInsumos()" vacio="Elige insumo" etiqueta="Insumo" [(ngModel)]="c.insumoId" (ngModelChange)="calc()" />
                 <input class="entrada w-[90px]" type="number" inputmode="decimal" [(ngModel)]="c.cantidad" (ngModelChange)="calc()" aria-label="Cantidad">
                 <button class="btn sm peligro" (click)="e.componentes.splice(i, 1); calc()" aria-label="Quitar">×</button>
               </div>
@@ -119,7 +117,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
         </div>
         @for (i of t.items; track $index; let k = $index) {
           <div class="fila">
-            <select class="entrada flex-1" [(ngModel)]="i.productoId" aria-label="Artículo">@for (p of conStock(); track p.id) { <option [ngValue]="p.id">{{ p.nombre }} ({{ p.existencia }})</option> }</select>
+            <app-buscador class="flex-1" [opciones]="opsConStock()" etiqueta="Artículo" [(ngModel)]="i.productoId" />
             <input class="entrada w-[90px]" type="number" [(ngModel)]="i.cantidad" aria-label="Cantidad">
             <button class="btn sm peligro" (click)="t.items.splice(k, 1)">×</button>
           </div>
@@ -156,6 +154,8 @@ export class Inventario implements OnInit {
   valor = computed(() => this.productos().filter((p) => p.controlaStock).reduce((a, p) => a + Math.max(0, p.existencia) * (p.costoUnitario ?? 0), 0));
   insumos = computed(() => this.productos().filter((p) => p.tipo === 'insumo' && p.activo && p.id !== this.e()?.id));
   conStock = computed(() => this.productos().filter((p) => p.controlaStock && p.existencia > 0));
+  opsInsumos = computed(() => this.insumos().map((p) => ({ valor: p.id, texto: p.nombre })));
+  opsConStock = computed(() => this.conStock().map((p) => ({ valor: p.id, texto: p.nombre, detalle: `${p.existencia} en existencia` })));
   destinos = computed(() => (this.s.perfil()?.sucursales ?? []).filter((x) => x.id !== this.s.sucursal()));
   tieneReceta = computed(() => { this.rev(); const e = this.e(); return !!e && e.tipo === 'producto' && e.componentes.some((c) => c.insumoId); });
   costo = computed(() => {

@@ -375,7 +375,18 @@ export class AsistenteUso {
   @Column({ type: 'int', default: 0 }) tokensSalida: number;
 }
 
+/** Usos del cotizador público por visitante y día. La IP se guarda cifrada (hash), nunca en claro. */
+@Entity('cotizador_uso')
+@Unique(['visitante', 'fecha'])
+export class CotizadorUso {
+  @PrimaryGeneratedColumn() id: number;
+  @Column({ length: 64 }) visitante: string;
+  @Column({ type: 'date' }) fecha: string;
+  @Column({ type: 'int', default: 0 }) usos: number;
+}
+
 export const ENTIDADES = [
+  CotizadorUso,
   Taller,
   Sucursal,
   Usuario,

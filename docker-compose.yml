@@ -48,6 +48,7 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ASISTENTE_MODELO: ${ASISTENTE_MODELO:-claude-opus-5-5}
       ASISTENTE_LIMITE_DIARIO: ${ASISTENTE_LIMITE_DIARIO:-}
+      COTIZADOR_LIMITE: ${COTIZADOR_LIMITE:-3}
 
   # Bandeja de pruebas: atrapa todos los correos que manda la API y los muestra en el navegador.
   mailpit:
