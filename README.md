@@ -77,12 +77,19 @@ Igual que FincaPro y SiloPro:
 - `PAGOS_MODO=demo` activa planes sin cobrar. **Pendiente:** conectar Stripe o Mercado Pago (webhook que llame a la activación).
 
 ## Identidad visual
+Logo, colores, tipografías y reglas de uso en [`docs/MARCA.md`](docs/MARCA.md).
+
 Colores de Elikar Systems (azul marino `#002150` y verde `#67BE28`, los mismos de SiloPro; provisionales hasta tener la paleta oficial) y fuentes de Google (Montserrat, Inter, JetBrains Mono).
 
 El diseño usa **Tailwind CSS v4**, igual que SiloPro y FincaPro. Todo vive en `frontend/src/styles.css`:
 - `:root` con los colores y fuentes; `@theme` los expone como utilidades (`bg-marca`, `text-tenue`, `border-linea`, `font-titulo`, `shadow-caja`…). Para cambiar la marca basta con cambiar `:root`.
 - `@layer components` con las piezas que se repiten: `btn` (`pri`, `sec`, `wa`, `peligro`, `sm`), `tarjeta`, `caja`, `campo`/`campos`, `renglon`, `pill`, `chip`, `kpi`, `encabezado`.
 - Lo demás va con utilidades directamente en las plantillas de cada componente (no hay hojas de estilo por componente).
+- **Modo oscuro**: el mismo `:root` se redefine con `data-tema="oscuro"` o con la preferencia del sistema.
+- Piezas de interfaz en `frontend/src/app/ui/`: `capas` (barra de carga global, avisos y ventana de confirmación), `esqueleto` (skeletons de carga), `campo-clave` (contraseña con medidor de seguridad), `hoja` (ventanas modales) y `logo`.
+
+### Seguridad de contraseñas
+Mínimo 8 caracteres, con letras y números, que no sea una muy común ni contenga el correo o el nombre. Se valida igual en la API (`backend/src/common/clave.ts`) y en la app (`frontend/src/app/core/clave.ts`), que además muestra el medidor de seguridad.
 
 Los colores del PDF se ajustan con `PDF_COLOR_ACENTO` y `PDF_COLOR_SECUNDARIO`.
 

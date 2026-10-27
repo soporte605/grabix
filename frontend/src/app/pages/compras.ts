@@ -1,3 +1,4 @@
+import { Esqueleto } from '../ui/esqueleto';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api.service';
@@ -11,7 +12,7 @@ import { Icono } from '../ui/icono';
 
 @Component({
   selector: 'app-compras',
-  imports: [FormsModule, DineroPipe, FechaPipe, Hoja, Icono, Confirmar],
+  imports: [FormsModule, DineroPipe, FechaPipe, Hoja, Icono, Confirmar, Esqueleto],
   template: `
     <div class="encabezado">
       <div><h1>Compras</h1><p>Cada compra suma existencias en {{ s.nombreSucursal() }} y actualiza el costo promedio.</p></div>
@@ -19,12 +20,14 @@ import { Icono } from '../ui/icono';
     </div>
     @if (!s.sucursal()) { <p class="tenue">Elige una sucursal arriba para registrar compras.</p> }
     <div class="tarjeta lista">
+      @if (!listo()) { <app-esqueleto /> } @else {
       @for (c of compras(); track c.id) {
         <button class="renglon" (click)="ver.set(c)">
           <span class="t">{{ c.proveedor || 'Proveedor' }}</span><span class="d num">{{ c.total | dinero }}</span>
           <span class="m"><span class="num">{{ c.folio }}</span> · {{ c.fecha | fecha }} · {{ c.items.length }} concepto{{ c.items.length === 1 ? '' : 's' }}</span><span></span>
         </button>
       } @empty { <div class="vacio"><b>Sin compras</b>Registra lo que compras a tus proveedores para conocer tu costo real.</div> }
+    }
     </div>
 
     @if (f(); as f) {
@@ -62,7 +65,7 @@ import { Icono } from '../ui/icono';
         @for (i of c.items; track $index) { <div class="fila entre"><span>{{ i.cantidad }} × {{ i.descripcion }}</span><span class="num">{{ i.cantidad * i.costo | dinero }}</span></div> }
         <div class="totales"><span class="k grande">Total</span><span class="grande">{{ c.total | dinero }}</span></div>
         @if (c.notas) { <p class="tenue">{{ c.notas }}</p> }
-        <ng-container pie>@if (s.gerencia()) { <app-confirmar texto="Eliminar y revertir inventario" (confirmado)="eliminar(c)" /> }</ng-container>
+        <ng-container pie>@if (s.gerencia()) { <app-confirmar texto="Eliminar y revertir inventario" pregunta="¿Eliminar esta compra?" detalle="Se restarán del inventario las piezas que sumó. No se puede deshacer." (confirmado)="eliminar(c)" /> }</ng-container>
       </app-hoja>
     }
   `,
@@ -72,6 +75,7 @@ export class Compras implements OnInit {
   private api = inject(Api);
   private aviso = inject(AvisoService);
   compras = signal<Compra[]>([]);
+  listo = signal(false);
   productos = signal<Producto[]>([]);
   f_ = signal<{ proveedor: string; fecha: string; notas: string; items: CompraItem[] } | null>(null);
   f = this.f_.asReadonly();
@@ -82,7 +86,7 @@ export class Compras implements OnInit {
     await this.cargar();
     this.productos.set(await this.api.get('/productos'));
   }
-  async cargar() { this.compras.set(await this.api.get('/compras')); }
+  async cargar() { this.compras.set(await this.api.get('/compras')); this.listo.set(true); }
   vacio(): CompraItem { return { productoId: null, descripcion: '', cantidad: 1, costo: 0 }; }
   nueva() { this.f_.set({ proveedor: '', fecha: hoy(), notas: '', items: [this.vacio()] }); }
   elegir(i: CompraItem) { const p = this.productos().find((x) => x.id === i.productoId); if (p) { i.descripcion = p.nombre; i.costo = p.costo ?? 0; } }

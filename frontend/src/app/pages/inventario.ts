@@ -1,3 +1,4 @@
+import { Esqueleto } from '../ui/esqueleto';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api.service';
@@ -14,7 +15,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
 
 @Component({
   selector: 'app-inventario',
-  imports: [FormsModule, DineroPipe, PctPipe, Hoja, Icono, Confirmar],
+  imports: [FormsModule, DineroPipe, PctPipe, Hoja, Icono, Confirmar, Esqueleto],
   template: `
     <div class="encabezado">
       <div><h1>Inventario</h1><p>{{ s.nombreSucursal() }} @if (s.verCostos()) { · Valor <span class="num">{{ valor() | dinero }}</span> }</p></div>
@@ -31,6 +32,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
       <input class="buscar" placeholder="Buscar" [ngModel]="q()" (ngModelChange)="q.set($event)" aria-label="Buscar">
     </div>
     <div class="tarjeta lista">
+      @if (!listo()) { <app-esqueleto /> } @else {
       @for (p of visibles(); track p.id) {
         <button class="renglon" (click)="s.verCostos() && abrir(p)">
           <span class="t">{{ p.nombre }} <span class="pill" [class]="p.tipo === 'insumo' ? 'mut' : p.tipo === 'servicio' ? 'acc' : 'sec'">{{ tipos[p.tipo] }}</span></span>
@@ -46,6 +48,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
           <span class="d m">@if (s.verCostos() && p.margen != null) { Margen {{ p.margen | pct }} }</span>
         </button>
       } @empty { <div class="vacio"><b>Sin artículos</b>Registra tus tazas, papel de sublimación, MDF, acrílico y servicios de corte.</div> }
+    }
     </div>
 
     @if (e(); as e) {
@@ -101,7 +104,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
           </div>
         }
         <ng-container pie>
-          @if (e.id) { <app-confirmar texto="Desactivar" (confirmado)="desactivar()" /> }
+          @if (e.id) { <app-confirmar texto="Desactivar" pregunta="¿Desactivar este artículo?" detalle="Ya no aparecerá para cotizar ni vender. Su historial se conserva." (confirmado)="desactivar()" /> }
           <span class="flex-1"></span>
           <button class="btn pri" (click)="guardar()">Guardar</button>
         </ng-container>
@@ -136,6 +139,7 @@ export class Inventario implements OnInit {
   categorias = CATEGORIAS;
   filtros: [string, string][] = [['todos', 'Todos'], ['producto', 'Productos'], ['insumo', 'Insumos'], ['servicio', 'Servicios']];
   productos = signal<Producto[]>([]);
+  listo = signal(false);
   tipo = signal('todos');
   q = signal('');
   soloBajo = signal(false);
@@ -166,7 +170,7 @@ export class Inventario implements OnInit {
   sugerido = computed(() => Math.ceil(this.costo() / (1 - Math.min(95, this.s.taller()?.margenObjetivo ?? 60) / 100)));
 
   ngOnInit() { this.cargar(); }
-  async cargar() { this.productos.set(await this.api.get<Producto[]>('/productos')); }
+  async cargar() { this.productos.set(await this.api.get<Producto[]>('/productos')); this.listo.set(true); }
   calc() { this.rev.update((x) => x + 1); }
 
   abrir(p?: Producto) {

@@ -1,9 +1,11 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AvisoService, mensajeError } from './core/aviso.service';
+import { TemaService } from './core/tema.service';
 import { Rol } from './core/modelos';
 import { SesionService } from './core/sesion.service';
 import { Icono } from './ui/icono';
+import { Logo } from './ui/logo';
 
 interface Item { ruta: string; texto: string; icono: string; roles: Rol[] }
 const TODOS: Rol[] = ['dueno', 'admin', 'encargado', 'vendedor', 'produccion'];
@@ -26,12 +28,12 @@ const MENU: Item[] = [
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icono],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icono, Logo],
   template: `
     <div class="grid min-h-full lg:grid-cols-[240px_1fr]">
       <aside class="sticky top-0 hidden h-screen flex-col gap-1 overflow-auto border-r border-linea bg-superficie px-3 py-5 lg:flex">
         <a class="flex items-center gap-2.5 px-2 pb-[18px] text-tinta no-underline" routerLink="/app">
-          <span class="marca-ico"></span>
+          <app-logo [tamano]="32" [texto]="false" />
           <span><b class="block font-titulo text-[1.25rem] font-extrabold">Grabix</b><small class="block max-w-40 truncate text-[.75rem] text-tenue">{{ s.taller()?.nombre }}</small></span>
         </a>
         <nav>
@@ -55,7 +57,11 @@ const MENU: Item[] = [
               <span class="pill mut">{{ s.nombreSucursal() }}</span>
             }
           </div>
-          <span class="chico truncate text-tenue">{{ s.perfil()?.usuario?.nombre }}</span>
+          <div class="flex min-w-0 items-center gap-1">
+            <span class="chico truncate text-tenue">{{ s.perfil()?.usuario?.nombre }}</span>
+            <button class="flex size-9 flex-none items-center justify-center rounded-lg text-[1.15rem] text-tenue hover:bg-superficie-2 hover:text-tinta"
+              (click)="tema.siguiente()" [attr.aria-label]="'Tema: ' + temaTxt()" [title]="'Tema: ' + temaTxt()"><app-icono [nombre]="temaIcono()" /></button>
+          </div>
         </div>
         @if (s.perfil()?.usuario?.emailVerificado === false) {
           <div [class]="BANNER + ' items-center bg-marca-suave'">
@@ -87,10 +93,6 @@ const MENU: Item[] = [
         </div>
       }
     </div>
-    @if (avisos.mensaje(); as m) {
-      <div class="fixed bottom-[calc(86px+env(safe-area-inset-bottom,0px))] left-1/2 z-60 max-w-[calc(100%-32px)] -translate-x-1/2 rounded-[10px] px-4 py-2.5 text-[.9rem] shadow-caja lg:bottom-6"
-        [class]="m.tipo === 'error' ? 'bg-bad text-white' : 'bg-tinta text-superficie'" role="status">{{ m.texto }}</div>
-    }
   `,
 })
 export class Shell {
@@ -99,6 +101,9 @@ export class Shell {
   readonly BANNER = 'mx-[max(16px,env(safe-area-inset-left,0px))] mt-3 flex flex-wrap gap-2.5 rounded-[10px] px-3.5 py-2.5 text-[.88rem]';
   s = inject(SesionService);
   avisos = inject(AvisoService);
+  tema = inject(TemaService);
+  temaIcono = computed(() => ({ sistema: 'pantalla', claro: 'sol', oscuro: 'luna' })[this.tema.tema()]);
+  temaTxt = computed(() => ({ sistema: 'automático (como tu dispositivo)', claro: 'claro', oscuro: 'oscuro' })[this.tema.tema()]);
   private router = inject(Router);
   mas = signal(false);
   menu = computed(() => MENU.filter((m) => m.roles.includes(this.s.rol()!)));

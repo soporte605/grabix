@@ -1,4 +1,5 @@
 import { IsBoolean, IsEmail, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { ClaveSegura } from '../common/clave';
 import { Rol } from '../entities';
 
 export class TallerDto {
@@ -24,7 +25,7 @@ export class SucursalDto {
 export class UsuarioDto {
   @IsString() @MinLength(2) @MaxLength(120) nombre: string;
   @IsEmail({}, { message: 'Correo no válido' }) email: string;
-  @IsOptional() @IsString() @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' }) password?: string;
+  @IsOptional() @IsString() @ClaveSegura('email', 'nombre') password?: string;
   @IsEnum(Rol) rol: Rol;
   @IsOptional() @IsInt() sucursalId?: number | null;
   @IsOptional() @IsBoolean() activo?: boolean;

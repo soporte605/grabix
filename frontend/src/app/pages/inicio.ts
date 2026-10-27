@@ -1,3 +1,4 @@
+import { Esqueleto } from '../ui/esqueleto';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Api } from '../core/api.service';
@@ -11,7 +12,7 @@ type Periodo = 'mes' | 'anterior' | 'anio' | 'doce';
 
 @Component({
   selector: 'app-inicio',
-  imports: [RouterLink, DineroPipe, FechaPipe, PctPipe, Grafica, Icono],
+  imports: [RouterLink, DineroPipe, FechaPipe, PctPipe, Grafica, Icono, Esqueleto],
   template: `
     <div class="encabezado">
       <div><h1>{{ s.taller()?.nombre }}</h1><p>{{ s.nombreSucursal() }} · {{ hoyTxt | fecha }}</p></div>
@@ -71,7 +72,7 @@ type Periodo = 'mes' | 'anterior' | 'anio' | 'doce';
           </section>
         </div>
       </div>
-    } @else { <p class="tenue">Cargando…</p> }
+    } @else { <app-esqueleto tipo="inicio" /> }
   `,
 })
 export class Inicio implements OnInit {

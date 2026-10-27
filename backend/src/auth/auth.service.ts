@@ -4,6 +4,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { DataSource, Repository } from 'typeorm';
 import { EstadoSuscripcion, Rol, Sucursal, Taller, Usuario } from '../entities';
+import { exigirClave } from '../common/clave';
 import { Sesion } from '../common/sesion';
 import { DIAS_PRUEBA_PUBLICO, hoy, limites, PLANES, sumarDias, suscripcionVigente } from '../common/suscripcion';
 import { EjemplosService } from '../organizacion/ejemplos.service';
@@ -120,6 +121,7 @@ export class AuthService {
   /** Sirve para el enlace de recuperación y para aceptar una invitación. Deja la sesión iniciada. */
   async restablecer(dto: RestablecerDto) {
     const { token, usuario } = await this.tokens.buscar(dto.token, ['recuperacion', 'invitacion']);
+    exigirClave(dto.password, [usuario.email, usuario.nombre]);
     const passwordHash = await bcrypt.hash(dto.password, 10);
     await this.ds.transaction(async (em) => {
       // Abrir el enlace prueba que el correo es suyo.
@@ -133,6 +135,8 @@ export class AuthService {
   async cambiarContrasena(s: Sesion, dto: CambiarContrasenaDto) {
     const u = await this.usuarios.createQueryBuilder('u').addSelect('u.passwordHash').where('u.id = :id', { id: s.usuarioId }).getOneOrFail();
     if (!(await bcrypt.compare(dto.actual, u.passwordHash))) throw new BadRequestException('Tu contraseña actual no es correcta');
+    exigirClave(dto.nueva, [u.email, u.nombre]);
+    if (dto.nueva === dto.actual) throw new BadRequestException('La contraseña nueva debe ser distinta de la actual');
     await this.usuarios.update({ id: u.id }, { passwordHash: await bcrypt.hash(dto.nueva, 10), claveCambiadaEn: new Date() });
     await this.correo.contrasenaCambiada(u.email, u.nombre);
     // Las demás sesiones se cierran; esta recibe un token nuevo.

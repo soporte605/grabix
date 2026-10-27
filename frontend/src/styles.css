@@ -33,7 +33,62 @@
   --f-num: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
 
   --sombra: 0 10px 30px rgba(15, 35, 55, .14);
+  --logo-borde: transparent;
   color-scheme: light;
+}
+
+/* Modo oscuro: sigue al dispositivo salvo que el usuario elija claro u oscuro (data-tema en <html>). */
+:root[data-tema='oscuro'] {
+  --marca: #7aa7ff;
+  --marca-2: #a3c2ff;
+  --marca-suave: #16264a;
+  --acento: #67be28;
+  --acento-2: #8fd85a;
+  --acento-suave: #182a10;
+  --sobre-marca: #001536;
+
+  --fondo: #0b1220;
+  --superficie: #121b2c;
+  --superficie-2: #18233a;
+  --tinta: #e6edf5;
+  --tenue: #97a6b8;
+  --linea: #263451;
+
+  --ok: #4cc27f; --ok-suave: #102a1c;
+  --warn: #e3b546; --warn-suave: #2f260d;
+  --bad: #ff8466; --bad-suave: #351910;
+  --wa: #25b865;
+
+  --sombra: 0 12px 32px rgba(0, 0, 0, .45);
+  --logo-borde: rgba(255, 255, 255, .22);
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema='claro']) {
+    --marca: #7aa7ff;
+    --marca-2: #a3c2ff;
+    --marca-suave: #16264a;
+    --acento: #67be28;
+    --acento-2: #8fd85a;
+    --acento-suave: #182a10;
+    --sobre-marca: #001536;
+
+    --fondo: #0b1220;
+    --superficie: #121b2c;
+    --superficie-2: #18233a;
+    --tinta: #e6edf5;
+    --tenue: #97a6b8;
+    --linea: #263451;
+
+    --ok: #4cc27f; --ok-suave: #102a1c;
+    --warn: #e3b546; --warn-suave: #2f260d;
+    --bad: #ff8466; --bad-suave: #351910;
+    --wa: #25b865;
+
+    --sombra: 0 12px 32px rgba(0, 0, 0, .45);
+    --logo-borde: rgba(255, 255, 255, .22);
+    color-scheme: dark;
+  }
 }
 
 @theme inline {
@@ -70,6 +125,10 @@
   --breakpoint-lg: 60rem;
   --animate-sube: sube .18s ease-out;
   @keyframes sube { from { transform: translateY(16px); opacity: .6; } }
+  --animate-entra: entra .22s ease-out;
+  @keyframes entra { from { transform: translateY(-8px) scale(.98); opacity: 0; } }
+  --animate-cargando: cargando 1.1s ease-in-out infinite;
+  @keyframes cargando { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
 }
 
 @layer base {
@@ -111,8 +170,8 @@
   /* Margen lateral de pantalla que respeta la muesca del celular. */
   .margen-x { @apply pr-[max(16px,env(safe-area-inset-right,0px))] pl-[max(16px,env(safe-area-inset-left,0px))]; }
 
-  /* Isotipo de Grabix: cuadro azul marino con franja verde. */
-  .marca-ico { @apply size-[30px] flex-none rounded-lg bg-[linear-gradient(180deg,var(--marca)_0_72%,var(--acento)_72%)]; }
+  /* Marcador de carga (skeleton) */
+  .hueso { @apply block animate-pulse rounded-md bg-linea/70; }
 
   /* Contenedores */
   .tarjeta { @apply rounded-xl border border-linea bg-superficie; }

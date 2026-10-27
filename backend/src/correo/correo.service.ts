@@ -105,7 +105,7 @@ export class CorreoService {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${MARCA.lienzo}"><tr><td align="center" style="padding:28px 12px">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
     <tr><td style="padding:0 4px 14px;font-family:Montserrat,Arial,sans-serif;font-size:22px;font-weight:800;color:${MARCA.primario}">
-      <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:${MARCA.acento};margin-right:8px;vertical-align:-1px"></span>Grabix</td></tr>
+      <img src="${this.url('/icono-192.png')}" width="32" height="32" alt="" style="display:inline-block;width:32px;height:32px;border-radius:8px;margin-right:10px;vertical-align:middle;border:0">Grabix</td></tr>
     <tr><td style="background:#ffffff;border:1px solid ${MARCA.borde};border-radius:12px;overflow:hidden">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
         <tr><td style="height:5px;background:${MARCA.acento};font-size:0;line-height:0">&nbsp;</td></tr>

@@ -1,20 +1,20 @@
-import { Component, input, output, signal } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
+import { ConfirmarService } from '../core/confirmar.service';
 
-/** Botón de dos toques para acciones destructivas. */
+/** Botón para acciones destructivas: pide confirmación en una ventana antes de emitir `confirmado`. */
 @Component({
   selector: 'app-confirmar',
-  template: `<button type="button" class="btn peligro" [class.armado]="armado()" [class.sm]="chico()" (click)="toque()">{{ armado() ? 'Toca de nuevo para confirmar' : texto() }}</button>`,
+  template: `<button type="button" class="btn peligro" [class.sm]="chico()" (click)="preguntar()">{{ texto() }}</button>`,
 })
 export class Confirmar {
+  private confirmar = inject(ConfirmarService);
   texto = input('Eliminar');
+  pregunta = input('¿Seguro que quieres eliminarlo?');
+  detalle = input('Esta acción no se puede deshacer.');
   chico = input(false);
   confirmado = output();
-  armado = signal(false);
-  private t?: ReturnType<typeof setTimeout>;
-  toque() {
-    if (this.armado()) { this.armado.set(false); this.confirmado.emit(); return; }
-    this.armado.set(true);
-    clearTimeout(this.t);
-    this.t = setTimeout(() => this.armado.set(false), 4000);
+
+  async preguntar() {
+    if (await this.confirmar.preguntar({ titulo: this.pregunta(), texto: this.detalle(), accion: this.texto(), peligro: true })) this.confirmado.emit();
   }
 }

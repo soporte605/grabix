@@ -1,3 +1,4 @@
+import { Esqueleto } from '../ui/esqueleto';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -9,7 +10,7 @@ import { Icono } from '../ui/icono';
 /** Lista de cotizaciones o de ventas (según la ruta). */
 @Component({
   selector: 'app-doc-lista',
-  imports: [FormsModule, RouterLink, DineroPipe, FechaPipe, Icono],
+  imports: [FormsModule, RouterLink, DineroPipe, FechaPipe, Icono, Esqueleto],
   template: `
     <div class="encabezado">
       <div>
@@ -26,6 +27,7 @@ import { Icono } from '../ui/icono';
       <input class="buscar" placeholder="Buscar por folio o cliente" [(ngModel)]="q" (ngModelChange)="buscar()" aria-label="Buscar">
     </div>
     <div class="tarjeta lista">
+      @if (cargando()) { <app-esqueleto /> } @else {
       @for (d of docs(); track d.id) {
         <a class="renglon" [routerLink]="[d.id]">
           <span class="t">{{ d.cliente?.nombre || d.clienteNombre || 'Mostrador' }}</span>
@@ -35,8 +37,9 @@ import { Icono } from '../ui/icono';
           <span class="d"><span class="pill" [class]="mapa[d.estado][1]">{{ mapa[d.estado][0] }}</span></span>
         </a>
       } @empty {
-        <div class="vacio"><b>{{ cargando() ? 'Cargando…' : 'Sin resultados' }}</b>{{ cargando() ? '' : 'Crea el primero con el botón de arriba.' }}</div>
+        <div class="vacio"><b>Sin resultados</b>Crea el primero con el botón de arriba.</div>
       }
+    }
     </div>
     @if (esVenta && docs().length) {
       <p class="tenue chico">{{ docs().length }} ventas · Total {{ total() | dinero }} · Saldo por cobrar {{ saldo() | dinero }}</p>

@@ -3,12 +3,14 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { mensajeError } from '../core/aviso.service';
 import { SesionService } from '../core/sesion.service';
+import { evaluarClave } from '../core/clave';
+import { CampoClave } from '../ui/campo-clave';
 import { MarcoAcceso } from '../ui/marco-acceso';
 
 /** Inicio de sesión y registro de un taller nuevo (misma pantalla, dos modos). */
 @Component({
   selector: 'app-acceso',
-  imports: [FormsModule, RouterLink, MarcoAcceso],
+  imports: [FormsModule, RouterLink, MarcoAcceso, CampoClave],
   template: `
     <app-marco-acceso>
       <form class="contents" (ngSubmit)="enviar()">
@@ -22,7 +24,10 @@ import { MarcoAcceso } from '../ui/marco-acceso';
           <h1>Entra a tu taller</h1>
         }
         <div class="campo"><label for="a-e">Correo</label><input id="a-e" name="email" type="email" [(ngModel)]="email" required autocomplete="email"></div>
-        <div class="campo"><div class="fila entre"><label for="a-p">Contraseña</label>@if (modo() === 'entrar') { <a class="chico" routerLink="/olvide-contrasena" [queryParams]="email ? { email } : {}">¿La olvidaste?</a> }</div><input id="a-p" name="pass" type="password" [(ngModel)]="password" required [attr.minlength]="modo() === 'registro' ? 8 : null" [attr.autocomplete]="modo() === 'registro' ? 'new-password' : 'current-password'"></div>
+        <app-campo-clave entrada="a-p" [(valor)]="password" [medidor]="modo() === 'registro'" [personales]="[email, nombre, taller]"
+          [autocomplete]="modo() === 'registro' ? 'new-password' : 'current-password'">
+          @if (modo() === 'entrar') { <a etiqueta class="chico float-right font-normal tracking-normal" routerLink="/olvide-contrasena" [queryParams]="email ? { email } : {}">¿La olvidaste?</a> }
+        </app-campo-clave>
         @if (modo() === 'registro') {
           <label class="fila chico"><input type="checkbox" name="ej" [(ngModel)]="conEjemplos"> Cargar datos de ejemplo para conocer la app</label>
         }
@@ -46,6 +51,8 @@ export class Acceso {
 
   async enviar() {
     this.error.set('');
+    if (this.modo() === 'registro' && !evaluarClave(this.password, [this.email, this.nombre, this.taller]).valida)
+      return this.error.set('Tu contraseña aún no es segura: revisa los puntos debajo del campo.');
     this.cargando.set(true);
     try {
       if (this.modo() === 'registro')

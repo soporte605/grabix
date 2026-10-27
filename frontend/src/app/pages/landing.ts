@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { Logo } from '../ui/logo';
 import { Api } from '../core/api.service';
 import { dinero } from '../core/formato';
 import { Plan } from '../core/modelos';
@@ -23,11 +24,11 @@ const SUBLI: Preset[] = [
 
 @Component({
   selector: 'app-landing',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, Logo],
   template: `
     <header class="sticky top-0 z-10 border-b border-linea bg-superficie py-2.5">
       <div class="mx-auto max-w-[1160px] margen-x fila entre">
-        <a class="flex items-center gap-[9px] font-titulo text-[1.3rem] font-extrabold text-tinta no-underline" routerLink="/"><span class="marca-ico size-[26px] rounded-[7px]"></span>Grabix</a>
+        <a class="no-underline" routerLink="/" aria-label="Grabix, inicio"><app-logo [tamano]="30" /></a>
         <nav class="fila">
           <a href="#precios" class="btn sm border-transparent max-[520px]:hidden">Precios</a>
           <a routerLink="/entrar" class="btn sm">Entrar</a>

@@ -4,11 +4,14 @@ import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { DineroPipe, FechaPipe } from '../core/formato';
 import { Taller } from '../core/modelos';
+import { evaluarClave } from '../core/clave';
 import { SesionService } from '../core/sesion.service';
+import { CampoClave } from '../ui/campo-clave';
+import { Esqueleto } from '../ui/esqueleto';
 
 @Component({
   selector: 'app-ajustes',
-  imports: [FormsModule, DineroPipe, FechaPipe],
+  imports: [FormsModule, DineroPipe, FechaPipe, CampoClave, Esqueleto],
   template: `
     <div class="encabezado"><div><h1>Ajustes y plan</h1><p>Datos que aparecen en tus PDF y valores para calcular costos.</p></div></div>
     @if (t(); as t) {
@@ -42,10 +45,10 @@ import { SesionService } from '../core/sesion.service';
         <form class="caja" (ngSubmit)="cambiarClave()">
           <h3>Tu contraseña</h3>
           <input type="email" name="usuario" [value]="s.perfil()?.usuario?.email" autocomplete="username" hidden>
-          <div class="campos c3">
-            <div class="campo"><label for="c-a">Contraseña actual</label><input id="c-a" name="actual" type="password" autocomplete="current-password" [(ngModel)]="clave.actual"></div>
-            <div class="campo"><label for="c-n">Contraseña nueva</label><input id="c-n" name="nueva" type="password" autocomplete="new-password" minlength="8" [(ngModel)]="clave.nueva"></div>
-            <div class="campo"><label for="c-n2">Repite la nueva</label><input id="c-n2" name="nueva2" type="password" autocomplete="new-password" [(ngModel)]="clave.nueva2"></div>
+          <div class="grid items-start gap-2.5 sm:grid-cols-3">
+            <app-campo-clave entrada="c-a" etiqueta="Contraseña actual" autocomplete="current-password" [(valor)]="clave.actual" />
+            <app-campo-clave entrada="c-n" etiqueta="Contraseña nueva" [(valor)]="clave.nueva" [medidor]="true" [personales]="[s.perfil()?.usuario?.email, s.perfil()?.usuario?.nombre]" />
+            <app-campo-clave entrada="c-n2" etiqueta="Repite la nueva" [(valor)]="clave.nueva2" />
           </div>
           <div class="fila"><button class="btn">Cambiar contraseña</button><span class="tenue chico">Se cerrará tu sesión en otros dispositivos.</span></div>
         </form>
@@ -74,7 +77,7 @@ import { SesionService } from '../core/sesion.service';
           </section>
         }
       </div>
-    }
+    } @else { <app-esqueleto tipo="formulario" [filas]="3" /> }
   `,
 })
 export class Ajustes implements OnInit {
@@ -100,7 +103,8 @@ export class Ajustes implements OnInit {
   clave = { actual: '', nueva: '', nueva2: '' };
   async cambiarClave() {
     const c = this.clave;
-    if (c.nueva.length < 8) return this.aviso.error('La contraseña nueva debe tener al menos 8 caracteres');
+    const u = this.s.perfil()?.usuario;
+    if (!evaluarClave(c.nueva, [u?.email, u?.nombre]).valida) return this.aviso.error('Tu contraseña nueva aún no es segura: revisa los puntos debajo del campo.');
     if (c.nueva !== c.nueva2) return this.aviso.error('Las contraseñas nuevas no coinciden');
     try {
       await this.s.cambiarContrasena(c.actual, c.nueva);

@@ -1,3 +1,4 @@
+import { Esqueleto } from '../ui/esqueleto';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
@@ -15,9 +16,10 @@ const SIGUIENTE: Partial<Record<EstadoVenta, [EstadoVenta, string]>> = {
 /** Tablero de pedidos por hacer: pendiente → en producción → listo → entregado. */
 @Component({
   selector: 'app-produccion',
-  imports: [FechaPipe, Icono],
+  imports: [FechaPipe, Icono, Esqueleto],
   template: `
     <div class="encabezado"><div><h1>Producción</h1><p>Pedidos por hacer, ordenados por fecha de entrega.</p></div></div>
+    @if (!listo()) { <app-esqueleto tipo="tablero" /> } @else {
     <div class="grid gap-3.5 min-[900px]:grid-cols-3">
       @for (c of columnas; track c) {
         <section class="flex min-w-0 flex-col gap-2.5">
@@ -37,6 +39,7 @@ const SIGUIENTE: Partial<Record<EstadoVenta, [EstadoVenta, string]>> = {
         </section>
       }
     </div>
+    }
   `,
 })
 export class Produccion implements OnInit {
@@ -47,11 +50,13 @@ export class Produccion implements OnInit {
   siguiente = SIGUIENTE;
   hoy = new Date().toISOString().slice(0, 10);
   ventas = signal<Venta[]>([]);
+  listo = signal(false);
 
   ngOnInit() { this.cargar(); }
   async cargar() {
     const vs = await this.api.get<Venta[]>('/ventas', { estado: COLUMNAS.join(',') });
     this.ventas.set(vs.sort((a, b) => String(a.entrega ?? '9').localeCompare(String(b.entrega ?? '9'))));
+    this.listo.set(true);
   }
   de(e: EstadoVenta) { return this.ventas().filter((v) => v.estado === e); }
   async mover(v: Venta, estado: EstadoVenta) {

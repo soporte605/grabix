@@ -30,6 +30,10 @@ const tokenDeCorreo = async (para, asunto) => (await correo(para, asunto)).match
 const ok = (c, m) => { if (!c) { console.error('✗', m); process.exitCode = 1; } else console.log('✓', m); };
 
 const email = `dueno${Date.now()}@ejemplo.com`;
+for (const [clave, motivo] of [['corta1', 'corta'], ['solotexto', 'sin números'], ['12345678', 'sin letras'], ['password1', 'muy común'], [`dueno${Date.now()}x1`, 'con el correo']]) {
+  const d = await api('POST', '/auth/registro', { taller: 'Taller débil', nombre: 'Prueba', email: `debil${Date.now()}@ejemplo.com`, password: motivo === 'con el correo' ? 'debil' + Date.now() + 'a' : clave });
+  ok(d.status === 400, `rechaza contraseña ${motivo}: ${Array.isArray(d.data.message) ? d.data.message[0] : d.data.message}`);
+}
 let r = await api('POST', '/auth/registro', { taller: 'Taller de prueba', nombre: 'Dueño', email, password: 'secreto123', conEjemplos: true });
 ok(r.status === 201 && r.data.token, 'registro con datos de ejemplo');
 token = r.data.token;

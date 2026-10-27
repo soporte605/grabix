@@ -1,3 +1,4 @@
+import { Esqueleto } from '../ui/esqueleto';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api.service';
@@ -11,7 +12,7 @@ import { Icono } from '../ui/icono';
 
 @Component({
   selector: 'app-clientes',
-  imports: [FormsModule, DineroPipe, Hoja, Icono, Confirmar],
+  imports: [FormsModule, DineroPipe, Hoja, Icono, Confirmar, Esqueleto],
   template: `
     <div class="encabezado">
       <div><h1>Clientes</h1><p>{{ clientes().length }} registrados</p></div>
@@ -19,6 +20,7 @@ import { Icono } from '../ui/icono';
     </div>
     <div class="mb-3"><input class="buscar" placeholder="Buscar nombre o teléfono" [ngModel]="q()" (ngModelChange)="q.set($event)" aria-label="Buscar"></div>
     <div class="tarjeta lista">
+      @if (!listo()) { <app-esqueleto /> } @else {
       @for (c of visibles(); track c.id) {
         <button class="renglon" (click)="abrir(c)">
           <span class="t">{{ c.nombre }} @if (c.empresa) { <span class="m">· {{ c.empresa }}</span> }</span>
@@ -27,6 +29,7 @@ import { Icono } from '../ui/icono';
           <span class="d m">{{ c.pedidos }} pedido{{ c.pedidos === 1 ? '' : 's' }}</span>
         </button>
       } @empty { <div class="vacio"><b>Sin clientes</b>Agrega a tus clientes para cotizar y escribirles por WhatsApp.</div> }
+    }
     </div>
     @if (e(); as e) {
       <app-hoja [titulo]="e.id ? e.nombre ?? '' : 'Nuevo cliente'" (cerrar)="e_.set(null)">
@@ -38,7 +41,7 @@ import { Icono } from '../ui/icono';
           <div class="campo todo"><label for="c-no">Notas</label><textarea id="c-no" [(ngModel)]="e.notas"></textarea></div>
         </div>
         <ng-container pie>
-          @if (e.id && s.verCostos()) { <app-confirmar (confirmado)="eliminar()" /> }
+          @if (e.id && s.verCostos()) { <app-confirmar pregunta="¿Eliminar este cliente?" detalle="Sus cotizaciones y ventas se conservan. No se puede deshacer." (confirmado)="eliminar()" /> }
           @if (e.telefono) { <a class="btn wa" target="_blank" rel="noopener" [href]="wa(e)"><app-icono nombre="wa" />WhatsApp</a> }
           <span class="flex-1"></span>
           <button class="btn pri" (click)="guardar()">Guardar</button>
@@ -52,6 +55,7 @@ export class Clientes implements OnInit {
   private api = inject(Api);
   private aviso = inject(AvisoService);
   clientes = signal<Cliente[]>([]);
+  listo = signal(false);
   q = signal('');
   e_ = signal<Partial<Cliente> | null>(null);
   e = this.e_.asReadonly();
@@ -61,7 +65,7 @@ export class Clientes implements OnInit {
   });
 
   ngOnInit() { this.cargar(); }
-  async cargar() { this.clientes.set(await this.api.get('/clientes')); }
+  async cargar() { this.clientes.set(await this.api.get('/clientes')); this.listo.set(true); }
   abrir(c?: Cliente) { this.e_.set(c ? { ...c } : { nombre: '', telefono: '', email: '', empresa: '', notas: '' }); }
   wa(c: Partial<Cliente>) {
     let t = (c.telefono ?? '').replace(/\D/g, '');

@@ -1,3 +1,4 @@
+import { Esqueleto } from '../ui/esqueleto';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api.service';
@@ -11,13 +12,14 @@ import { Icono } from '../ui/icono';
 
 @Component({
   selector: 'app-promociones',
-  imports: [FormsModule, DineroPipe, FechaPipe, Hoja, Icono, Confirmar],
+  imports: [FormsModule, DineroPipe, FechaPipe, Hoja, Icono, Confirmar, Esqueleto],
   template: `
     <div class="encabezado">
       <div><h1>Promociones</h1><p>Descuentos para tus cotizaciones y ventas, listos para mandar por WhatsApp.</p></div>
       @if (s.verCostos()) { <button class="btn pri" (click)="abrir()"><app-icono nombre="mas1" />Nueva promoción</button> }
     </div>
     <div class="tarjeta lista">
+      @if (!listo()) { <app-esqueleto /> } @else {
       @for (p of promos(); track p.id) {
         <button class="renglon" (click)="abrir(p)">
           <span class="t">{{ p.nombre }}</span>
@@ -25,6 +27,7 @@ import { Icono } from '../ui/icono';
           <span class="m">{{ p.tipo === 'pct' ? p.valor + '% de descuento' : (p.valor | dinero) + ' de descuento' }} @if (p.fin) { · hasta {{ p.fin | fecha }} }</span><span></span>
         </button>
       } @empty { <div class="vacio"><b>Sin promociones</b>Crea una, por ejemplo “10% en tazas para el Día de las Madres”.</div> }
+    }
     </div>
     @if (e(); as e) {
       <app-hoja [titulo]="e.id ? e.nombre! : 'Nueva promoción'" (cerrar)="e_.set(null)">
@@ -49,7 +52,7 @@ import { Icono } from '../ui/icono';
         }
         <ng-container pie>
           @if (s.verCostos()) {
-            @if (e.id) { <app-confirmar (confirmado)="eliminar()" /> }
+            @if (e.id) { <app-confirmar pregunta="¿Eliminar esta promoción?" (confirmado)="eliminar()" /> }
             <span class="flex-1"></span><button class="btn pri" (click)="guardar()">Guardar</button>
           }
         </ng-container>
@@ -62,6 +65,7 @@ export class Promociones implements OnInit {
   private api = inject(Api);
   private aviso = inject(AvisoService);
   promos = signal<Promocion[]>([]);
+  listo = signal(false);
   clientes = signal<Cliente[]>([]);
   e_ = signal<Partial<Promocion> | null>(null);
   e = this.e_.asReadonly();
@@ -69,6 +73,7 @@ export class Promociones implements OnInit {
 
   async ngOnInit() {
     this.promos.set(await this.api.get('/promociones'));
+    this.listo.set(true);
     this.clientes.set(await this.api.get('/clientes'));
   }
   vigente(p: Promocion) { const h = hoy(); return p.activa && (!p.inicio || p.inicio <= h) && (!p.fin || p.fin >= h); }
