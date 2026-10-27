@@ -7,6 +7,6 @@ import { CostosService } from './costos.service';
 @Module({
   controllers: [CatalogoController],
   providers: [CatalogoService, CostosService],
-  exports: [CostosService],
+  exports: [CostosService, CatalogoService],
 })
 export class CatalogoModule {}

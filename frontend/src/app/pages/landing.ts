@@ -47,7 +47,6 @@ const SUBLI: Preset[] = [
     <section class="relative overflow-hidden bg-linear-to-b from-marca-suave to-fondo pt-10 pb-12 sm:pt-14 lg:pt-20 lg:pb-20">
       <div class="mx-auto grid max-w-[1200px] items-center gap-10 margen-x lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-14">
         <div class="flex flex-col items-start gap-5 max-lg:items-center max-lg:text-center">
-          <span class="pill sec">Software para talleres de corte láser y sublimación</span>
           <h1 class="text-[clamp(2rem,5vw,3.25rem)] leading-[1.05] tracking-[-.035em]">Tu taller organizado, de la cotización a la entrega</h1>
           <p class="max-w-[52ch] text-[1.05rem] text-tenue sm:text-[1.12rem]">Grabix reúne cotizaciones, pedidos, producción, inventario y cobros en un solo lugar. Cotizas en segundos con tus costos reales, tu equipo sabe qué sigue y tú ves cuánto ganas cada mes.</p>
           <div class="flex w-full flex-col gap-2.5 min-[480px]:w-auto min-[480px]:flex-row">
@@ -106,7 +105,6 @@ const SUBLI: Preset[] = [
     <section class="scroll-mt-16 py-14 lg:py-20" id="simulador">
       <div class="mx-auto max-w-[1200px] margen-x">
         <div class="mx-auto max-w-[640px] text-center">
-          <p class="text-[.78rem] font-bold tracking-[.08em] text-acento-2 uppercase">Pruébalo ahora, sin registrarte</p>
           <h2 class="mt-2 text-[clamp(1.5rem,3vw,2.1rem)] leading-tight">Así cotiza Grabix: rápido y con tus costos reales</h2>
           <p class="mt-3 text-tenue">Elige un material, ajusta medidas y minutos, y obtén un precio que cubre material, máquina y la ganancia que tú decides. Puedes mandarlo a tu cliente por WhatsApp en ese momento.</p>
         </div>
@@ -186,9 +184,52 @@ const SUBLI: Preset[] = [
       </div>
     </section>
 
+    <!-- Asistente con IA -->
+    <section class="scroll-mt-16 bg-superficie py-14 lg:py-20" id="asistente">
+      <div class="mx-auto grid max-w-[1200px] items-center gap-10 margen-x lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14">
+        <div class="flex flex-col gap-5">
+          <span class="pill sec flex items-center gap-1.5 self-start"><app-icono nombre="chispa" />Nuevo: asistente con IA</span>
+          <h2 class="text-[clamp(1.6rem,3.4vw,2.4rem)] leading-tight tracking-[-.03em]">Pregúntale a tu taller y te responde al momento</h2>
+          <p class="text-[1.05rem] text-tenue">Escríbele como le escribirías a tu encargado. El asistente consulta tus ventas, pedidos, inventario y clientes, y te dice cómo hacer cualquier cosa en Grabix, con el enlace directo a la pantalla.</p>
+          <ul class="grid gap-3.5">
+            @for (x of asistentePuntos; track x.t) {
+              <li class="flex gap-3">
+                <span class="flex size-9 flex-none items-center justify-center rounded-xl bg-marca-suave text-[1.1rem] text-marca"><app-icono [nombre]="x.i" /></span>
+                <div><b class="font-semibold">{{ x.t }}</b><p class="text-[.94rem] text-tenue">{{ x.d }}</p></div>
+              </li>
+            }
+          </ul>
+          <a routerLink="/registro" class="btn pri min-h-12 self-start px-6">Pruébalo {{ diasPrueba() }} días gratis</a>
+        </div>
+
+        <div class="overflow-hidden rounded-2xl border border-linea bg-fondo shadow-caja" role="img" aria-label="Ejemplo de conversación con el asistente">
+          <div class="flex items-center gap-3 border-b border-linea bg-superficie px-4 py-3" aria-hidden="true">
+            <span class="flex size-9 items-center justify-center rounded-xl bg-[#002150] text-[1.1rem] text-[#8fd85a]"><app-icono nombre="chispa" /></span>
+            <div class="flex-1"><p class="font-bold">Asistente</p><p class="text-[.76rem] text-tenue">Consulta datos de Matriz</p></div>
+            <span class="pill mut">Ejemplo</span>
+          </div>
+          <div class="flex flex-col gap-3 p-4 text-[.92rem] sm:p-5" aria-hidden="true">
+            <p class="max-w-[85%] self-end rounded-2xl rounded-br-md bg-marca px-3.5 py-2 text-sobre-marca">¿Qué tengo que entregar esta semana?</p>
+            <div class="max-w-[92%] self-start rounded-2xl rounded-bl-md bg-superficie px-3.5 py-2.5 leading-relaxed">
+              <p>En Matriz tienes <b>3 pedidos</b> por entregar:</p>
+              <ul class="my-1.5 list-disc pl-5">
+                <li><b class="text-marca">VTA-0041</b> · 120 llaveros MDF, jueves, saldo <b>$1,200.00</b></li>
+                <li><b class="text-marca">VTA-0043</b> · 24 tazas sublimadas, viernes, pagado</li>
+                <li><b class="text-marca">VTA-0044</b> · Letrero acrílico, sábado</li>
+              </ul>
+              <p>Ojo: del <b>MDF 3 mm</b> quedan 4 láminas y el mínimo es 10.</p>
+            </div>
+            <p class="max-w-[85%] self-end rounded-2xl rounded-br-md bg-marca px-3.5 py-2 text-sobre-marca">¿Cómo registro el pago de los llaveros?</p>
+            <div class="max-w-[92%] self-start rounded-2xl rounded-bl-md bg-superficie px-3.5 py-2.5 leading-relaxed">
+              <ol class="list-decimal pl-5"><li>Abre la venta <b class="text-marca">VTA-0041</b>.</li><li>Toca <b>Registrar pago</b> y escribe el monto.</li><li>Guarda y el saldo se actualiza solo.</li></ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Antes / con Grabix -->
     <section class="mx-auto max-w-[1200px] margen-x py-14" id="por-que">
-      <p class="text-center text-[.78rem] font-bold tracking-[.08em] text-acento-2 uppercase">Por qué Grabix</p>
       <h2 class="mx-auto mt-2 max-w-[24ch] text-center text-[clamp(1.5rem,3vw,2.1rem)] leading-tight">Menos tiempo en cuentas y mensajes, más tiempo produciendo</h2>
       <div class="mt-8 grid gap-4 md:grid-cols-2">
         <article class="tarjeta p-6">
@@ -205,7 +246,6 @@ const SUBLI: Preset[] = [
     <!-- Vista previa del producto -->
     <section class="bg-superficie py-14" id="funciones">
       <div class="mx-auto max-w-[1200px] margen-x">
-        <p class="text-center text-[.78rem] font-bold tracking-[.08em] text-acento-2 uppercase">Funciones</p>
         <h2 class="mx-auto mt-2 max-w-[26ch] text-center text-[clamp(1.5rem,3vw,2.1rem)] leading-tight">Todo lo que tu taller necesita, en un solo sistema</h2>
 
         <div class="mt-10 grid gap-x-6 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
@@ -221,7 +261,6 @@ const SUBLI: Preset[] = [
 
     <!-- Cómo funciona -->
     <section class="mx-auto max-w-[1200px] margen-x py-14" id="como-funciona">
-      <p class="text-center text-[.78rem] font-bold tracking-[.08em] text-acento-2 uppercase">Cómo funciona</p>
       <h2 class="mt-2 text-center text-[clamp(1.5rem,3vw,2.1rem)]">Del mensaje del cliente a la entrega</h2>
       <ol class="mt-8 grid gap-4 md:grid-cols-3">
         @for (p of pasos; track p.t; let i = $index) {
@@ -236,7 +275,6 @@ const SUBLI: Preset[] = [
     <!-- Planes -->
     <section class="bg-superficie py-14" id="precios">
       <div class="mx-auto max-w-[1200px] margen-x">
-        <p class="text-center text-[.78rem] font-bold tracking-[.08em] text-acento-2 uppercase">Precios</p>
         <h2 class="mt-2 text-center text-[clamp(1.5rem,3vw,2.1rem)]">Un plan para cada tamaño de taller</h2>
         <p class="tenue mt-2 text-center">{{ diasPrueba() }} días gratis con todas las funciones. Sin tarjeta para empezar.</p>
         <div class="chips mt-4 mb-7 justify-center">
@@ -291,7 +329,7 @@ const SUBLI: Preset[] = [
     <footer class="border-t border-linea">
       <div class="mx-auto max-w-[1200px] margen-x flex flex-wrap items-center justify-between gap-3 py-7 text-[.88rem] text-tenue">
         <app-logo [tamano]="24" />
-        <span>Software para talleres de corte láser y sublimación · Hecho por Elikar Systems</span>
+        <span>Grabix es un producto de Elikar Systems</span>
         <a href="mailto:soporte@elikarsystems.com" class="text-tenue">soporte&#64;elikarsystems.com</a>
       </div>
     </footer>
@@ -303,9 +341,16 @@ export class Landing implements OnInit {
   private avisos = inject(AvisoService);
   navegacion = [
     { id: 'simulador', texto: 'Cotizador' },
+    { id: 'asistente', texto: 'Asistente IA' },
     { id: 'funciones', texto: 'Funciones' },
     { id: 'precios', texto: 'Precios' },
     { id: 'preguntas', texto: 'Preguntas' },
+  ];
+  asistentePuntos = [
+    { i: 'inicio', t: 'Tus números, sin buscar', d: 'Ventas, ganancia, pedidos pendientes y quién te debe, con los datos reales del día.' },
+    { i: 'alerta', t: 'Te avisa lo importante', d: 'Pedidos por entregar, material por acabarse y cotizaciones sin respuesta.' },
+    { i: 'info', t: 'Te guía en el sistema', d: 'Te explica paso a paso cómo hacer algo y te lleva a la pantalla correcta.' },
+    { i: 'sucursales', t: 'Por sucursal y por rol', d: 'Cada quien consulta solo su sucursal, y el vendedor nunca ve costos ni ganancias.' },
   ];
   confianza = ['Sin tarjeta', 'Cancela cuando quieras', 'Funciona en tu celular'];
   antes = [
@@ -326,6 +371,7 @@ export class Landing implements OnInit {
     { i: 'rayo', t: 'Costos reales', d: 'Material, minutos de máquina y extras. Sabes cuánto ganas en cada pedido antes de aceptarlo.' },
     { i: 'ventas', t: 'Ventas, anticipos y saldos', d: 'Del pedido a producción y entrega, con pagos parciales y lo que te deben.' },
     { i: 'sucursales', t: 'Sucursales y roles', d: 'Inventario y folios por sucursal, traspasos, y permisos: el vendedor no ve tus costos.' },
+    { i: 'chispa', t: 'Asistente con IA', d: 'Pregunta por tus ventas, pedidos o inventario y recibe la respuesta al momento, con los datos de tu sucursal.' },
     { i: 'inicio', t: 'Estadísticas', d: 'Ventas, ganancia y margen por mes, lo que más te deja y alertas de stock bajo.' },
   ];
   pasos = [
@@ -339,6 +385,7 @@ export class Landing implements OnInit {
     { p: '¿Sirve si hago corte láser y también sublimación?', r: 'Sí. Puedes tener productos de los dos tipos, con sus propios costos de material, papel, tinta y minutos de máquina o plancha.' },
     { p: '¿Puedo tener varias sucursales y empleados?', r: 'Sí. Cada sucursal tiene su inventario y sus folios, y cada empleado entra con su usuario. Tú decides qué puede ver cada quien.' },
     { p: '¿Puedo cancelar cuando quiera?', r: 'Sí. No hay plazos forzosos. Si cancelas, puedes seguir consultando tu información.' },
+    { p: '¿Qué puede hacer el asistente con IA?', r: 'Responde preguntas sobre tu taller (ventas, pedidos, inventario, clientes y cotizaciones) con los datos de tu sucursal, y te explica cómo hacer cualquier cosa en Grabix. Solo consulta: no cambia ni borra nada, y respeta los permisos de cada usuario.' },
     { p: '¿Mis datos están seguros?', r: 'Cada taller tiene su información separada, las contraseñas se guardan cifradas y solo tu equipo puede entrar a tu cuenta.' },
   ];
   menuDemo = [

@@ -29,7 +29,7 @@ interface Form {
       @if (doc()) { <span class="pill" [class]="mapa[f.estado][1]">{{ mapa[f.estado][0] }}</span> }
     </div>
 
-    <div class="rejilla max-w-[860px] pb-20">
+    <div class="rejilla max-w-[980px] pb-20">
       <section class="caja">
         <h3>Cliente</h3>
         <div class="campos c3">
@@ -143,7 +143,7 @@ interface Form {
       }
     </div>
 
-    <div class="sticky bottom-[calc(64px+env(safe-area-inset-bottom,0px))] z-5 mt-3 flex max-w-[860px] flex-wrap gap-2 rounded-xl border border-linea bg-superficie p-2.5 shadow-caja lg:bottom-3">
+    <div class="sticky bottom-[calc(64px+env(safe-area-inset-bottom,0px))] z-5 mt-3 flex max-w-[980px] flex-wrap gap-2 rounded-xl border border-linea bg-superficie p-2.5 shadow-caja lg:bottom-3">
       @if (id) { <app-confirmar [pregunta]="esVenta ? '¿Eliminar esta venta?' : '¿Eliminar esta cotización?'" [detalle]="esVenta ? 'El inventario que descontó se devuelve. No se puede deshacer.' : 'No se puede deshacer.'" (confirmado)="eliminar()" /> }
       <button class="btn" (click)="pdf()" [disabled]="ocupado()"><app-icono nombre="pdf" />PDF</button>
       <button class="btn wa" (click)="whatsapp()" [disabled]="ocupado()"><app-icono nombre="wa" />WhatsApp</button>

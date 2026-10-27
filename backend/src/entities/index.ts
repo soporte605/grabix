@@ -363,6 +363,18 @@ export class Bitacora {
   @Index() @CreateDateColumn() creadoEn: Date;
 }
 
+/** Uso diario del asistente con IA por taller (para respetar el límite del plan y ver el gasto). */
+@Entity('asistente_uso')
+@Unique(['tallerId', 'fecha'])
+export class AsistenteUso {
+  @PrimaryGeneratedColumn() id: number;
+  @Column() tallerId: number;
+  @Column({ type: 'date' }) fecha: string;
+  @Column({ type: 'int', default: 0 }) preguntas: number;
+  @Column({ type: 'int', default: 0 }) tokensEntrada: number;
+  @Column({ type: 'int', default: 0 }) tokensSalida: number;
+}
+
 export const ENTIDADES = [
   Taller,
   Sucursal,
@@ -384,4 +396,5 @@ export const ENTIDADES = [
   CompraItem,
   Folio,
   Bitacora,
+  AsistenteUso,
 ];

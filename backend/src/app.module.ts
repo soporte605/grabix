@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AsistenteModule } from './asistente/asistente.controller';
 import { AuthModule } from './auth/auth.module';
 import { CorreoModule } from './correo/correo.service';
 import { CatalogoModule } from './catalogo/catalogo.module';
@@ -42,6 +43,7 @@ import { OrganizacionModule } from './organizacion/organizacion.module';
     OrganizacionModule,
     AuthModule,
     DocumentosModule,
+    AsistenteModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },

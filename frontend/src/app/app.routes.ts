@@ -8,7 +8,7 @@ const VENTA = roles('dueno', 'admin', 'encargado', 'vendedor');
 const GER = roles('dueno', 'admin');
 
 export const routes: Routes = [
-  { path: '', loadComponent: () => import('./pages/landing').then((m) => m.Landing), title: 'Grabix · Software para talleres de corte láser y sublimación' },
+  { path: '', loadComponent: () => import('./pages/landing').then((m) => m.Landing), title: 'Grabix · Cotizaciones, producción e inventario para tu taller' },
   { path: 'entrar', canActivate: [sinSesion], loadComponent: () => import('./pages/acceso').then((m) => m.Acceso), data: { modo: 'entrar' }, title: 'Entrar · Grabix' },
   { path: 'registro', canActivate: [sinSesion], loadComponent: () => import('./pages/acceso').then((m) => m.Acceso), data: { modo: 'registro' }, title: 'Crear cuenta · Grabix' },
   { path: 'verificar-correo', loadComponent: () => import('./pages/cuenta').then((m) => m.VerificarCorreo), title: 'Confirmar correo · Grabix' },
@@ -42,7 +42,6 @@ export const routes: Routes = [
       { path: 'promociones', canActivate: [VENTA], loadComponent: () => import('./pages/promociones').then((m) => m.Promociones), title: 'Promociones · Grabix' },
       { path: 'sucursales', canActivate: [GER], loadComponent: () => import('./pages/equipo').then((m) => m.Sucursales), title: 'Sucursales · Grabix' },
       { path: 'usuarios', canActivate: [GER], loadComponent: () => import('./pages/equipo').then((m) => m.Usuarios), title: 'Usuarios · Grabix' },
-      { path: 'bitacora', canActivate: [GER], loadComponent: () => import('./pages/equipo').then((m) => m.BitacoraPagina), title: 'Bitácora · Grabix' },
       { path: 'ajustes', canActivate: [GER], loadComponent: () => import('./pages/ajustes').then((m) => m.Ajustes), title: 'Ajustes · Grabix' },
     ],
   },

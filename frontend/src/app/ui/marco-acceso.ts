@@ -26,7 +26,7 @@ import { SelectorTema } from './selector-tema';
 
         <a class="relative no-underline [--logo-borde:rgba(255,255,255,.3)] [&_span]:!text-white" routerLink="/" aria-label="Grabix, inicio"><app-logo [tamano]="36" /></a>
         <div class="relative mt-auto max-w-[440px]">
-          <h2 class="text-[2rem]/[1.15] font-extrabold tracking-[-.03em]">El sistema para talleres de corte láser y sublimación</h2>
+          <h2 class="text-[2rem]/[1.15] font-extrabold tracking-[-.03em]">Cotiza, produce y cobra desde un solo lugar</h2>
           <ul class="mt-7 grid gap-3.5 text-[.95rem] text-white/85">
             @for (b of beneficios; track b) {
               <li class="flex items-start gap-3">
@@ -55,5 +55,6 @@ export class MarcoAcceso {
     'Cotiza en segundos con tus costos reales de material, máquina y mano de obra.',
     'Controla producción, inventario y ventas de todas tus sucursales.',
     'Tu equipo entra con su propio usuario y solo ve lo que le toca.',
+    'Un asistente con IA que responde con los datos de tu sucursal.',
   ];
 }

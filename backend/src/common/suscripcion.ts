@@ -27,7 +27,8 @@ export const PLANES = [
     precioAnual: 1990,
     sucursales: 1,
     usuarios: 3,
-    incluye: ['Cotizaciones con PDF y WhatsApp', 'Inventario con recetas de insumos', 'Ventas, anticipos y saldos', 'Estadísticas de ventas y ganancia'],
+    asistente: 40,
+    incluye: ['Asistente con IA: 40 preguntas al día', 'Cotizaciones con PDF y WhatsApp', 'Inventario con recetas de insumos', 'Ventas, anticipos y saldos', 'Estadísticas de ventas y ganancia'],
   },
   {
     id: 'pro',
@@ -36,7 +37,8 @@ export const PLANES = [
     precioAnual: 3990,
     sucursales: 3,
     usuarios: 10,
-    incluye: ['Todo lo del plan Taller', 'Hasta 3 sucursales', 'Roles y permisos por usuario', 'Traspasos de inventario y bitácora'],
+    asistente: 150,
+    incluye: ['Todo lo del plan Taller', 'Asistente con IA: 150 preguntas al día', 'Hasta 3 sucursales', 'Roles y permisos por usuario', 'Traspasos de inventario y bitácora'],
   },
   {
     id: 'empresa',
@@ -45,15 +47,16 @@ export const PLANES = [
     precioAnual: 7990,
     sucursales: 20,
     usuarios: 50,
-    incluye: ['Todo lo del plan Pro', 'Sucursales y usuarios ampliados', 'Soporte prioritario'],
+    asistente: 500,
+    incluye: ['Todo lo del plan Pro', 'Asistente con IA: 500 preguntas al día', 'Sucursales y usuarios ampliados', 'Soporte prioritario'],
   },
 ];
 
 /** Límites mientras dura la prueba gratuita. */
-export const LIMITES_PRUEBA = { sucursales: 2, usuarios: 5 };
+export const LIMITES_PRUEBA = { sucursales: 2, usuarios: 5, asistente: 40 };
 
 export function limites(t: Taller) {
   const p = PLANES.find((x) => x.id === t.plan);
-  return p ? { sucursales: p.sucursales, usuarios: p.usuarios } : LIMITES_PRUEBA;
+  return p ? { sucursales: p.sucursales, usuarios: p.usuarios, asistente: p.asistente } : LIMITES_PRUEBA;
 }
 export const DIAS_PRUEBA_PUBLICO = 14;

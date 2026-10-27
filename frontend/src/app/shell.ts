@@ -6,6 +6,8 @@ import { SesionService } from './core/sesion.service';
 import { Icono } from './ui/icono';
 import { Logo } from './ui/logo';
 import { SelectorTema } from './ui/selector-tema';
+import { Asistente } from './ui/asistente';
+import { AsistenteService } from './core/asistente.service';
 
 interface Item { ruta: string; texto: string; icono: string; roles: Rol[] }
 const TODOS: Rol[] = ['dueno', 'admin', 'encargado', 'vendedor', 'produccion'];
@@ -22,7 +24,6 @@ const MENU: Item[] = [
   { ruta: 'promociones', texto: 'Promociones', icono: 'promociones', roles: [...COSTOS, 'vendedor'] },
   { ruta: 'sucursales', texto: 'Sucursales', icono: 'sucursales', roles: GER },
   { ruta: 'usuarios', texto: 'Usuarios', icono: 'usuarios', roles: GER },
-  { ruta: 'bitacora', texto: 'Bitácora', icono: 'bitacora', roles: GER },
   { ruta: 'ajustes', texto: 'Ajustes y plan', icono: 'ajustes', roles: GER },
 ];
 
@@ -33,7 +34,7 @@ function leer() {
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icono, Logo, SelectorTema],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icono, Logo, SelectorTema, Asistente],
   template: `
     <div class="grid min-h-full transition-[grid-template-columns] duration-200" [class]="corto() ? 'lg:grid-cols-[72px_1fr]' : 'lg:grid-cols-[248px_1fr]'">
       <aside class="sticky top-0 hidden h-screen flex-col gap-1 overflow-x-hidden overflow-y-auto border-r border-linea bg-superficie px-3 py-5 lg:flex">
@@ -70,7 +71,12 @@ function leer() {
             }
           </div>
           <div class="flex min-w-0 items-center gap-1">
-            <span class="chico truncate text-tenue">{{ s.perfil()?.usuario?.nombre }}</span>
+            <button class="mr-1 flex h-9 items-center gap-1.5 rounded-lg border border-linea px-2.5 text-[.88rem] font-semibold hover:border-marca"
+              [class.!border-marca]="asistente.abierto()" [class.!bg-marca-suave]="asistente.abierto()" (click)="asistente.abierto() ? asistente.abierto.set(false) : asistente.abrir()"
+              [attr.aria-expanded]="asistente.abierto()" aria-label="Asistente con IA">
+              <app-icono class="text-[1.1rem] text-acento-2" nombre="chispa" /><span class="max-[380px]:hidden">Asistente</span>
+            </button>
+            <span class="chico truncate text-tenue max-sm:hidden">{{ s.perfil()?.usuario?.nombre }}</span>
             <app-selector-tema />
           </div>
         </div>
@@ -86,7 +92,7 @@ function leer() {
             @if (s.rol() === 'dueno') { <a routerLink="ajustes">Ver planes</a> }
           </div>
         }
-        <main class="mx-auto max-w-[1180px] pt-[18px] pb-[100px] margen-x lg:px-8 lg:pt-6 lg:pb-12"><router-outlet /></main>
+        <main class="w-full max-w-[1400px] pt-[18px] pb-[100px] margen-x lg:px-6 lg:pt-6 lg:pb-12"><router-outlet /></main>
       </div>
 
       <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-linea bg-superficie pt-1.5 pr-[max(6px,env(safe-area-inset-right,0px))] pb-[calc(6px+env(safe-area-inset-bottom,0px))] pl-[max(6px,env(safe-area-inset-left,0px))] lg:hidden">
@@ -95,6 +101,7 @@ function leer() {
         }
         <button [class]="PESTANA" [class.!text-marca]="mas()" (click)="mas.set(!mas())"><app-icono class="text-[1.25rem]" nombre="mas" />Más</button>
       </nav>
+      <app-asistente />
       @if (mas()) {
         <div class="fixed inset-0 z-25 flex items-end bg-[rgba(8,20,30,.3)] px-3 pb-[calc(72px+env(safe-area-inset-bottom,0px))]" (click)="mas.set(false)">
           <div class="tarjeta grid w-full grid-cols-2 gap-0.5 p-2 shadow-caja">
@@ -110,9 +117,10 @@ export class Shell {
   readonly ITEM = 'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[9px] text-left font-medium text-tinta no-underline';
   readonly CORTO = ' justify-center !px-0';
   readonly PESTANA = 'flex flex-col items-center gap-0.5 py-1 text-[.68rem] text-tenue no-underline';
-  readonly BANNER = 'mx-[max(16px,env(safe-area-inset-left,0px))] mt-3 flex flex-wrap gap-2.5 rounded-[10px] px-3.5 py-2.5 text-[.88rem]';
+  readonly BANNER = 'mx-[max(16px,env(safe-area-inset-left,0px))] lg:mx-6 mt-3 flex flex-wrap gap-2.5 rounded-[10px] px-3.5 py-2.5 text-[.88rem]';
   s = inject(SesionService);
   avisos = inject(AvisoService);
+  asistente = inject(AsistenteService);
   private router = inject(Router);
   mas = signal(false);
   /** Menú lateral colapsado (solo íconos). Se recuerda en este navegador. */

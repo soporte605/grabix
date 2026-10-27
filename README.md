@@ -76,6 +76,17 @@ Igual que FincaPro y SiloPro:
 - Con la suscripción vencida se puede consultar, pero no registrar (HTTP 402).
 - `PAGOS_MODO=demo` activa planes sin cobrar. **Pendiente:** conectar Stripe o Mercado Pago (webhook que llame a la activación).
 
+## Asistente con IA
+
+Botón **Asistente** en la barra superior del sistema. Usa Claude (Anthropic) y responde con los datos del taller:
+
+- Consulta ventas, pedidos, cotizaciones, inventario y clientes con herramientas **de solo lectura** (`backend/src/asistente/`). No crea, cambia ni borra nada.
+- Respeta la **sucursal** elegida y el **rol**: vendedores y producción nunca reciben costos ni ganancias, y cada rol solo tiene las consultas que le tocan.
+- Explica cómo usar Grabix con la guía de `backend/src/asistente/guia.ts` y da enlaces a las pantallas.
+- Cupo diario por taller según el plan (40 / 150 / 500 preguntas), guardado en la tabla `asistente_uso` junto con los tokens usados.
+
+Para activarlo pon `ANTHROPIC_API_KEY` en `.env` (llave de console.anthropic.com) y reconstruye la API. `ASISTENTE_MODELO` cambia el modelo (por defecto `claude-opus-5-5`; `claude-haiku-5-5` es mucho más barato). Sin llave, el panel avisa que no está activado.
+
 ## Identidad visual
 Logo, colores, tipografías y reglas de uso en [`docs/MARCA.md`](docs/MARCA.md).
 
