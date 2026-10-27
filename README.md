@@ -4,7 +4,7 @@ Sistema por suscripción para talleres de **corte/grabado láser y sublimación*
 
 | Parte | Tecnología |
 |---|---|
-| `frontend/` | Angular 20 (componentes standalone + signals) |
+| `frontend/` | Angular 20 (componentes standalone + signals), SCSS + Tailwind CSS v4 |
 | `backend/` | NestJS 11 + TypeORM |
 | Base de datos | MySQL 8 |
 | Correo | Resend (producción) o SMTP; Mailpit en desarrollo |
@@ -77,7 +77,7 @@ Igual que FincaPro y SiloPro:
 - `PAGOS_MODO=demo` activa planes sin cobrar. **Pendiente:** conectar Stripe o Mercado Pago (webhook que llame a la activación).
 
 ## Identidad visual
-Colores de Elikar Systems (azul marino `#002150` y verde `#67BE28`, los mismos de SiloPro; provisionales hasta tener la paleta oficial). Colores y fuentes están en un solo lugar: el bloque `:root` de `frontend/src/styles.scss` (fuentes de Google: Montserrat, Inter, JetBrains Mono). Los colores del PDF se ajustan con `PDF_COLOR_ACENTO` y `PDF_COLOR_SECUNDARIO`.
+Colores de Elikar Systems (azul marino `#002150` y verde `#67BE28`, los mismos de SiloPro; provisionales hasta tener la paleta oficial). Colores y fuentes están en un solo lugar: el bloque `:root` de `frontend/src/styles.scss` (fuentes de Google: Montserrat, Inter, JetBrains Mono). Tailwind v4 está instalado sin preflight y expone esos mismos tokens como utilidades (`bg-marca`, `text-acento`, `border-linea`, `font-titulo`…) en `frontend/src/tailwind.css`. Ojo: las reglas sin capa de `styles.scss` le ganan a las utilidades. Los colores del PDF se ajustan con `PDF_COLOR_ACENTO` y `PDF_COLOR_SECUNDARIO`.
 
 ## Antes de producción
 - `DB_SYNC=false` y migraciones de TypeORM.

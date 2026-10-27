@@ -57,7 +57,7 @@ const MENU: Item[] = [
         @if (s.perfil()?.usuario?.emailVerificado === false) {
           <div class="banner correo">
             <span>Confirma tu correo <b>{{ s.perfil()!.usuario.email }}</b> con el enlace que te enviamos.</span>
-            <button class="enlace" (click)="reenviar()" [disabled]="reenviando()">{{ reenviando() ? 'Enviando…' : 'Reenviar enlace' }}</button>
+            <button class="cursor-pointer border-0 bg-transparent p-0 text-marca underline" (click)="reenviar()" [disabled]="reenviando()"><b>{{ reenviando() ? 'Enviando…' : 'Reenviar enlace' }}</b></button>
           </div>
         }
         @if (aviso(); as a) {
@@ -113,7 +113,6 @@ const MENU: Item[] = [
     .usuario { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .banner { margin: 12px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); padding: 10px 14px; border-radius: 10px; background: var(--acento-suave); font-size: .88rem; display: flex; gap: 10px; flex-wrap: wrap; }
     .banner.correo { background: var(--marca-suave); align-items: center; }
-    .enlace { background: none; border: 0; padding: 0; color: var(--marca); font-weight: 700; text-decoration: underline; cursor: pointer; }
     .banner.vencido { background: var(--bad-suave); color: var(--bad); }
     .pestanas { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(5, 1fr); background: var(--superficie); border-top: 1px solid var(--linea);
       padding: 6px max(6px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(6px, env(safe-area-inset-left, 0px)); }

@@ -37,7 +37,7 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { height: 100%; }
-body { margin: 0; background: var(--fondo); color: var(--tinta); font: 15px/1.5 var(--f-texto); -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: var(--fondo); color: var(--tinta); accent-color: var(--marca); font: 15px/1.5 var(--f-texto); -webkit-font-smoothing: antialiased; }
 button, input, select, textarea { font: inherit; color: inherit; }
 a { color: var(--marca); }
 :focus-visible { outline: 2px solid var(--marca); outline-offset: 2px; }
