@@ -1,7 +1,7 @@
 import { Esqueleto } from '../ui/esqueleto';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink, RouterOutlet } from '@angular/router';
 import { Api } from '../core/api.service';
 import { DineroPipe, FechaPipe } from '../core/formato';
 import { Cotizacion, EST_COT, EST_VTA, Venta } from '../core/modelos';
@@ -10,7 +10,7 @@ import { Icono } from '../ui/icono';
 /** Lista de cotizaciones o de ventas (según la ruta). */
 @Component({
   selector: 'app-doc-lista',
-  imports: [FormsModule, RouterLink, DineroPipe, FechaPipe, Icono, Esqueleto],
+  imports: [FormsModule, RouterLink, RouterOutlet, DineroPipe, FechaPipe, Icono, Esqueleto],
   template: `
     <div class="encabezado">
       <div>
@@ -44,6 +44,8 @@ import { Icono } from '../ui/icono';
     @if (esVenta && docs().length) {
       <p class="tenue chico">{{ docs().length }} ventas · Total {{ total() | dinero }} · Saldo por cobrar {{ saldo() | dinero }}</p>
     }
+    <!-- Nueva, editar y ver se abren en un modal encima de la lista; al cerrarlo se actualiza la lista. -->
+    <router-outlet (deactivate)="cargar()" />
   `,
 })
 export class DocLista implements OnInit {

@@ -1,12 +1,14 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
+import { ConfirmarService } from '../core/confirmar.service';
 import { DineroPipe, FechaPipe, hoy, PctPipe, sumarDias } from '../core/formato';
 import { Cliente, Cotizacion, EST_COT, EST_VTA, Producto, Promocion, Renglon, Venta } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { Confirmar } from '../ui/confirmar';
+import { Hoja } from '../ui/hoja';
 import { Icono } from '../ui/icono';
 
 interface Form {
@@ -18,18 +20,13 @@ interface Form {
 
 @Component({
   selector: 'app-doc-editor',
-  imports: [FormsModule, RouterLink, DineroPipe, FechaPipe, PctPipe, Icono, Confirmar],
+  imports: [FormsModule, DineroPipe, FechaPipe, PctPipe, Icono, Confirmar, Hoja],
   template: `
-    <div class="encabezado">
-      <div>
-        <a [routerLink]="id ? '..' : '..'" class="chico no-underline">← {{ esVenta ? 'Ventas' : 'Cotizaciones' }}</a>
-        <h1>{{ titulo() }}</h1>
-        @if (doc(); as d) { <p>Creada el {{ d.fecha | fecha }} @if (esVenta && $any(d).cotizacionId) { · desde una cotización }</p> }
-      </div>
-      @if (doc()) { <span class="pill" [class]="mapa[f.estado][1]">{{ mapa[f.estado][0] }}</span> }
-    </div>
-
-    <div class="rejilla max-w-[980px] pb-20">
+    <app-hoja [titulo]="titulo()" ancho="1000px" (cerrar)="cerrar()">
+      @if (doc(); as d) {
+        <ng-container cabeza><span class="pill" [class]="mapa[f.estado][1]">{{ mapa[f.estado][0] }}</span>
+        <span class="chico tenue">Creada el {{ d.fecha | fecha }} @if (esVenta && $any(d).cotizacionId) { · desde una cotización }</span></ng-container>
+      }
       <section class="caja">
         <h3>Cliente</h3>
         <div class="campos c3">
@@ -141,16 +138,16 @@ interface Form {
           }
         </section>
       }
-    </div>
 
-    <div class="sticky bottom-[calc(64px+env(safe-area-inset-bottom,0px))] z-5 mt-3 flex max-w-[980px] flex-wrap gap-2 rounded-xl border border-linea bg-superficie p-2.5 shadow-caja lg:bottom-3">
-      @if (id) { <app-confirmar [pregunta]="esVenta ? '¿Eliminar esta venta?' : '¿Eliminar esta cotización?'" [detalle]="esVenta ? 'El inventario que descontó se devuelve. No se puede deshacer.' : 'No se puede deshacer.'" (confirmado)="eliminar()" /> }
-      <button class="btn" (click)="pdf()" [disabled]="ocupado()"><app-icono nombre="pdf" />PDF</button>
-      <button class="btn wa" (click)="whatsapp()" [disabled]="ocupado()"><app-icono nombre="wa" />WhatsApp</button>
-      @if (!esVenta && id && f.estado !== 'aceptada') { <button class="btn" (click)="convertir()" [disabled]="ocupado()">Convertir en venta</button> }
-      <span class="flex-1"></span>
-      <button class="btn pri" (click)="guardar(true)" [disabled]="ocupado()">{{ ocupado() ? 'Guardando…' : 'Guardar' }}</button>
-    </div>
+      <ng-container pie>
+        @if (id) { <app-confirmar [pregunta]="esVenta ? '¿Eliminar esta venta?' : '¿Eliminar esta cotización?'" [detalle]="esVenta ? 'El inventario que descontó se devuelve. No se puede deshacer.' : 'No se puede deshacer.'" (confirmado)="eliminar()" /> }
+        <button class="btn" (click)="pdf()" [disabled]="ocupado()"><app-icono nombre="pdf" />PDF</button>
+        <button class="btn wa" (click)="whatsapp()" [disabled]="ocupado()"><app-icono nombre="wa" />WhatsApp</button>
+        @if (!esVenta && id && f.estado !== 'aceptada') { <button class="btn" (click)="convertir()" [disabled]="ocupado()">Convertir en venta</button> }
+        <span class="flex-1"></span>
+        <button class="btn pri" (click)="guardar(true)" [disabled]="ocupado()">{{ ocupado() ? 'Guardando…' : 'Guardar' }}</button>
+      </ng-container>
+    </app-hoja>
   `,
 })
 export class DocEditor implements OnInit {
@@ -159,6 +156,8 @@ export class DocEditor implements OnInit {
   private aviso = inject(AvisoService);
   private router = inject(Router);
   private ruta = inject(ActivatedRoute);
+  private confirmar = inject(ConfirmarService);
+  private lista = this.ruta.snapshot.data['tipo'] === 'ventas' ? '/app/ventas' : '/app/cotizaciones';
   esVenta = this.ruta.snapshot.data['tipo'] === 'ventas';
   base = this.esVenta ? '/ventas' : '/cotizaciones';
   id = Number(this.ruta.snapshot.paramMap.get('id')) || null;
@@ -217,6 +216,17 @@ export class DocEditor implements OnInit {
     this.productos.set(pr);
     this.promosTodas.set(po);
     if (this.id) await this.cargar();
+    // Si el modal ya está abierto y llega otra venta por enlace (asistente, inicio), carga la nueva.
+    this.ruta.paramMap.subscribe((m) => {
+      const id = Number(m.get('id')) || null;
+      if (id && id !== this.id) { this.id = id; this.cargar(); }
+    });
+  }
+
+  /** Cierra el modal y vuelve a la lista. Si hay cambios sin guardar, pregunta antes. */
+  async cerrar() {
+    if (this.sucio && !(await this.confirmar.preguntar({ titulo: '¿Salir sin guardar?', texto: 'Tienes cambios que no se han guardado.', accion: 'Salir sin guardar', peligro: true }))) return;
+    this.router.navigate([this.lista]);
   }
 
   private async cargar() {
@@ -272,10 +282,10 @@ export class DocEditor implements OnInit {
       const r = this.id ? await this.api.put<{ id: number }>(`${this.base}/${this.id}`, body) : await this.api.post<{ id: number }>(this.base, body);
       this.sucio = false;
       this.aviso.ok(this.esVenta ? 'Venta guardada' : 'Cotización guardada');
-      if (salir) this.router.navigate([this.esVenta ? '/app/ventas' : '/app/cotizaciones']);
+      if (salir) this.router.navigate([this.lista]);
       else if (!this.id) {
         this.id = r.id;
-        this.router.navigate([this.esVenta ? '/app/ventas' : '/app/cotizaciones', r.id], { replaceUrl: true });
+        this.router.navigate([this.lista, r.id], { replaceUrl: true });
         await this.cargar();
       }
       return r.id;
@@ -334,7 +344,7 @@ export class DocEditor implements OnInit {
     try {
       await this.api.del(`${this.base}/${this.id}`);
       this.aviso.ok('Eliminado');
-      this.router.navigate([this.esVenta ? '/app/ventas' : '/app/cotizaciones']);
+      this.router.navigate([this.lista]);
     } catch (e) {
       this.aviso.error(mensajeError(e));
     }
