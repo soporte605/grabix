@@ -1,4 +1,4 @@
-import { Component, computed, DestroyRef, ElementRef, forwardRef, inject, input, signal, viewChild } from '@angular/core';
+import { Component, computed, DestroyRef, ElementRef, forwardRef, inject, input, output, signal, viewChild } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { Icono } from './icono';
 
@@ -54,6 +54,12 @@ const normal = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLower
           <li class="px-2.5 py-3 text-base text-tenue">Sin resultados para “{{ q() }}”</li>
         }
       </ul>
+      @if (crear()) {
+        <button type="button" class="flex flex-none items-center gap-2 border-t border-linea px-3 py-2.5 text-left text-base font-semibold text-marca hover:bg-superficie-2"
+          (pointerdown)="$event.preventDefault()" (click)="pedirNuevo()">
+          <app-icono nombre="mas1" class="flex-none" /><span class="min-w-0 flex-1 truncate">{{ q().trim() ? crear() + ': “' + q().trim() + '”' : crear() }}</span>
+        </button>
+      }
     </div>
   `,
 })
@@ -65,6 +71,9 @@ export class Buscador implements ControlValueAccessor {
   placeholder = input('Buscar…');
   idCampo = input('');
   etiqueta = input('');
+  /** Si trae texto (p. ej. "Nuevo cliente"), la lista ofrece dar de alta uno; `nuevo` emite lo que se iba buscando. */
+  crear = input('');
+  nuevo = output<string>();
 
   private el = inject(ElementRef<HTMLElement>);
   private boton = viewChild.required<ElementRef<HTMLButtonElement>>('boton');
@@ -152,6 +161,12 @@ export class Buscador implements ControlValueAccessor {
     this.cerrar(true);
   }
 
+  pedirNuevo() {
+    const t = this.q().trim();
+    this.cerrar();
+    this.nuevo.emit(t);
+  }
+
   tecla(ev: KeyboardEvent) {
     const n = this.visibles().length;
     if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
@@ -162,6 +177,7 @@ export class Buscador implements ControlValueAccessor {
       ev.preventDefault();
       const o = this.visibles()[this.activo()];
       if (o) this.elegir(o);
+      else if (this.crear()) this.pedirNuevo();
     } else if (ev.key === 'Escape') {
       // No dejar que el Escape cierre también el modal de atrás.
       ev.stopPropagation();
