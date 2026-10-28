@@ -7,6 +7,7 @@ Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el co
 ### Super administrador
 - Bitácora del panel y de los talleres, y accesos (intentos de entrar al panel y a los talleres, con IP y motivo, sin guardar la contraseña).
 - Cuenta local del panel documentada en el README: `local-panel@grabix.test`. No es la de producción.
+- Si ya habías entrado, abrir de nuevo el sistema se quedaba en blanco (NG0203). Ya entra directo al taller.
 
 ## 2026-10-28 (tarde)
 

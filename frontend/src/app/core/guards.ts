@@ -16,7 +16,8 @@ export const conSesion: CanActivateFn = async () => {
 
 export const sinSesion: CanActivateFn = async () => {
   const s = inject(SesionService);
-  return s.token() && (await s.cargar()) ? inject(Router).parseUrl('/app') : true;
+  const r = inject(Router);
+  return s.token() && (await s.cargar()) ? r.parseUrl('/app') : true;
 };
 
 export const roles = (...permitidos: Rol[]): CanActivateFn => () => {
