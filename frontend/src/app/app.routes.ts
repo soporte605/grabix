@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
-import { conSesion, roles, sinSesion } from './core/guards';
+import { conSesion, enLanding, enSistema, roles, sinSesion } from './core/guards';
 import { SesionService } from './core/sesion.service';
 
 const COSTOS = roles('dueno', 'admin', 'encargado');
@@ -8,16 +8,16 @@ const VENTA = roles('dueno', 'admin', 'encargado', 'vendedor');
 const GER = roles('dueno', 'admin');
 
 export const routes: Routes = [
-  { path: '', loadComponent: () => import('./pages/landing').then((m) => m.Landing), title: 'Grabix · Cotizaciones, producción e inventario para tu taller' },
-  { path: 'entrar', canActivate: [sinSesion], loadComponent: () => import('./pages/acceso').then((m) => m.Acceso), data: { modo: 'entrar' }, title: 'Entrar · Grabix' },
-  { path: 'registro', canActivate: [sinSesion], loadComponent: () => import('./pages/acceso').then((m) => m.Acceso), data: { modo: 'registro' }, title: 'Crear cuenta · Grabix' },
-  { path: 'verificar-correo', loadComponent: () => import('./pages/cuenta').then((m) => m.VerificarCorreo), title: 'Confirmar correo · Grabix' },
-  { path: 'olvide-contrasena', loadComponent: () => import('./pages/cuenta').then((m) => m.OlvideContrasena), title: 'Recuperar contraseña · Grabix' },
-  { path: 'restablecer-contrasena', loadComponent: () => import('./pages/cuenta').then((m) => m.Restablecer), data: { modo: 'recuperacion' }, title: 'Nueva contraseña · Grabix' },
-  { path: 'invitacion', loadComponent: () => import('./pages/cuenta').then((m) => m.Restablecer), data: { modo: 'invitacion' }, title: 'Invitación · Grabix' },
+  { path: '', canActivate: [enLanding], loadComponent: () => import('./pages/landing').then((m) => m.Landing), title: 'Grabix · Cotizaciones, producción e inventario para tu taller' },
+  { path: 'entrar', canActivate: [enSistema, sinSesion], loadComponent: () => import('./pages/acceso').then((m) => m.Acceso), data: { modo: 'entrar' }, title: 'Entrar · Grabix' },
+  { path: 'registro', canActivate: [enSistema, sinSesion], loadComponent: () => import('./pages/acceso').then((m) => m.Acceso), data: { modo: 'registro' }, title: 'Crear cuenta · Grabix' },
+  { path: 'verificar-correo', canActivate: [enSistema], loadComponent: () => import('./pages/cuenta').then((m) => m.VerificarCorreo), title: 'Confirmar correo · Grabix' },
+  { path: 'olvide-contrasena', canActivate: [enSistema], loadComponent: () => import('./pages/cuenta').then((m) => m.OlvideContrasena), title: 'Recuperar contraseña · Grabix' },
+  { path: 'restablecer-contrasena', canActivate: [enSistema], loadComponent: () => import('./pages/cuenta').then((m) => m.Restablecer), data: { modo: 'recuperacion' }, title: 'Nueva contraseña · Grabix' },
+  { path: 'invitacion', canActivate: [enSistema], loadComponent: () => import('./pages/cuenta').then((m) => m.Restablecer), data: { modo: 'invitacion' }, title: 'Invitación · Grabix' },
   {
     path: 'app',
-    canActivate: [conSesion],
+    canActivate: [enSistema, conSesion],
     loadComponent: () => import('./shell').then((m) => m.Shell),
     children: [
       {

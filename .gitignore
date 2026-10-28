@@ -6,3 +6,4 @@ dist/
 coverage/
 .env.produccion
 respaldos/
+*.local.env
