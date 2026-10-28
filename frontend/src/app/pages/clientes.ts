@@ -18,7 +18,7 @@ import { Icono } from '../ui/icono';
   imports: [FormsModule, DineroPipe, Hoja, Icono, Confirmar, Esqueleto, Paginador, WhatsappCliente],
   template: `
     <div class="encabezado">
-      <div><h1>Clientes</h1><p>{{ clientes().length }} registrados</p></div>
+      <div class="titulo"><span class="icono-modulo"><app-icono nombre="clientes" /></span><div><h1>Clientes</h1><p>{{ clientes().length }} registrados</p></div></div>
       <button class="btn pri" (click)="abrir()"><app-icono nombre="mas1" />Nuevo cliente</button>
     </div>
     <div class="mb-3"><input class="buscar" placeholder="Buscar nombre o teléfono" [ngModel]="q()" (ngModelChange)="q.set($event); pagina.set(1)" aria-label="Buscar"></div>

@@ -31,10 +31,9 @@ const BILLETES = [10, 50, 100, 500, 1000];
     <div class="flex flex-col bg-fondo" [class]="grande() ? 'fixed inset-0 z-40 p-3 lg:p-4' : 'h-[calc(100dvh-170px)] min-h-[560px] lg:h-[calc(100dvh-110px)]'">
       <!-- Barra de la caja -->
       <header class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span class="flex size-10 flex-none items-center justify-center rounded-xl bg-[#002150] text-xl text-[#8fd85a]"><app-icono nombre="caja" /></span>
-        <div class="min-w-0 flex-1">
-          <h1 class="text-xl leading-tight">Caja</h1>
-          <p class="chico truncate text-tenue">{{ s.nombreSucursal() }} · {{ s.perfil()?.usuario?.nombre }}</p>
+        <div class="titulo min-w-0 flex-1">
+          <span class="icono-modulo"><app-icono nombre="caja" /></span>
+          <div class="min-w-0"><h1>Caja</h1><p class="truncate">{{ s.nombreSucursal() }} · {{ s.perfil()?.usuario?.nombre }}</p></div>
         </div>
         <div class="flex flex-wrap items-center gap-2 max-sm:order-last max-sm:w-full">
           @if (turno(); as t) {

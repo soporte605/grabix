@@ -10,12 +10,13 @@ import { validarFormulario } from '../core/validar';
 import { CampoClave } from '../ui/campo-clave';
 import { Esqueleto } from '../ui/esqueleto';
 import { Hoja } from '../ui/hoja';
+import { Icono } from '../ui/icono';
 
 @Component({
   selector: 'app-ajustes',
-  imports: [FormsModule, DineroPipe, FechaPipe, CampoClave, Esqueleto, Hoja],
+  imports: [FormsModule, DineroPipe, FechaPipe, CampoClave, Esqueleto, Hoja, Icono],
   template: `
-    <div class="encabezado"><div><h1>Ajustes y plan</h1><p>Datos que aparecen en tus PDF y valores para calcular costos.</p></div></div>
+    <div class="encabezado"><div class="titulo"><span class="icono-modulo"><app-icono nombre="ajustes" /></span><div><h1>Ajustes y plan</h1><p>Datos que aparecen en tus PDF y valores para calcular costos.</p></div></div></div>
     @if (t(); as t) {
       <div class="rejilla max-w-[820px]">
         <section class="caja">

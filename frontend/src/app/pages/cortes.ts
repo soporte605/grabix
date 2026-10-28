@@ -19,7 +19,7 @@ import { imprimirCorte } from '../ui/turno-caja';
   imports: [FormsModule, DineroPipe, FiltroFechas, Buscador, Hoja, Icono, Paginador, Esqueleto],
   template: `
     <div class="encabezado">
-      <div><h1>Cortes de caja</h1><p>Cada turno: quién abrió y cerró, cuánto se cobró y si cuadró el efectivo.</p></div>
+      <div class="titulo"><span class="icono-modulo"><app-icono nombre="cortes" /></span><div><h1>Cortes de caja</h1><p>Cada turno: quién abrió y cerró, cuánto se cobró y si cuadró el efectivo.</p></div></div>
     </div>
     <div class="mb-3 flex flex-wrap items-center gap-2">
       <app-filtro-fechas [rango]="rango" (rangoChange)="rango = $event; pagina.set(1); cargar()" />

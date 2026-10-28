@@ -16,7 +16,7 @@ import { Icono } from '../ui/icono';
   imports: [FormsModule, Hoja, Icono, Esqueleto],
   template: `
     <div class="encabezado">
-      <div><h1>Sucursales</h1><p>Tu plan permite {{ s.perfil()?.suscripcion?.limites?.sucursales }} sucursal(es). Cada una lleva su inventario y sus ventas.</p></div>
+      <div class="titulo"><span class="icono-modulo"><app-icono nombre="sucursales" /></span><div><h1>Sucursales</h1><p>Tu plan permite {{ s.perfil()?.suscripcion?.limites?.sucursales }} sucursal(es). Cada una lleva su inventario y sus ventas.</p></div></div>
       <button class="btn pri" (click)="e_.set({ nombre: '', direccion: '', telefono: '', activa: true })"><app-icono nombre="mas1" />Nueva sucursal</button>
     </div>
     <div class="tarjeta lista">
@@ -79,7 +79,7 @@ export class Sucursales implements OnInit {
   imports: [FormsModule, Hoja, Icono, Esqueleto, CampoClave],
   template: `
     <div class="encabezado">
-      <div><h1>Usuarios y roles</h1><p>Tu plan permite {{ s.perfil()?.suscripcion?.limites?.usuarios }} usuarios.</p></div>
+      <div class="titulo"><span class="icono-modulo"><app-icono nombre="usuarios" /></span><div><h1>Usuarios y roles</h1><p>Tu plan permite {{ s.perfil()?.suscripcion?.limites?.usuarios }} usuarios.</p></div></div>
       <button class="btn pri" (click)="abrir()"><app-icono nombre="mas1" />Nuevo usuario</button>
     </div>
     <div class="tarjeta lista">
@@ -167,9 +167,9 @@ const ACCIONES: Record<string, string> = {
 
 @Component({
   selector: 'app-bitacora',
-  imports: [DatePipe, JsonPipe, Esqueleto],
+  imports: [DatePipe, JsonPipe, Esqueleto, Icono],
   template: `
-    <div class="encabezado"><div><h1>Bitácora</h1><p>Quién hizo qué y cuándo.</p></div></div>
+    <div class="encabezado"><div class="titulo"><span class="icono-modulo"><app-icono nombre="bitacora" /></span><div><h1>Bitácora</h1><p>Quién hizo qué y cuándo.</p></div></div></div>
     <div class="tarjeta lista">
       @if (!listo()) { <app-esqueleto /> } @else {
       @for (b of lista(); track b.id) {

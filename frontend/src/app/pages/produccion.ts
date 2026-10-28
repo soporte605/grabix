@@ -19,7 +19,7 @@ const SIGUIENTE: Partial<Record<EstadoVenta, [EstadoVenta, string]>> = {
   selector: 'app-produccion',
   imports: [FormsModule, FechaPipe, Icono, Esqueleto],
   template: `
-    <div class="encabezado"><div><h1>Producción</h1><p>Pedidos por hacer, ordenados por fecha de entrega.</p></div></div>
+    <div class="encabezado"><div class="titulo"><span class="icono-modulo"><app-icono nombre="produccion" /></span><div><h1>Producción</h1><p>Pedidos por hacer, ordenados por fecha de entrega.</p></div></div></div>
     <div class="mb-3 flex flex-col gap-2.5">
       <input class="buscar" type="search" placeholder="Buscar por folio, cliente o producto" [ngModel]="q()" (ngModelChange)="q.set($event)" aria-label="Buscar">
       <div class="chips" role="group" aria-label="Fecha de entrega">

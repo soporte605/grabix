@@ -29,7 +29,7 @@ const VISTAS: { id: Vista; texto: string; clave: string; cuenta: 'ventas' | 'pag
   imports: [DineroPipe, PctPipe, FiltroFechas, Icono, Esqueleto],
   template: `
     <div class="encabezado">
-      <div><h1>Reportes de ventas</h1><p>{{ s.nombreSucursal() }} · {{ periodoTxt() }}</p></div>
+      <div class="titulo"><span class="icono-modulo"><app-icono nombre="reportes" /></span><div><h1>Reportes de ventas</h1><p>{{ s.nombreSucursal() }} · {{ periodoTxt() }}</p></div></div>
       <button class="btn" (click)="csv()" [disabled]="!filas().length"><app-icono nombre="descargar" />Descargar Excel (CSV)</button>
     </div>
     <div class="mb-3"><app-filtro-fechas [rango]="rango" inicial="mes" [opciones]="['hoy', 'semana', 'mes', 'mes_pasado', 'anio', 'fechas']" (rangoChange)="cambiarRango($event)" /></div>

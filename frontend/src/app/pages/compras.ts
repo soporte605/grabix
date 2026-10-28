@@ -19,7 +19,7 @@ import { Icono } from '../ui/icono';
   imports: [FormsModule, FiltroFechas, Buscador, DineroPipe, FechaPipe, Hoja, Icono, Confirmar, Esqueleto, Paginador],
   template: `
     <div class="encabezado">
-      <div><h1>Compras</h1><p>Cada compra suma existencias en {{ s.nombreSucursal() }} y actualiza el costo promedio.</p></div>
+      <div class="titulo"><span class="icono-modulo"><app-icono nombre="compras" /></span><div><h1>Compras</h1><p>Cada compra suma existencias en {{ s.nombreSucursal() }} y actualiza el costo promedio.</p></div></div>
       <button class="btn pri" (click)="nueva()" [disabled]="!s.sucursal()"><app-icono nombre="mas1" />Registrar compra</button>
     </div>
     @if (!s.sucursal()) { <p class="tenue">Elige una sucursal arriba para registrar compras.</p> }

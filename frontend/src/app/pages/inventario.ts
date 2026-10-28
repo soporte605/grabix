@@ -21,7 +21,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
   imports: [FormsModule, Buscador, DineroPipe, PctPipe, Hoja, Icono, Confirmar, Esqueleto, Paginador],
   template: `
     <div class="encabezado">
-      <div><h1>Inventario</h1><p>{{ s.nombreSucursal() }} @if (s.verCostos()) { · Valor <span class="num">{{ valor() | dinero }}</span> }</p></div>
+      <div class="titulo"><span class="icono-modulo"><app-icono nombre="inventario" /></span><div><h1>Inventario</h1><p>{{ s.nombreSucursal() }} @if (s.verCostos()) { · Valor <span class="num">{{ valor() | dinero }}</span> }</p></div></div>
       <div class="fila">
         @if (s.verCostos() && s.multiSucursal() && s.sucursal()) { <button class="btn" (click)="abrirTraspaso()">Traspasar</button> }
         @if (s.verCostos()) { <button class="btn pri" (click)="abrir()"><app-icono nombre="mas1" />Nuevo artículo</button> }

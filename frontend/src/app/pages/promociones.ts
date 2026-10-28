@@ -16,7 +16,7 @@ import { Icono } from '../ui/icono';
   imports: [FormsModule, DineroPipe, FechaPipe, Hoja, Icono, Confirmar, Esqueleto],
   template: `
     <div class="encabezado">
-      <div><h1>Promociones</h1><p>Descuentos para tus cotizaciones y ventas, listos para mandar por WhatsApp.</p></div>
+      <div class="titulo"><span class="icono-modulo"><app-icono nombre="promociones" /></span><div><h1>Promociones</h1><p>Descuentos para tus cotizaciones y ventas, listos para mandar por WhatsApp.</p></div></div>
       @if (s.verCostos()) { <button class="btn pri" (click)="abrir()"><app-icono nombre="mas1" />Nueva promoción</button> }
     </div>
     <div class="tarjeta lista">

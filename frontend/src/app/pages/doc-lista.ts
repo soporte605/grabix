@@ -20,10 +20,10 @@ import { SesionService } from '../core/sesion.service';
   imports: [FormsModule, VentaHechaVentana, FiltroFechas, RouterLink, RouterOutlet, DineroPipe, FechaPipe, Icono, Esqueleto, Paginador],
   template: `
     <div class="encabezado">
-      <div>
+      <div class="titulo"><span class="icono-modulo"><app-icono [nombre]="esVenta ? 'ventas' : 'cotizaciones'" /></span><div>
         <h1>{{ esVenta ? 'Ventas' : 'Cotizaciones' }}</h1>
         <p>{{ esVenta ? 'Órdenes de venta: producción, anticipos, saldos y entregas.' : 'Arma precios, descarga el PDF y envíalo por WhatsApp.' }}</p>
-      </div>
+      </div></div>
       <a class="btn pri" routerLink="nueva"><app-icono nombre="mas1" />{{ esVenta ? 'Nueva venta' : 'Nueva cotización' }}</a>
     </div>
     <div class="mb-3 flex flex-col gap-2.5">

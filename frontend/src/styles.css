@@ -189,9 +189,15 @@
   .caja { @apply flex flex-col gap-2.5 rounded-xl border border-linea bg-superficie p-3.5; }
   .rejilla { @apply grid gap-3.5; }
   .encabezado {
-    @apply mb-[18px] flex flex-wrap items-end justify-between gap-3;
-    & p { @apply mt-0.5 text-tenue; }
+    @apply mb-[18px] flex flex-wrap items-center justify-between gap-3;
   }
+  /* Título de cada módulo: el icono del menú en un cuadro, el nombre y una línea de contexto. Igual en todos. */
+  .titulo {
+    @apply flex min-w-0 items-center gap-3;
+    & h1 { @apply text-xl leading-tight; }
+    & p { @apply mt-0.5 text-sm text-tenue; }
+  }
+  .icono-modulo { @apply flex size-10 flex-none items-center justify-center rounded-xl bg-[#002150] text-xl text-[#8fd85a]; }
   .vacio {
     @apply px-4 py-8 text-center text-tenue;
     & b { @apply mb-1 block text-tinta; }
