@@ -55,12 +55,24 @@ Llena estos valores:
 
 ## 4. Levantar
 
+**A. Servidor solo para Grabix** (Caddy se encarga de HTTPS):
+
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.produccion up -d --build
-docker compose -f docker-compose.prod.yml --env-file .env.produccion logs -f caddy api
+docker compose -f docker-compose.prod.yml --env-file .env.produccion --profile caddy up -d --build
 ```
 
-Cuando el DNS ya apunta al servidor, Caddy saca los certificados solo. Revisa:
+**B. Servidor que ya tiene nginx en 80/443** (por ejemplo, el de SiloPro). Grabix queda en `127.0.0.1:8081` y el nginx del servidor lo publica:
+
+```bash
+# Si el 8081 ya está ocupado, pon WEB_PUERTO=8082 en .env.produccion y en deploy/nginx-grabix.conf.
+docker compose -f docker-compose.prod.yml --env-file .env.produccion up -d --build
+sed 's/grabix.com.mx/TU-DOMINIO/g' deploy/nginx-grabix.conf > /etc/nginx/sites-available/grabix
+ln -s /etc/nginx/sites-available/grabix /etc/nginx/sites-enabled/grabix
+nginx -t && systemctl reload nginx
+certbot --nginx -d TU-DOMINIO -d www.TU-DOMINIO -d app.TU-DOMINIO
+```
+
+Cuando el DNS ya apunta al servidor, ya hay HTTPS. Revisa:
 
 - `https://DOMINIO`: la landing.
 - `https://app.DOMINIO`: debe mandarte a entrar.
@@ -79,7 +91,7 @@ Cuando el DNS ya apunta al servidor, Caddy saca los certificados solo. Revisa:
 ```bash
 cd /opt/grabix
 git pull
-docker compose -f docker-compose.prod.yml --env-file .env.produccion up -d --build
+docker compose -f docker-compose.prod.yml --env-file .env.produccion up -d --build   # agrega --profile caddy en la opción A
 ```
 
 ## 7. Respaldos

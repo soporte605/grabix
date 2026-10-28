@@ -1,6 +1,8 @@
 # Producción en un VPS con Docker. Ver docs/PRODUCCION.md.
-#   docker compose -f docker-compose.prod.yml --env-file .env.produccion up -d --build
-# Caddy publica la landing en https://DOMINIO y el sistema en https://app.DOMINIO, con certificados HTTPS automáticos.
+# Servidor solo para Grabix (Caddy con HTTPS automático):
+#   docker compose -f docker-compose.prod.yml --env-file .env.produccion --profile caddy up -d --build
+# Servidor que ya tiene nginx (como el de SiloPro): sin --profile caddy y con deploy/nginx-grabix.conf.
+# La landing queda en https://DOMINIO y el sistema en https://app.DOMINIO.
 services:
   db:
     image: mysql:8.0
@@ -55,9 +57,15 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+    # Solo para un nginx del propio servidor (servidor compartido, como SiloPro). No se expone a internet.
+    ports:
+      - "127.0.0.1:${WEB_PUERTO:-8081}:80"
 
+  # HTTPS automático cuando el servidor es solo para Grabix. En un servidor que ya tiene nginx en 80/443
+  # no se levanta: se usa deploy/nginx-grabix.conf (ver docs/PRODUCCION.md).
   caddy:
     image: caddy:2.8-alpine
+    profiles: ["caddy"]
     restart: unless-stopped
     depends_on:
       - web
