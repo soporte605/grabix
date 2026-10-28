@@ -11,10 +11,11 @@ import { CampoClave } from '../ui/campo-clave';
 import { Esqueleto } from '../ui/esqueleto';
 import { Hoja } from '../ui/hoja';
 import { Icono } from '../ui/icono';
+import { MaquinasTaller } from '../ui/maquinas-taller';
 
 @Component({
   selector: 'app-ajustes',
-  imports: [FormsModule, DineroPipe, FechaPipe, CampoClave, Esqueleto, Hoja, Icono],
+  imports: [FormsModule, DineroPipe, FechaPipe, CampoClave, Esqueleto, Hoja, Icono, MaquinasTaller],
   template: `
     <div class="encabezado"><div class="titulo"><span class="icono-modulo"><app-icono nombre="ajustes" /></span><div><h1>Ajustes y plan</h1><p>Datos que aparecen en tus PDF y valores para calcular costos.</p></div></div></div>
     @if (t(); as t) {
@@ -44,6 +45,7 @@ import { Icono } from '../ui/icono';
           <div class="campo"><textarea [(ngModel)]="t.notasCotizacion" aria-label="Texto al pie"></textarea></div>
         </section>
         <div><button class="btn pri" (click)="guardar()">Guardar ajustes</button></div>
+        @if (s.gerencia()) { <app-maquinas-taller /> }
 
         <form class="caja" (ngSubmit)="cambiarClave()">
           <h3>Tu contraseña</h3>

@@ -56,6 +56,24 @@ export enum EstadoVenta {
   Cancelada = 'cancelada',
 }
 
+/** Etapa de un pedido dentro del taller; afina el estado de la venta (pendiente, en producción, lista). */
+export enum EtapaTaller {
+  Diseno = 'diseno',
+  Aprobacion = 'aprobacion',
+  Cola = 'cola',
+  Maquina = 'maquina',
+  Acabado = 'acabado',
+  Lista = 'lista',
+}
+
+export enum TipoMaquina {
+  Laser = 'laser',
+  Sublimacion = 'sublimacion',
+  Plancha = 'plancha',
+  Manual = 'manual',
+  Otra = 'otra',
+}
+
 @Entity('talleres')
 export class Taller {
   @PrimaryGeneratedColumn() id: number;
@@ -287,6 +305,12 @@ export class Venta extends DocumentoVenta {
   @Column({ type: 'int', nullable: true }) cotizacionId: number | null;
   @Column({ default: false }) stockAplicado: boolean;
   @Index({ unique: true }) @Column({ length: 40 }) tokenPublico: string;
+  /** Producción: etapa en el taller (null = la de su estado), máquina, responsable y prioridad. */
+  @Column({ type: 'enum', enum: EtapaTaller, nullable: true }) etapa: EtapaTaller | null;
+  @Column({ type: 'int', nullable: true }) maquinaId: number | null;
+  @Column({ type: 'int', nullable: true }) responsableId: number | null;
+  @Column({ default: false }) urgente: boolean;
+  @Column({ type: 'datetime', nullable: true }) etapaEn: Date | null;
   @OneToMany(() => VentaItem, (i) => i.venta, { cascade: true, eager: true })
   items: Relation<VentaItem[]>;
   @OneToMany(() => Pago, (p) => p.venta, { cascade: true, eager: true })
@@ -296,9 +320,21 @@ export class Venta extends DocumentoVenta {
 @Entity('venta_items')
 export class VentaItem extends Renglon {
   @Column() ventaId: number;
+  /** Piezas terminadas en el taller (avance por renglón). */
+  @Column(qty) hechos: number;
   @ManyToOne(() => Venta, (v) => v.items, { onDelete: 'CASCADE', orphanedRowAction: 'delete' })
   @JoinColumn({ name: 'ventaId' })
   venta: Relation<Venta>;
+}
+
+@Entity('maquinas')
+export class Maquina {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Column({ length: 80 }) nombre: string;
+  @Column({ type: 'enum', enum: TipoMaquina, default: TipoMaquina.Laser }) tipo: TipoMaquina;
+  @Column({ default: true }) activa: boolean;
+  @CreateDateColumn() creadoEn: Date;
 }
 
 @Entity('pagos')
@@ -450,6 +486,7 @@ export class CajaMovimiento {
 }
 
 export const ENTIDADES = [
+  Maquina,
   CajaTurno,
   CajaMovimiento,
   CotizadorUso,

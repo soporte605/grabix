@@ -34,6 +34,26 @@ export interface Documento {
 }
 export interface Cotizacion extends Documento { estado: EstadoCotizacion; vigenciaDias: number }
 export interface Venta extends Documento { estado: EstadoVenta; entrega: string | null; pagado: number; saldo: number; pagos: Pago[]; cotizacionId: number | null }
+export type EtapaTaller = 'diseno' | 'aprobacion' | 'cola' | 'maquina' | 'acabado' | 'lista';
+export type TipoMaquina = 'laser' | 'sublimacion' | 'plancha' | 'manual' | 'otra';
+export interface Maquina { id: number; nombre: string; tipo: TipoMaquina; activa: boolean }
+export interface RenglonTaller extends Renglon { id: number; hechos: number; minutosPieza: number }
+/** Pedido en el tablero de Producción, con su etapa y el avance calculado. */
+export interface OrdenTaller extends Omit<Venta, 'items'> {
+  items: RenglonTaller[]; etapa: EtapaTaller; maquinaId: number | null; responsableId: number | null; urgente: boolean;
+  piezas: number; hechas: number; minutos: number;
+}
+export const ETAPAS: Record<EtapaTaller, { nombre: string; clase: string; siguiente?: [EtapaTaller, string] }> = {
+  diseno: { nombre: 'Por diseñar', clase: 'sec', siguiente: ['aprobacion', 'Mandar a aprobar'] },
+  aprobacion: { nombre: 'Esperando aprobación', clase: 'warn', siguiente: ['cola', 'Aprobado'] },
+  cola: { nombre: 'En cola', clase: 'mut', siguiente: ['maquina', 'A máquina'] },
+  maquina: { nombre: 'En máquina', clase: 'acc', siguiente: ['acabado', 'Terminó máquina'] },
+  acabado: { nombre: 'Acabado y empaque', clase: 'sec', siguiente: ['lista', 'Listo'] },
+  lista: { nombre: 'Listo para entregar', clase: 'ok' },
+};
+export const TIPOS_MAQUINA: Record<TipoMaquina, string> = {
+  laser: 'Láser', sublimacion: 'Impresora de sublimación', plancha: 'Plancha o prensa', manual: 'Trabajo manual', otra: 'Otra',
+};
 export interface CompraItem { productoId: number | null; descripcion: string; cantidad: number; costo: number }
 export interface Compra { id: number; folio: string; fecha: string; proveedor: string; notas: string | null; total: number; items: CompraItem[] }
 export interface Estadisticas {
