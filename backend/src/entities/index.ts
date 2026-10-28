@@ -106,6 +106,17 @@ export class Sucursal {
   @Column({ length: 255, default: '' }) direccion: string;
   @Column({ length: 40, default: '' }) telefono: string;
   @Column({ default: true }) activa: boolean;
+  /** Datos para transferencia que salen en el PDF y el WhatsApp de esta sucursal. */
+  @Column({ length: 80, default: '' }) banco: string;
+  @Column({ length: 120, default: '' }) titular: string;
+  @Column({ length: 20, default: '' }) clabe: string;
+  @Column({ length: 30, default: '' }) cuenta: string;
+  @Column({ length: 25, default: '' }) tarjeta: string;
+  @Column({ type: 'text', nullable: true }) indicacionesPago: string | null;
+  /** Porcentaje de anticipo para empezar un trabajo (0 = no se pide). */
+  @Column({ type: 'int', default: 0 }) anticipoPct: number;
+  /** Condiciones de venta de la sucursal (anticipo, tiempos, garantía); van en cotizaciones y notas. */
+  @Column({ type: 'text', nullable: true }) condiciones: string | null;
 }
 
 @Entity('usuarios')

@@ -5,6 +5,7 @@ import { ConfirmarService } from '../core/confirmar.service';
 import { DineroPipe, FechaPipe, hoy, sumarDias } from '../core/formato';
 import { Cotizacion, EST_COT, EST_VTA, Venta } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
+import { DatosPago } from './datos-pago';
 import { FotosPedido } from './fotos-pedido';
 import { Hoja } from './hoja';
 import { Icono } from './icono';
@@ -16,7 +17,7 @@ import { Icono } from './icono';
  */
 @Component({
   selector: 'app-vista-documento',
-  imports: [Hoja, Icono, DineroPipe, FechaPipe, FotosPedido],
+  imports: [Hoja, Icono, DineroPipe, FechaPipe, FotosPedido, DatosPago],
   template: `
     @let v = venta();
     <app-hoja [titulo]="titulo()" ancho="640px" (cerrar)="cerrar.emit()">
@@ -67,7 +68,12 @@ import { Icono } from './icono';
             <span class="k">Pagado</span><span class="text-right">{{ $any(v).pagado | dinero }}</span>
             <span class="k">Saldo</span><span class="text-right font-semibold" [class.text-bad]="$any(v).saldo > 0">{{ $any(v).saldo | dinero }}</span>
           }
+          @if (anticipo(); as a) { <span class="k">{{ a.texto }}</span><span class="text-right font-semibold text-marca">{{ a.monto | dinero }}</span> }
         </div>
+        @if (modo() === 'documento') {
+          @if (sucursal()?.condiciones?.trim(); as c) { <section class="rounded-xl border border-linea bg-superficie p-3"><p class="chico mb-0.5 font-semibold tenue">Condiciones</p><p class="chico whitespace-pre-line">{{ c }}</p></section> }
+          @if (porPagar()) { <app-datos-pago [sucursal]="sucursal()" /> }
+        }
       }
       @if (esVenta() && modo() === 'documento' && v.id) { <app-fotos-pedido [ventaId]="v.id" [folio]="v.folio" /> }
 
@@ -105,6 +111,19 @@ export class VistaDocumento {
   ocupado = signal(false);
   conImportes = computed(() => this.s.rol() !== 'produccion');
   puedeCancelar = computed(() => this.esVenta() && this.conCancelar() && this.s.verCostos() && !['cancelada', 'entregada'].includes(this.venta().estado));
+  /** Sucursal del documento: de ahí salen anticipo, condiciones y datos bancarios. */
+  sucursal = computed(() => this.s.perfil()?.sucursales.find((x) => x.id === this.venta().sucursalId) ?? null);
+  porPagar = computed(() => {
+    const v = this.venta() as Venta;
+    return this.esVenta() ? v.estado !== 'cancelada' && v.total - v.pagado > 0 : v.total > 0;
+  });
+  anticipo = computed(() => {
+    const pct = this.sucursal()?.anticipoPct ?? 0, v = this.venta() as Venta;
+    if (!pct || !this.porPagar()) return null;
+    const a = Math.round(v.total * pct) / 100;
+    if (!this.esVenta()) return { texto: `Anticipo para iniciar (${pct}%)`, monto: a };
+    return v.pagado < a ? { texto: `Falta para iniciar (${pct}%)`, monto: Math.round((a - v.pagado) * 100) / 100 } : null;
+  });
   cliente = computed(() => this.venta().cliente?.nombre || this.venta().clienteNombre || 'Mostrador');
   telefono = computed(() => this.venta().cliente?.telefono || this.venta().clienteTelefono || '');
   atrasada = computed(() => {
