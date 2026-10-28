@@ -3,7 +3,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
-import { DineroPipe, FechaPipe, hoy, sumarDias } from '../core/formato';
+import { DineroPipe, fecha, FechaPipe, hoy, sumarDias } from '../core/formato';
 import { Cliente, Promocion } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { Confirmar } from '../ui/confirmar';
@@ -25,7 +25,7 @@ import { Icono } from '../ui/icono';
         <div class="con-acciones">
           <button class="renglon" (click)="abrir(p)">
             <span class="t">{{ p.nombre }}</span>
-            <span class="d"><span class="pill" [class]="vigente(p) ? 'ok' : 'mut'">{{ vigente(p) ? 'Vigente' : 'Inactiva' }}</span></span>
+            <span class="d">@let st = estado(p); <span class="pill" [class]="st.clase" [title]="st.ayuda">{{ st.texto }}</span></span>
             <span class="m">{{ p.tipo === 'pct' ? p.valor + '% de descuento' : (p.valor | dinero) + ' de descuento' }} @if (p.fin) { · hasta {{ p.fin | fecha }} }</span><span></span>
           </button>
           @if (s.verCostos()) {
@@ -85,6 +85,14 @@ export class Promociones implements OnInit {
     this.promos.set(await this.api.get('/promociones'));
     this.listo.set(true);
     this.clientes.set(await this.api.get('/clientes'));
+  }
+  /** Por qué una promoción aplica o no hoy: pausada, aún no empieza, ya terminó o vigente. */
+  estado(p: Promocion): { texto: string; clase: string; ayuda: string } {
+    const h = hoy();
+    if (!p.activa) return { texto: 'Pausada', clase: 'mut', ayuda: 'Está desactivada' };
+    if (p.inicio && p.inicio > h) return { texto: `Empieza ${fecha(p.inicio)}`, clase: 'warn', ayuda: 'Aún no inicia' };
+    if (p.fin && p.fin < h) return { texto: 'Terminó', clase: 'mut', ayuda: `Terminó el ${fecha(p.fin)}` };
+    return { texto: 'Vigente', clase: 'ok', ayuda: 'Se puede aplicar hoy' };
   }
   vigente(p: Promocion) { const h = hoy(); return p.activa && (!p.inicio || p.inicio <= h) && (!p.fin || p.fin >= h); }
   abrir(p?: Promocion) { this.e_.set(p ? { ...p } : { nombre: '', tipo: 'pct', valor: 10, inicio: hoy(), fin: sumarDias(hoy(), 30), activa: true, mensaje: '' }); }
