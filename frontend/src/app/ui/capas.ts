@@ -1,9 +1,10 @@
-import { Component, computed, effect, HostListener, inject, signal, untracked, viewChild, ElementRef } from '@angular/core';
+import { Component, computed, effect, HostListener, inject, signal, viewChild, ElementRef } from '@angular/core';
 import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router } from '@angular/router';
 import { AvisoService } from '../core/aviso.service';
 import { CargaService } from '../core/carga.service';
 import { ConfirmarService } from '../core/confirmar.service';
 import { Icono } from './icono';
+import { LogoCarga } from './logo-carga';
 
 const ESTILO = {
   ok: { icono: 'ok', circulo: 'bg-ok-suave text-ok', borde: 'border-l-ok' },
@@ -14,23 +15,14 @@ const ESTILO = {
 /** Capas globales que viven encima de todas las pantallas: barra de carga, avisos (toasts) y ventana de confirmación. */
 @Component({
   selector: 'app-capas',
-  imports: [Icono],
+  imports: [Icono, LogoCarga],
   template: `
-    <!-- Barra de progreso: avanza mientras se espera y se completa al terminar. -->
-    <div class="pointer-events-none fixed inset-x-0 top-0 z-[70] h-1 transition-opacity duration-300" [class.opacity-0]="!barra()" aria-hidden="true">
-      <div class="relative h-full bg-acento shadow-[0_0_10px_var(--acento),0_0_4px_var(--acento)] transition-[width] duration-300 ease-out" [style.width.%]="progreso()">
-        <span class="absolute top-0 right-0 h-full w-24 translate-x-px bg-gradient-to-r from-transparent to-white/70"></span>
-      </div>
-    </div>
-    <!-- Si la espera se alarga, un aviso visible al centro arriba. -->
-    @if (lento()) {
-      <div class="pointer-events-none fixed inset-x-0 top-3 z-[70] flex justify-center px-3 motion-safe:animate-entra" role="status" aria-live="polite">
+    <!-- Cargando: la G del logo cortándose, en una pastilla arriba al centro que no tapa nada. -->
+    @if (barra()) {
+      <div class="pointer-events-none fixed inset-x-0 top-[max(10px,env(safe-area-inset-top,0px))] z-[70] flex justify-center px-3 motion-safe:animate-entra" role="status" aria-live="polite">
         <div class="flex items-center gap-2.5 rounded-full border border-linea bg-superficie py-1.5 pr-4 pl-1.5 shadow-caja">
-          <span class="relative grid size-8 place-items-center">
-            <span class="absolute inset-0 rounded-full border-[3px] border-acento-suave border-t-acento motion-safe:animate-spin"></span>
-            <img src="logo.svg" alt="" class="size-5 rounded-[5px]">
-          </span>
-          <span class="text-sm font-semibold">Cargando…</span>
+          <app-logo-carga [tam]="26" />
+          <span class="text-sm font-semibold">{{ lento() ? 'Un momento…' : 'Cargando…' }}</span>
         </div>
       </div>
     }
@@ -82,32 +74,13 @@ export class Capas {
   private visible = signal(false);
   estilo = ESTILO;
   private cancelar = viewChild<ElementRef<HTMLButtonElement>>('cancelar');
-  /** La barra solo aparece si la espera dura más de 150 ms, para no parpadear en respuestas rápidas. */
+  /** Solo aparece si la espera pasa de 400 ms, para no parpadear en respuestas rápidas. */
   barra = this.visible.asReadonly();
-  progreso = signal(0);
-  /** Pasó más de un segundo: además de la barra se muestra "Cargando…". */
+  /** La espera ya es larga: cambia el texto para que se note que sigue trabajando. */
   lento = signal(false);
   private ocupado = computed(() => this.carga.activa() || this.navegando());
   private t?: ReturnType<typeof setTimeout>;
   private tLento?: ReturnType<typeof setTimeout>;
-  private avance?: ReturnType<typeof setInterval>;
-
-  private empezar() {
-    this.progreso.set(12);
-    this.visible.set(true);
-    clearInterval(this.avance);
-    // Avanza cada vez más despacio sin llegar al final hasta que la respuesta llega.
-    this.avance = setInterval(() => this.progreso.update((p) => Math.min(94, p + (94 - p) * 0.09)), 250);
-  }
-
-  private terminar() {
-    clearInterval(this.avance);
-    clearTimeout(this.tLento);
-    this.lento.set(false);
-    if (!this.visible()) return;
-    this.progreso.set(100);
-    this.t = setTimeout(() => { this.visible.set(false); setTimeout(() => { if (!this.visible()) this.progreso.set(0); }, 300); }, 250);
-  }
 
   constructor() {
     inject(Router).events.subscribe((e) => {
@@ -116,12 +89,14 @@ export class Capas {
     });
     effect(() => {
       clearTimeout(this.t);
+      clearTimeout(this.tLento);
       if (this.ocupado()) {
-        if (untracked(this.visible)) return;
-        this.t = setTimeout(() => this.empezar(), 150);
-        clearTimeout(this.tLento);
-        this.tLento = setTimeout(() => this.lento.set(true), 1000);
-      } else untracked(() => this.terminar());
+        this.t = setTimeout(() => this.visible.set(true), 400);
+        this.tLento = setTimeout(() => this.lento.set(true), 4000);
+      } else {
+        this.visible.set(false);
+        this.lento.set(false);
+      }
     });
     // Al abrir la confirmación, el foco va a "Cancelar" para que Enter no borre por accidente.
     effect(() => { if (this.confirmar.actual()) queueMicrotask(() => this.cancelar()?.nativeElement.focus()); });

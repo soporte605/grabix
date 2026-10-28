@@ -272,6 +272,13 @@
   }
 }
 
+/* Indicador de carga: la G se corta con el láser (ui/logo-carga.ts y la pantalla de arranque en index.html). */
+.logo-carga .g { stroke-dasharray: 100; animation: logo-cortar 1.8s cubic-bezier(.65, 0, .35, 1) infinite; }
+.logo-carga .halo { transform-box: fill-box; transform-origin: center; animation: logo-halo 1.8s ease-in-out infinite; }
+@keyframes logo-cortar { 0% { stroke-dashoffset: 100; } 60%, 85% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: .25; } }
+@keyframes logo-halo { 0%, 100% { transform: scale(1); opacity: .5; } 50% { transform: scale(1.9); opacity: .15; } }
+@media (prefers-reduced-motion: reduce) { .logo-carga .g { animation: none; stroke-dashoffset: 0; } .logo-carga .halo { animation: none; } }
+
 /* Recorrido guiado (driver.js) con los colores de Grabix. */
 .driver-popover.grabix-tour {
   background: var(--superficie); color: var(--tinta); border: 1px solid var(--linea); border-radius: 14px;
