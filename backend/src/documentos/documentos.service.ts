@@ -444,6 +444,15 @@ export class DocumentosService {
       .andWhere('p.fecha BETWEEN :d AND :h', { d: desde, h: hasta })
       .getRawOne<{ total: string | null }>();
 
+    // Comparativo contra el periodo anterior del mismo largo, y el día de hoy.
+    const dias = Math.round((Date.parse(hasta) - Date.parse(desde)) / 864e5) + 1;
+    const antHasta = sumarDias(desde, -1), antDesde = sumarDias(desde, -dias);
+    const anterior = activas(await em.find(Venta, { where: { ...base, fecha: Between(antDesde, antHasta) } }));
+    const h = hoy();
+    const deHoy = activas(await em.find(Venta, { where: { ...base, fecha: h } }));
+    const atrasados = abiertas.filter((v) => v.estado !== EstadoVenta.Entregada && v.entrega && String(v.entrega) < h).length;
+    const clientesNuevos = await em.count(Cliente, { where: { tallerId: s.tallerId, creadoEn: Between(new Date(desde + 'T00:00:00'), new Date(hasta + 'T23:59:59')) } });
+
     const ex = await em.find(Existencia, { where: { tallerId: s.tallerId, ...suc } });
     const prods = await em.find(Producto, { where: { tallerId: s.tallerId, activo: true } });
     const bajos = prods
@@ -466,7 +475,15 @@ export class DocumentosService {
       cobrado: r2(Number(cobrado?.total ?? 0)),
       porCobrar,
       compras: r2(compras.reduce((a, c) => a + c.total, 0)),
-      cotizaciones: { total: cots.length, aceptadas: cots.filter((c) => c.estado === EstadoCotizacion.Aceptada).length },
+      cotizaciones: {
+        total: cots.length,
+        aceptadas: cots.filter((c) => c.estado === EstadoCotizacion.Aceptada).length,
+        abiertas: cots.filter((c) => c.estado === EstadoCotizacion.Borrador || c.estado === EstadoCotizacion.Enviada).length,
+      },
+      ventasAnterior: r2(anterior.reduce((a, v) => a + v.total, 0)),
+      hoy: { ventas: r2(deHoy.reduce((a, v) => a + v.total, 0)), pedidos: deHoy.length },
+      atrasados,
+      clientesNuevos,
       serie,
       top: [...top.values()]
         .map((x) => ({ ...x, ventas: r2(x.ventas), ganancia: r2(x.ganancia) }))

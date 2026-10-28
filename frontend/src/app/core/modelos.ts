@@ -38,7 +38,8 @@ export interface CompraItem { productoId: number | null; descripcion: string; ca
 export interface Compra { id: number; folio: string; fecha: string; proveedor: string; notas: string | null; total: number; items: CompraItem[] }
 export interface Estadisticas {
   desde: string; hasta: string; ventas: number; pedidos: number; ticketPromedio: number; costo: number; ganancia: number; margen: number | null;
-  cobrado: number; porCobrar: number; compras: number; cotizaciones: { total: number; aceptadas: number };
+  cobrado: number; porCobrar: number; compras: number; cotizaciones: { total: number; aceptadas: number; abiertas: number };
+  ventasAnterior: number; hoy: { ventas: number; pedidos: number }; atrasados: number; clientesNuevos: number;
   serie: { mes: string; ventas: number; ganancia: number; pedidos: number }[];
   top: { descripcion: string; cantidad: number; ventas: number; ganancia: number }[];
   pendientes: { id: number; folio: string; cliente: string; entrega: string | null; estado: EstadoVenta; total: number; saldo: number }[];
