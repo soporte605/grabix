@@ -197,6 +197,18 @@
     & .m { @apply min-w-0 text-[.84rem] text-tenue wrap-anywhere; }
     & .d { @apply text-right; }
   }
+  /* Renglón con acciones rápidas a la derecha (editar, eliminar…). */
+  .con-acciones {
+    @apply grid grid-cols-[minmax(0,1fr)_auto] items-center border-t border-linea first:border-t-0 hover:bg-superficie-2;
+    & > .renglon { @apply border-t-0 hover:bg-transparent; }
+    & .acciones { @apply flex items-center gap-0.5 pr-1.5 sm:gap-1 sm:pr-3; }
+  }
+  .ico {
+    @apply inline-grid size-9 place-items-center rounded-[9px] border border-transparent bg-transparent text-tenue
+      hover:border-linea hover:bg-superficie hover:text-tinta disabled:opacity-40;
+    & svg { @apply size-[18px]; }
+    &.peligro { @apply hover:border-bad hover:text-bad; }
+  }
 
   /* Etiquetas: .pill + .ok | .warn | .bad | .acc | .sec | .mut */
   .pill {

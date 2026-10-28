@@ -7,6 +7,7 @@ import { DineroPipe, FechaPipe, hoy, sumarDias } from '../core/formato';
 import { Cliente, Promocion } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { Confirmar } from '../ui/confirmar';
+import { ConfirmarService } from '../core/confirmar.service';
 import { Hoja } from '../ui/hoja';
 import { Icono } from '../ui/icono';
 
@@ -21,11 +22,19 @@ import { Icono } from '../ui/icono';
     <div class="tarjeta lista">
       @if (!listo()) { <app-esqueleto /> } @else {
       @for (p of promos(); track p.id) {
-        <button class="renglon" (click)="abrir(p)">
-          <span class="t">{{ p.nombre }}</span>
-          <span class="d"><span class="pill" [class]="vigente(p) ? 'ok' : 'mut'">{{ vigente(p) ? 'Vigente' : 'Inactiva' }}</span></span>
-          <span class="m">{{ p.tipo === 'pct' ? p.valor + '% de descuento' : (p.valor | dinero) + ' de descuento' }} @if (p.fin) { · hasta {{ p.fin | fecha }} }</span><span></span>
-        </button>
+        <div class="con-acciones">
+          <button class="renglon" (click)="abrir(p)">
+            <span class="t">{{ p.nombre }}</span>
+            <span class="d"><span class="pill" [class]="vigente(p) ? 'ok' : 'mut'">{{ vigente(p) ? 'Vigente' : 'Inactiva' }}</span></span>
+            <span class="m">{{ p.tipo === 'pct' ? p.valor + '% de descuento' : (p.valor | dinero) + ' de descuento' }} @if (p.fin) { · hasta {{ p.fin | fecha }} }</span><span></span>
+          </button>
+          @if (s.verCostos()) {
+            <span class="acciones">
+              <button type="button" class="ico max-sm:hidden" title="Editar" aria-label="Editar {{ p.nombre }}" (click)="abrir(p)"><app-icono nombre="editar" /></button>
+              <button type="button" class="ico peligro" title="Eliminar" aria-label="Eliminar {{ p.nombre }}" (click)="preguntarEliminar(p)"><app-icono nombre="basura" /></button>
+            </span>
+          }
+        </div>
       } @empty { <div class="vacio"><b>Sin promociones</b>Crea una, por ejemplo “10% en tazas para el Día de las Madres”.</div> }
     }
     </div>
@@ -64,6 +73,7 @@ export class Promociones implements OnInit {
   s = inject(SesionService);
   private api = inject(Api);
   private aviso = inject(AvisoService);
+  private confirmar = inject(ConfirmarService);
   promos = signal<Promocion[]>([]);
   listo = signal(false);
   clientes = signal<Cliente[]>([]);
@@ -94,6 +104,11 @@ export class Promociones implements OnInit {
       this.e_.set(null);
       this.promos.set(await this.api.get('/promociones'));
     } catch (err) { this.aviso.error(mensajeError(err)); }
+  }
+  async preguntarEliminar(p: Promocion) {
+    if (!(await this.confirmar.preguntar({ titulo: `¿Eliminar ${p.nombre}?`, texto: 'Esta acción no se puede deshacer.', accion: 'Eliminar', peligro: true }))) return;
+    this.e_.set({ ...p });
+    await this.eliminar();
   }
   async eliminar() {
     await this.api.del(`/promociones/${this.e()!.id}`);

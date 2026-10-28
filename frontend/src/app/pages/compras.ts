@@ -7,6 +7,8 @@ import { DineroPipe, FechaPipe, hoy } from '../core/formato';
 import { Compra, CompraItem, Producto } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { Confirmar } from '../ui/confirmar';
+import { ConfirmarService } from '../core/confirmar.service';
+import { Paginador } from '../ui/paginador';
 import { Buscador } from '../ui/buscador';
 import { FiltroFechas, Rango } from '../ui/filtro-fechas';
 import { Hoja } from '../ui/hoja';
@@ -14,7 +16,7 @@ import { Icono } from '../ui/icono';
 
 @Component({
   selector: 'app-compras',
-  imports: [FormsModule, FiltroFechas, Buscador, DineroPipe, FechaPipe, Hoja, Icono, Confirmar, Esqueleto],
+  imports: [FormsModule, FiltroFechas, Buscador, DineroPipe, FechaPipe, Hoja, Icono, Confirmar, Esqueleto, Paginador],
   template: `
     <div class="encabezado">
       <div><h1>Compras</h1><p>Cada compra suma existencias en {{ s.nombreSucursal() }} y actualiza el costo promedio.</p></div>
@@ -23,18 +25,25 @@ import { Icono } from '../ui/icono';
     @if (!s.sucursal()) { <p class="tenue">Elige una sucursal arriba para registrar compras.</p> }
     <div class="mb-3 flex flex-wrap items-center gap-2">
       <input class="buscar min-w-0 flex-1" type="search" placeholder="Buscar por folio o proveedor" [(ngModel)]="q" (ngModelChange)="buscar()" aria-label="Buscar">
-      <app-filtro-fechas [rango]="rango" (rangoChange)="rango = $event; cargar()" />
+      <app-filtro-fechas [rango]="rango" (rangoChange)="rango = $event; pagina.set(1); cargar()" />
     </div>
     <div class="tarjeta lista">
       @if (!listo()) { <app-esqueleto /> } @else {
       @for (c of compras(); track c.id) {
-        <button class="renglon" (click)="ver.set(c)">
-          <span class="t">{{ c.proveedor || 'Proveedor' }}</span><span class="d num">{{ c.total | dinero }}</span>
-          <span class="m"><span class="num">{{ c.folio }}</span> · {{ c.fecha | fecha }} · {{ c.items.length }} concepto{{ c.items.length === 1 ? '' : 's' }}</span><span></span>
-        </button>
+        <div class="con-acciones">
+          <button class="renglon" (click)="ver.set(c)">
+            <span class="t">{{ c.proveedor || 'Proveedor' }}</span><span class="d num">{{ c.total | dinero }}</span>
+            <span class="m"><span class="num">{{ c.folio }}</span> · {{ c.fecha | fecha }} · {{ c.items.length }} concepto{{ c.items.length === 1 ? '' : 's' }}</span><span></span>
+          </button>
+          <span class="acciones">
+            <button type="button" class="ico" title="Ver detalle" aria-label="Ver {{ c.folio }}" (click)="ver.set(c)"><app-icono nombre="ojo" /></button>
+            @if (s.gerencia()) { <button type="button" class="ico peligro" title="Eliminar" aria-label="Eliminar {{ c.folio }}" (click)="preguntarEliminar(c)"><app-icono nombre="basura" /></button> }
+          </span>
+        </div>
       } @empty { <div class="vacio"><b>Sin compras</b>{{ q || rango.desde || rango.hasta ? 'Prueba con otra búsqueda o cambia las fechas.' : 'Registra lo que compras a tus proveedores para conocer tu costo real.' }}</div> }
     }
     </div>
+    <app-paginador [total]="totalLista()" [pagina]="pagina()" (paginaChange)="pagina.set($event); cargar()" />
 
     @if (f(); as f) {
       <app-hoja titulo="Registrar compra" (cerrar)="f_.set(null)">
@@ -77,6 +86,7 @@ export class Compras implements OnInit {
   s = inject(SesionService);
   private api = inject(Api);
   private aviso = inject(AvisoService);
+  private confirmar = inject(ConfirmarService);
   compras = signal<Compra[]>([]);
   listo = signal(false);
   productos = signal<Producto[]>([]);
@@ -90,16 +100,21 @@ export class Compras implements OnInit {
     await this.cargar();
     this.productos.set(await this.api.get('/productos'));
   }
+  pagina = signal(1);
+  totalLista = signal(0);
   q = '';
   rango: Rango = { desde: '', hasta: '' };
   private t?: ReturnType<typeof setTimeout>;
-  buscar() { clearTimeout(this.t); this.t = setTimeout(() => this.cargar(), 250); }
-  async cargar() {
-    const p: Record<string, string> = {};
+  buscar() { clearTimeout(this.t); this.t = setTimeout(() => { this.pagina.set(1); this.cargar(); }, 250); }
+  async cargar(): Promise<void> {
+    const p: Record<string, string> = { pagina: String(this.pagina()), por: '20' };
     if (this.q.trim()) p['q'] = this.q.trim();
     if (this.rango.desde) p['desde'] = this.rango.desde;
     if (this.rango.hasta) p['hasta'] = this.rango.hasta;
-    this.compras.set(await this.api.get('/compras', p));
+    const r = await this.api.get<{ items: Compra[]; total: number }>('/compras', p);
+    if (!r.items.length && this.pagina() > 1) { this.pagina.update((n) => n - 1); return this.cargar(); }
+    this.compras.set(r.items);
+    this.totalLista.set(r.total);
     this.listo.set(true);
   }
   vacio(): CompraItem { return { productoId: null, descripcion: '', cantidad: 1, costo: 0 }; }
@@ -115,6 +130,9 @@ export class Compras implements OnInit {
       this.aviso.ok('Compra registrada');
       await this.cargar();
     } catch (e) { this.aviso.error(mensajeError(e)); }
+  }
+  async preguntarEliminar(c: Compra) {
+    if (await this.confirmar.preguntar({ titulo: `¿Eliminar la compra ${c.folio}?`, texto: 'Se restarán del inventario las piezas que sumó. No se puede deshacer.', accion: 'Eliminar', peligro: true })) this.eliminar(c);
   }
   async eliminar(c: Compra) {
     try { await this.api.del(`/compras/${c.id}`); this.ver.set(null); this.aviso.ok('Compra eliminada'); await this.cargar(); }

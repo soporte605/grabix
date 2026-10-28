@@ -86,15 +86,9 @@ export class DocumentosService {
     return s.sucursal ? { sucursalId: s.sucursal } : {};
   }
 
-  private async listar<T extends Doc>(em: EntityManager, ent: new () => T, s: Sesion, f: FiltroDto) {
-    const qb = em
-      .createQueryBuilder(ent, 'd')
-      .leftJoinAndSelect('d.cliente', 'c')
-      .leftJoinAndSelect('d.items', 'i')
-      .where('d.tallerId = :t', { t: s.tallerId })
-      .orderBy('d.fecha', 'DESC')
-      .addOrderBy('d.id', 'DESC')
-      .take(300);
+  /** Filtros comunes de cotizaciones y ventas (alias d, cliente c). */
+  private filtrar<T extends Doc>(em: EntityManager, ent: new () => T, s: Sesion, f: FiltroDto) {
+    const qb = em.createQueryBuilder(ent, 'd').leftJoin('d.cliente', 'c').where('d.tallerId = :t', { t: s.tallerId });
     if (s.sucursal) qb.andWhere('d.sucursalId = :s', { s: s.sucursal });
     if (f.estado) qb.andWhere('d.estado IN (:...e)', { e: f.estado.split(',') });
     if (f.desde) qb.andWhere('d.fecha >= :desde', { desde: f.desde });
@@ -105,7 +99,25 @@ export class DocumentosService {
           w.where('d.folio LIKE :q', { q: `%${f.q}%` }).orWhere('c.nombre LIKE :q').orWhere('d.clienteNombre LIKE :q'),
         ),
       );
-    return qb.getMany();
+    return qb;
+  }
+
+  private async listar<T extends Doc>(em: EntityManager, ent: new () => T, s: Sesion, f: FiltroDto) {
+    const qb = this.filtrar(em, ent, s, f).addSelect('c').leftJoinAndSelect('d.items', 'i').orderBy('d.fecha', 'DESC').addOrderBy('d.id', 'DESC');
+    if (!f.pagina) return qb.take(300).getMany();
+    const por = f.por ?? 20;
+    const [items, total] = await qb.skip((f.pagina - 1) * por).take(por).getManyAndCount();
+    return { items, total };
+  }
+
+  /** Suma de total y saldo de lo filtrado (sin canceladas), para el pie de la lista paginada. */
+  private async resumen<T extends Doc>(em: EntityManager, ent: new () => T, s: Sesion, f: FiltroDto, conSaldo: boolean) {
+    const r = await this.filtrar(em, ent, s, f)
+      .select('COALESCE(SUM(d.total), 0)', 'total')
+      .addSelect(conSaldo ? 'COALESCE(SUM(GREATEST(d.total - d.pagado, 0)), 0)' : '0', 'saldo')
+      .andWhere("d.estado <> 'cancelada'")
+      .getRawOne<{ total: string; saldo: string }>();
+    return { total: r2(Number(r?.total ?? 0)), saldo: r2(Number(r?.saldo ?? 0)) };
   }
 
   private async uno<T extends Doc>(em: EntityManager, ent: new () => T, s: Sesion, id: number, lock = false) {
@@ -191,8 +203,10 @@ export class DocumentosService {
   /* ---------- ventas ---------- */
 
   async ventas(s: Sesion, f: FiltroDto) {
-    const vs = await this.listar(this.ds.manager, Venta, s, f);
-    return vs.map((v) => ({ ...v, saldo: r2(Math.max(0, v.total - v.pagado)) }));
+    const r = await this.listar(this.ds.manager, Venta, s, f);
+    const conSaldo = (vs: Venta[]) => vs.map((v) => ({ ...v, saldo: r2(Math.max(0, v.total - v.pagado)) }));
+    if (Array.isArray(r)) return conSaldo(r);
+    return { items: conSaldo(r.items), total: r.total, resumen: await this.resumen(this.ds.manager, Venta, s, f, true) };
   }
 
   async venta(s: Sesion, id: number) {
@@ -306,13 +320,15 @@ export class DocumentosService {
       .leftJoinAndSelect('c.items', 'i')
       .where('c.tallerId = :t', { t: s.tallerId })
       .orderBy('c.fecha', 'DESC')
-      .addOrderBy('c.id', 'DESC')
-      .take(300);
+      .addOrderBy('c.id', 'DESC');
+    if (!f.pagina) qb.take(300);
     if (s.sucursal) qb.andWhere('c.sucursalId = :s', { s: s.sucursal });
     if (f.desde) qb.andWhere('c.fecha >= :desde', { desde: f.desde });
     if (f.hasta) qb.andWhere('c.fecha <= :hasta', { hasta: f.hasta });
     if (f.q) qb.andWhere(new Brackets((w) => w.where('c.folio LIKE :q', { q: `%${f.q}%` }).orWhere('c.proveedor LIKE :q')));
-    return qb.getMany();
+    if (!f.pagina) return qb.getMany();
+    const por = f.por ?? 20;
+    return qb.skip((f.pagina - 1) * por).take(por).getManyAndCount().then(([items, total]) => ({ items, total }));
   }
 
   /** Registra la compra: suma existencias y recalcula el costo promedio ponderado. */

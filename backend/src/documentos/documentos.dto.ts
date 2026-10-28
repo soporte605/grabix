@@ -68,4 +68,7 @@ export class FiltroDto {
   @IsOptional() @IsString() estado?: string;
   @IsOptional() @IsDateString() desde?: string;
   @IsOptional() @IsDateString() hasta?: string;
+  /** Con `pagina` la respuesta es { items, total, resumen } en lugar de la lista completa. */
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) pagina?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(5) @Max(100) por?: number;
 }

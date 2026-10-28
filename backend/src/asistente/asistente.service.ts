@@ -8,7 +8,7 @@ import { GERENCIA, Sesion, VEN_COSTOS } from '../common/sesion';
 import { hoy, LIMITES_PRUEBA, limites, sumarDias } from '../common/suscripcion';
 import { r2 } from '../common/util';
 import { DocumentosService } from '../documentos/documentos.service';
-import { AsistenteUso, EstadoSuscripcion, Rol, Sucursal, Taller } from '../entities';
+import { AsistenteUso, Cotizacion, EstadoSuscripcion, Rol, Sucursal, Taller, Venta } from '../entities';
 import { GUIA } from './guia';
 
 type Herramienta = Anthropic.Beta.BetaTool & { roles: Rol[] };
@@ -214,7 +214,7 @@ export class AsistenteService {
       case 'buscar_pedidos': {
         const est = String(x.estado);
         const estado = est === 'todos' ? undefined : est === 'abiertos' ? 'pendiente,produccion,lista' : est;
-        const vs = await this.docs.ventas(s, { estado });
+        const vs = (await this.docs.ventas(s, { estado })) as (Venta & { saldo: number })[];
         datos = vs
           .filter((v) => coincide(v.folio, v.cliente?.nombre, v.clienteNombre))
           .filter((v) => !x.solo_con_saldo || v.saldo > 0)
@@ -228,7 +228,7 @@ export class AsistenteService {
       }
       case 'buscar_cotizaciones': {
         const est = String(x.estado);
-        const cs = await this.docs.cotizaciones(s, { estado: est === 'todas' ? undefined : est });
+        const cs = (await this.docs.cotizaciones(s, { estado: est === 'todas' ? undefined : est })) as Cotizacion[];
         datos = cs
           .filter((c) => coincide(c.folio, c.cliente?.nombre, c.clienteNombre))
           .slice(0, 20)

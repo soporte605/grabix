@@ -7,6 +7,8 @@ import { DineroPipe, PctPipe } from '../core/formato';
 import { Componente, Producto, TIPOS, TipoProducto } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { Confirmar } from '../ui/confirmar';
+import { ConfirmarService } from '../core/confirmar.service';
+import { pagina, Paginador } from '../ui/paginador';
 import { Buscador } from '../ui/buscador';
 import { Hoja } from '../ui/hoja';
 import { Icono } from '../ui/icono';
@@ -16,7 +18,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
 
 @Component({
   selector: 'app-inventario',
-  imports: [FormsModule, Buscador, DineroPipe, PctPipe, Hoja, Icono, Confirmar, Esqueleto],
+  imports: [FormsModule, Buscador, DineroPipe, PctPipe, Hoja, Icono, Confirmar, Esqueleto, Paginador],
   template: `
     <div class="encabezado">
       <div><h1>Inventario</h1><p>{{ s.nombreSucursal() }} @if (s.verCostos()) { · Valor <span class="num">{{ valor() | dinero }}</span> }</p></div>
@@ -27,30 +29,39 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
     </div>
     <div class="fila entre mb-3">
       <div class="chips">
-        @for (t of filtros; track t[0]) { <button class="chip" [class.on]="tipo() === t[0]" (click)="tipo.set(t[0])">{{ t[1] }}</button> }
-        <button class="chip" [class.on]="soloBajo()" (click)="soloBajo.set(!soloBajo())">Stock bajo</button>
+        @for (t of filtros; track t[0]) { <button class="chip" [class.on]="tipo() === t[0]" (click)="tipo.set(t[0]); pagina.set(1)">{{ t[1] }}</button> }
+        <button class="chip" [class.on]="soloBajo()" (click)="soloBajo.set(!soloBajo()); pagina.set(1)">Stock bajo</button>
       </div>
-      <input class="buscar" placeholder="Buscar" [ngModel]="q()" (ngModelChange)="q.set($event)" aria-label="Buscar">
+      <input class="buscar" placeholder="Buscar" [ngModel]="q()" (ngModelChange)="q.set($event); pagina.set(1)" aria-label="Buscar">
     </div>
     <div class="tarjeta lista">
       @if (!listo()) { <app-esqueleto /> } @else {
-      @for (p of visibles(); track p.id) {
-        <button class="renglon" (click)="s.verCostos() && abrir(p)">
-          <span class="t">{{ p.nombre }} <span class="pill" [class]="p.tipo === 'insumo' ? 'mut' : p.tipo === 'servicio' ? 'acc' : 'sec'">{{ tipos[p.tipo] }}</span></span>
-          <span class="d">
-            @if (p.controlaStock) { <span class="num" [class]="p.existencia <= p.minimo && p.minimo > 0 ? 'font-semibold text-bad' : ''">{{ p.existencia }} {{ p.unidad }}</span> }
-            @else if (p.componentes.length) { <span class="m">Receta de {{ p.componentes.length }} insumo{{ p.componentes.length > 1 ? 's' : '' }}</span> }
-            @else { <span class="m">Servicio</span> }
-          </span>
-          <span class="m">
-            @if (s.verCostos()) { Costo <span class="num">{{ p.costoUnitario | dinero }}</span> · }
-            Precio <span class="num">{{ p.precio | dinero }}</span> · {{ p.categoria }}
-          </span>
-          <span class="d m">@if (s.verCostos() && p.margen != null) { Margen {{ p.margen | pct }} }</span>
-        </button>
+      @for (p of enPagina(); track p.id) {
+        <div class="con-acciones">
+          <button class="renglon" (click)="s.verCostos() && abrir(p)">
+            <span class="t">{{ p.nombre }} <span class="pill" [class]="p.tipo === 'insumo' ? 'mut' : p.tipo === 'servicio' ? 'acc' : 'sec'">{{ tipos[p.tipo] }}</span></span>
+            <span class="d">
+              @if (p.controlaStock) { <span class="num" [class]="p.existencia <= p.minimo && p.minimo > 0 ? 'font-semibold text-bad' : ''">{{ p.existencia }} {{ p.unidad }}</span> }
+              @else if (p.componentes.length) { <span class="m">Receta de {{ p.componentes.length }} insumo{{ p.componentes.length > 1 ? 's' : '' }}</span> }
+              @else { <span class="m">Servicio</span> }
+            </span>
+            <span class="m">
+              @if (s.verCostos()) { Costo <span class="num">{{ p.costoUnitario | dinero }}</span> · }
+              Precio <span class="num">{{ p.precio | dinero }}</span> · {{ p.categoria }}
+            </span>
+            <span class="d m">@if (s.verCostos() && p.margen != null) { Margen {{ p.margen | pct }} }</span>
+          </button>
+          @if (s.verCostos()) {
+            <span class="acciones">
+              <button type="button" class="ico max-sm:hidden" title="Editar" aria-label="Editar {{ p.nombre }}" (click)="abrir(p)"><app-icono nombre="editar" /></button>
+              <button type="button" class="ico peligro" title="Desactivar" aria-label="Desactivar {{ p.nombre }}" (click)="preguntarDesactivar(p)"><app-icono nombre="basura" /></button>
+            </span>
+          }
+        </div>
       } @empty { <div class="vacio"><b>Sin artículos</b>Registra tus tazas, papel de sublimación, MDF, acrílico y servicios de corte.</div> }
     }
     </div>
+    <app-paginador [total]="visibles().length" [(pagina)]="pagina" />
 
     @if (e(); as e) {
       <app-hoja [titulo]="e.id ? e.nombre : 'Nuevo artículo'" (cerrar)="e_.set(null)">
@@ -132,6 +143,7 @@ export class Inventario implements OnInit {
   s = inject(SesionService);
   private api = inject(Api);
   private aviso = inject(AvisoService);
+  private confirmar = inject(ConfirmarService);
   tipos = TIPOS;
   tiposLista = Object.entries(TIPOS);
   categorias = CATEGORIAS;
@@ -169,6 +181,9 @@ export class Inventario implements OnInit {
   });
   sugerido = computed(() => Math.ceil(this.costo() / (1 - Math.min(95, this.s.taller()?.margenObjetivo ?? 60) / 100)));
 
+  pagina = signal(1);
+  enPagina = computed(() => pagina(this.visibles(), this.pagina()));
+
   ngOnInit() { this.cargar(); }
   async cargar() { this.productos.set(await this.api.get<Producto[]>('/productos')); this.listo.set(true); }
   calc() { this.rev.update((x) => x + 1); }
@@ -202,6 +217,11 @@ export class Inventario implements OnInit {
     } catch (err) { this.aviso.error(mensajeError(err)); }
   }
 
+  async preguntarDesactivar(p: Producto) {
+    if (!(await this.confirmar.preguntar({ titulo: `¿Desactivar ${p.nombre}?`, texto: 'Ya no aparecerá para cotizar ni vender. Su historial se conserva.', accion: 'Desactivar', peligro: true }))) return;
+    this.e_.set({ ...p } as never);
+    await this.desactivar();
+  }
   async desactivar() {
     await this.api.del(`/productos/${this.e()!.id}`);
     this.e_.set(null);
