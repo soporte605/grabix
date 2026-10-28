@@ -6,6 +6,7 @@ import { AvisoService, mensajeError } from '../core/aviso.service';
 import { FechaPipe, hoy, sumarDias } from '../core/formato';
 import { EST_VTA, EstadoVenta, Venta } from '../core/modelos';
 import { Icono } from '../ui/icono';
+import { OrdenVenta } from '../ui/orden-venta';
 
 const COLUMNAS: EstadoVenta[] = ['pendiente', 'produccion', 'lista'];
 const SIGUIENTE: Partial<Record<EstadoVenta, [EstadoVenta, string]>> = {
@@ -17,7 +18,7 @@ const SIGUIENTE: Partial<Record<EstadoVenta, [EstadoVenta, string]>> = {
 /** Tablero de pedidos por hacer: pendiente → en producción → listo → entregado. */
 @Component({
   selector: 'app-produccion',
-  imports: [FormsModule, FechaPipe, Icono, Esqueleto],
+  imports: [FormsModule, FechaPipe, Icono, Esqueleto, OrdenVenta],
   template: `
     <div class="encabezado"><div class="titulo"><span class="icono-modulo"><app-icono nombre="produccion" /></span><div><h1>Producción</h1><p>Pedidos por hacer, ordenados por fecha de entrega.</p></div></div></div>
     <div class="mb-3 flex flex-col gap-2.5">
@@ -39,7 +40,7 @@ const SIGUIENTE: Partial<Record<EstadoVenta, [EstadoVenta, string]>> = {
               @if (v.notas) { <p class="chico tenue">{{ v.notas }}</p> }
               <div class="fila">
                 <button class="btn sm pri" (click)="mover(v, siguiente[c]![0])">{{ siguiente[c]![1] }}</button>
-                <button class="btn sm" (click)="pdf(v)"><app-icono nombre="pdf" />Orden</button>
+                <button class="btn sm" (click)="orden.set(v)"><app-icono nombre="pdf" />Ver orden</button>
               </div>
             </article>
           } @empty { <p class="tenue chico">Nada aquí.</p> }
@@ -47,6 +48,7 @@ const SIGUIENTE: Partial<Record<EstadoVenta, [EstadoVenta, string]>> = {
       }
     </div>
     }
+    @if (orden(); as v) { <app-orden-venta [venta]="v" (cerrar)="orden.set(null)" (cambio)="cargar()" /> }
   `,
 })
 export class Produccion implements OnInit {
@@ -72,6 +74,7 @@ export class Produccion implements OnInit {
     });
   });
   ventas = signal<Venta[]>([]);
+  orden = signal<Venta | null>(null);
   listo = signal(false);
 
   ngOnInit() { this.cargar(); }
@@ -88,5 +91,4 @@ export class Produccion implements OnInit {
       await this.cargar();
     } catch (e) { this.aviso.error(mensajeError(e)); }
   }
-  pdf(v: Venta) { this.api.abrirPdf(`/ventas/${v.id}/pdf`).catch((e) => this.aviso.error(mensajeError(e))); }
 }
