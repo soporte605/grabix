@@ -239,8 +239,13 @@ export class PdfService {
     t += `*Total: ${m(d.total)}*\n`;
     if (tipo === 'venta') {
       const v = d as Venta;
-      if (v.pagado) t += `Pagado: ${m(v.pagado)}\n`;
-      t += `Saldo: ${m(Math.max(0, v.total - v.pagado))}\n`;
+      const resta = Math.max(0, v.total - v.pagado);
+      // Liquidada: basta con decirlo; el saldo solo se menciona si se debe algo.
+      if (!resta) t += `*Pagado en su totalidad*\n`;
+      else {
+        if (v.pagado) t += `Pagado: ${m(v.pagado)}\n`;
+        t += `Saldo: ${m(resta)}\n`;
+      }
       if (v.entrega) t += `Entrega: ${fmtFecha(v.entrega)}\n`;
     } else {
       t += `Vigencia: hasta el ${fmtFecha(sumarDias(String(d.fecha).slice(0, 10), (d as Cotizacion).vigenciaDias))}\n`;
@@ -255,8 +260,7 @@ export class PdfService {
       t += `\n*Datos para transferencia*\n${banco.map(([k, val]) => `${k}: ${val}`).join('\n')}\n`;
       if (sucursal?.indicacionesPago?.trim()) t += `${sucursal.indicacionesPago.trim()}\n`;
     }
-    if (sucursal?.condiciones?.trim()) t += `\n_${sucursal.condiciones.trim().replace(/\n+/g, ' ')}_\n`;
-    t += `\nPDF: ${urlPdf}\n\n¡Gracias por tu preferencia!`;
+    t += `\n${tipo === 'venta' ? 'Ver nota' : 'Ver cotización'}: ${urlPdf}\n\n¡Gracias por tu preferencia!`;
     let tel = (cliente?.telefono || d.clienteTelefono || '').replace(/\D/g, '');
     if (tel.length === 10) tel = (taller.lada || '') + tel;
     return { telefono: tel, texto: t, url: `https://wa.me/${tel}?text=${encodeURIComponent(t)}` };
