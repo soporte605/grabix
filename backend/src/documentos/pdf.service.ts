@@ -233,8 +233,8 @@ export class PdfService {
     const nombre = cliente?.nombre || d.clienteNombre;
     const lineas = d.items.map((i) => `• ${+i.cantidad.toFixed(4)} × ${i.descripcion}: ${m(i.cantidad * i.precio)}`).join('\n');
     let t = `Hola${nombre ? ' ' + nombre : ''},\n`;
-    t += tipo === 'venta' ? `Confirmamos tu pedido *${d.folio}* en ${taller.nombre}:\n\n` : `Te comparto la cotización *${d.folio}* de ${taller.nombre}:\n\n`;
-    t += lineas + '\n\n';
+    t += tipo === 'venta' ? `Confirmamos tu pedido *${d.folio}* en ${taller.nombre}:\n` : `Te comparto la cotización *${d.folio}* de ${taller.nombre}:\n`;
+    t += lineas + '\n';
     if (d.descuento) t += `Subtotal: ${m(d.subtotal)}\nDescuento: -${m(d.descuento)}\n`;
     t += `*Total: ${m(d.total)}*\n`;
     if (tipo === 'venta') {
@@ -257,10 +257,11 @@ export class PdfService {
     const banco = datosTransferencia(sucursal);
     const porPagar = v ? v.total - v.pagado > 0 && v.estado !== 'cancelada' : d.total > 0;
     if (banco.length && porPagar) {
-      t += `\n*Datos para transferencia*\n${banco.map(([k, val]) => `${k}: ${val}`).join('\n')}\n`;
+      t += `*Datos para transferencia*\n${banco.map(([k, val]) => `${k}: ${val}`).join('\n')}\n`;
       if (sucursal?.indicacionesPago?.trim()) t += `${sucursal.indicacionesPago.trim()}\n`;
     }
-    t += `\n${tipo === 'venta' ? 'Ver nota' : 'Ver cotización'}: ${urlPdf}\n\n¡Gracias por tu preferencia!`;
+    // Sin renglones vacíos: en WhatsApp se ven como huecos.
+    t += `${tipo === 'venta' ? 'Ver nota' : 'Ver cotización'}: ${urlPdf}\n¡Gracias por tu preferencia!`;
     let tel = (cliente?.telefono || d.clienteTelefono || '').replace(/\D/g, '');
     if (tel.length === 10) tel = (taller.lada || '') + tel;
     return { telefono: tel, texto: t, url: `https://wa.me/${tel}?text=${encodeURIComponent(t)}` };
