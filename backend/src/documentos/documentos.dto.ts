@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import {
-  ArrayMinSize, IsArray, IsDateString, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, ValidateNested,
+  ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, ValidateNested,
 } from 'class-validator';
 import { EstadoCotizacion, EstadoVenta } from '../entities';
 
@@ -40,6 +40,8 @@ export class VentaDto extends DocumentoDto {
   @IsOptional() @IsDateString() entrega?: string | null;
   /** Solo al crear: anticipo recibido. */
   @IsOptional() @ValidateNested() @Type(() => PagoDto) anticipo?: PagoDto;
+  /** Solo al crear: pago combinado (por ejemplo, parte en efectivo y parte con tarjeta). */
+  @IsOptional() @IsArray() @ArrayMaxSize(4) @ValidateNested({ each: true }) @Type(() => PagoDto) pagos?: PagoDto[];
 }
 
 export class EstadoVentaDto {

@@ -37,19 +37,22 @@ const CLAVE_ANCHO = 'grabix.ticket-ancho';
               @if (datos().cambio) {
                 <div class="rounded-xl bg-ok-suave p-3.5 text-ok"><p class="chico font-semibold">Cambio</p><p class="num text-[1.6rem] font-semibold">{{ datos().cambio! | dinero }}</p></div>
               } @else {
-                <div class="rounded-xl p-3.5" [class]="saldo() > 0 ? 'bg-warn-suave text-warn' : 'bg-ok-suave text-ok'">
-                  <p class="chico font-semibold">{{ saldo() > 0 ? 'Saldo por cobrar' : 'Pagada' }}</p><p class="num text-[1.6rem] font-semibold">{{ saldo() | dinero }}</p>
-                </div>
+                @if (saldo() > 0) {
+                  <div class="rounded-xl bg-warn-suave p-3.5 text-warn"><p class="chico font-semibold">Saldo por cobrar</p><p class="num text-[1.6rem] font-semibold">{{ saldo() | dinero }}</p></div>
+                } @else {
+                  <div class="flex items-center gap-2.5 rounded-xl bg-ok-suave p-3.5 text-ok"><app-icono nombre="ok" class="text-[1.6rem]" /><div><p class="font-titulo text-[1.15rem] font-bold">Pagada</p><p class="chico">Sin saldo pendiente</p></div></div>
+                }
               }
             </div>
             <dl class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-[.92rem] [&_dd]:font-mono [&_dd]:tabular-nums [&_dd]:text-right [&_dt]:text-tenue">
-              <dt>Pagado</dt><dd>{{ v.pagado | dinero }}</dd>
+              @for (p of v.pagos; track p.id) { <dt>Pago {{ p.metodo.toLowerCase() }}</dt><dd>{{ p.monto | dinero }}</dd> }
+              @if (v.pagos.length !== 1) { <dt>Total pagado</dt><dd>{{ v.pagado | dinero }}</dd> }
               @if (datos().recibido) { <dt>Recibido en efectivo</dt><dd>{{ datos().recibido! | dinero }}</dd> }
               @if (datos().cambio) { <dt>Saldo</dt><dd>{{ saldo() | dinero }}</dd> }
               @if (v.entrega) { <dt>Entrega</dt><dd>{{ v.entrega | fecha }}</dd> }
             </dl>
 
-            <div class="grid grid-cols-2 gap-2">
+            <div class="mt-auto grid grid-cols-2 gap-2 pt-1">
               <button class="btn pri col-span-2 min-h-12 text-[1rem]" (click)="imprimir()"><app-icono nombre="imprimir" />Imprimir ticket</button>
               <button class="btn min-h-11" (click)="descargar()" [disabled]="ocupado()"><app-icono nombre="descargar" />Descargar nota</button>
               <button class="btn wa min-h-11" (click)="whatsapp()" [disabled]="ocupado()"><app-icono nombre="wa" />WhatsApp</button>
@@ -115,7 +118,7 @@ export class VentaHechaVentana implements OnInit {
 
   medir(ev: Event) {
     const d = (ev.target as HTMLIFrameElement).contentDocument;
-    if (d?.body) this.alto.set(Math.min(640, d.documentElement.scrollHeight + 4));
+    if (d?.body) this.alto.set(Math.min(430, d.documentElement.scrollHeight + 4));
   }
 
   cambiarAncho(a: AnchoTicket) {

@@ -26,7 +26,6 @@ export function ticketHtml({ venta: v, taller: t, sucursal: s, ancho, recibido, 
     .map((i) => `<div class="it"><div>${esc(i.descripcion)}</div><div class="f"><span>${+Number(i.cantidad).toFixed(3)} × ${m(i.precio)}</span><span>${m(i.cantidad * i.precio)}</span></div></div>`)
     .join('');
   const saldo = Math.max(0, v.total - v.pagado);
-  const ultimo = v.pagos?.[v.pagos.length - 1];
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Ticket ${esc(v.folio)}</title><style>
 @page { size: ${ancho}mm auto; margin: 0; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -50,7 +49,8 @@ ${items}
 <hr>
 ${v.descuento ? fila('Subtotal', m(v.subtotal)) + fila('Descuento', '-' + m(v.descuento)) : ''}
 <div class="f b g"><span>TOTAL</span><span>${m(v.total)}</span></div>
-${v.pagado ? fila(`Pagado${ultimo ? ' (' + esc(ultimo.metodo) + ')' : ''}`, m(v.pagado)) : ''}
+${(v.pagos ?? []).map((p) => fila(`Pago ${esc(p.metodo).toLowerCase()}`, m(p.monto))).join('')}
+${(v.pagos?.length ?? 0) > 1 ? fila('Total pagado', m(v.pagado)) : ''}
 ${recibido ? fila('Recibido', m(recibido)) : ''}
 ${cambio ? fila('Cambio', m(cambio), true) : ''}
 ${fila('Saldo', m(saldo), saldo > 0)}

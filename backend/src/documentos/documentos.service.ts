@@ -218,10 +218,12 @@ export class DocumentosService {
       pagado: 0,
     });
     await this.llenar(em, s, v, dto, () => em.create(VentaItem));
-    if (dto.anticipo?.monto) {
-      v.pagos.push(em.create(Pago, { fecha: dto.anticipo.fecha ?? hoy(), monto: dto.anticipo.monto, metodo: dto.anticipo.metodo ?? 'Efectivo', usuarioId: s.usuarioId }));
-      v.pagado = r2(dto.anticipo.monto);
-    }
+    const pagos = [...(dto.anticipo?.monto ? [dto.anticipo] : []), ...(dto.pagos ?? []).filter((p) => p.monto > 0)];
+    const suma = r2(pagos.reduce((a, p) => a + p.monto, 0));
+    if (suma > v.total + 0.009) throw new BadRequestException('Los pagos suman más que el total de la venta');
+    for (const p of pagos)
+      v.pagos.push(em.create(Pago, { fecha: p.fecha ?? hoy(), monto: r2(p.monto), metodo: p.metodo ?? 'Efectivo', usuarioId: s.usuarioId }));
+    v.pagado = suma;
     await this.aplicarStock(em, s, v);
     const r = await em.save(v);
     await this.bitacora.registrar(s, 'crear', 'venta', r.id, { folio: r.folio, total: r.total }, em);

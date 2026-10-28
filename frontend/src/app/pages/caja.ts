@@ -13,7 +13,9 @@ import { Icono } from '../ui/icono';
 import { VentaHechaVentana } from '../ui/venta-hecha';
 
 interface Linea { productoId: number | null; descripcion: string; precio: number; cantidad: number }
-const METODOS = ['Efectivo', 'Tarjeta', 'Transferencia', 'Otro'];
+const METODOS = ['Efectivo', 'Tarjeta', 'Transferencia', 'Otro', 'Combinado'];
+const PARTES = ['Efectivo', 'Tarjeta', 'Transferencia'] as const;
+type Parte = (typeof PARTES)[number];
 const BILLETES = [10, 50, 100, 500, 1000];
 
 /**
@@ -145,36 +147,53 @@ const BILLETES = [10, 50, 100, 500, 1000];
     @if (pago()) {
       <app-hoja [titulo]="'Cobrar ' + (total() | dinero)" ancho="520px" (cerrar)="pago.set(false)">
         <div class="flex flex-col gap-4" (keydown.enter)="$event.preventDefault(); confirmar()">
-          <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div class="grid grid-cols-3 gap-2 sm:grid-cols-5">
             @for (m of metodos; track m) {
-              <button class="rounded-xl border-2 px-3 py-3 font-semibold" [class]="metodo() === m ? 'border-marca bg-marca-suave text-marca' : 'border-linea'" (click)="metodo.set(m)">{{ m }}</button>
+              <button class="min-w-0 rounded-xl border-2 px-1 py-3 text-[.85rem] font-semibold" [class]="metodo() === m ? 'border-marca bg-marca-suave text-marca' : 'border-linea'" (click)="elegirMetodo(m)">{{ m }}</button>
             }
           </div>
-          <div class="campos">
+          @if (metodo() === 'Combinado') {
+            <div class="flex flex-col gap-2">
+              <p class="chico tenue">Reparte el pago entre varias formas. "Resto" llena lo que falta.</p>
+              @for (k of partesMetodos; track k) {
+                <div class="flex items-center gap-2">
+                  <label class="w-28 flex-none text-[.92rem] font-semibold" [for]="'c-p-' + k">{{ k }}</label>
+                  <input class="entrada num flex-1 text-[1.05rem]" [id]="'c-p-' + k" type="number" inputmode="decimal" placeholder="0" [ngModel]="partes()[k] || null" (ngModelChange)="parte(k, +$event || 0)">
+                  <button class="btn sm" (click)="resto(k)">Resto</button>
+                </div>
+              }
+            </div>
+          } @else {
             <div class="campo"><label for="c-abona">Paga ahora</label><input id="c-abona" class="num text-[1.1rem]" type="number" inputmode="decimal" [ngModel]="abona()" (ngModelChange)="abona.set(+$event || 0)"></div>
-            @if (metodo() === 'Efectivo') {
-              <div class="campo"><label for="c-con">Recibe</label><input #campoRecibe id="c-con" class="num text-[1.1rem]" type="number" inputmode="decimal" placeholder="Opcional" [ngModel]="recibe() || null" (ngModelChange)="recibe.set(+$event || 0)"></div>
-            }
-          </div>
-          @if (metodo() === 'Efectivo') {
-            <div class="flex flex-wrap gap-2">
-              <button class="chip" (click)="recibe.set(abona())">Exacto</button>
-              @for (b of billetes(); track b) { <button class="chip num" (click)="recibe.set(b)">{{ b | dinero }}</button> }
+          }
+          @if (efectivo() > 0) {
+            <div class="flex flex-col gap-2 rounded-xl border border-linea p-3">
+              <div class="flex items-center gap-2">
+                <label class="w-28 flex-none text-[.92rem] font-semibold" for="c-con">Recibe efectivo</label>
+                <input #campoRecibe id="c-con" class="entrada num flex-1 text-[1.05rem]" type="number" inputmode="decimal" placeholder="Opcional" [ngModel]="recibe() || null" (ngModelChange)="recibe.set(+$event || 0)">
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button class="chip" (click)="recibe.set(efectivo())">Exacto</button>
+                @for (b of billetes(); track b) { <button class="chip num" (click)="recibe.set(b)">{{ b | dinero }}</button> }
+              </div>
             </div>
           }
           <div class="grid grid-cols-2 gap-2.5">
-            <div class="rounded-xl bg-superficie-2 p-3.5"><p class="chico tenue">{{ abona() < total() ? 'Queda a deber' : 'Total' }}</p><p class="num text-[1.5rem] font-semibold">{{ (abona() < total() ? total() - abona() : total()) | dinero }}</p></div>
+            <div class="rounded-xl p-3.5" [class]="pagado() > total() + 0.001 ? 'bg-bad-suave text-bad' : 'bg-superficie-2'">
+              <p class="chico" [class.tenue]="pagado() <= total() + 0.001">{{ pagado() > total() + 0.001 ? 'Pasa del total por' : pagado() < total() ? 'Queda a deber' : 'Paga' }}</p>
+              <p class="num text-[1.5rem] font-semibold">{{ (pagado() > total() ? pagado() - total() : pagado() < total() ? total() - pagado() : total()) | dinero }}</p>
+            </div>
             <div class="rounded-xl p-3.5" [class]="faltaEfectivo() ? 'bg-bad-suave text-bad' : 'bg-ok-suave text-ok'">
-              <p class="chico font-semibold">{{ faltaEfectivo() ? 'Falta' : 'Cambio' }}</p>
-              <p class="num text-[1.5rem] font-semibold">{{ (faltaEfectivo() ? abona() - recibe() : cambio()) | dinero }}</p>
+              <p class="chico font-semibold">{{ faltaEfectivo() ? 'Falta efectivo' : 'Cambio' }}</p>
+              <p class="num text-[1.5rem] font-semibold">{{ (faltaEfectivo() ? efectivo() - recibe() : cambio()) | dinero }}</p>
             </div>
           </div>
-          @if (abona() < total()) { <p class="chico rounded-lg bg-warn-suave px-3 py-2 text-warn">Se registra como anticipo y la venta queda con saldo pendiente.</p> }
+          @if (pagado() < total() - 0.001) { <p class="chico rounded-lg bg-warn-suave px-3 py-2 text-warn">Se registra como anticipo y la venta queda con saldo pendiente.</p> }
         </div>
         <ng-container pie>
           <button class="btn" (click)="pago.set(false)">Volver</button>
           <span class="flex-1"></span>
-          <button class="btn pri min-h-12 min-w-44 text-[1.05rem]" (click)="confirmar()" [disabled]="ocupado() || faltaEfectivo() || abona() > total() + 0.001">{{ ocupado() ? 'Registrando…' : 'Confirmar cobro' }}</button>
+          <button class="btn pri min-h-12 min-w-44 text-[1.05rem]" (click)="confirmar()" [disabled]="ocupado() || faltaEfectivo() || pagado() > total() + 0.001">{{ ocupado() ? 'Registrando…' : 'Confirmar cobro' }}</button>
         </ng-container>
       </app-hoja>
     }
@@ -207,6 +226,12 @@ export class Caja implements OnInit, OnDestroy {
   metodo = signal('Efectivo');
   abona = signal(0);
   recibe = signal(0);
+  partesMetodos = PARTES;
+  partes = signal<Record<Parte, number>>({ Efectivo: 0, Tarjeta: 0, Transferencia: 0 });
+  /** Lo que se paga ahora, sumando todas las formas. */
+  pagado = computed(() => r2(this.metodo() === 'Combinado' ? PARTES.reduce((a, k) => a + this.partes()[k], 0) : this.abona()));
+  /** La parte en efectivo, que es la que da cambio. */
+  efectivo = computed(() => (this.metodo() === 'Combinado' ? this.partes().Efectivo : this.metodo() === 'Efectivo' ? this.abona() : 0));
   ocupado = signal(false);
   hecha = signal<VentaHecha | null>(null);
   hoyResumen = signal({ ventas: 0, cobrado: 0 });
@@ -228,11 +253,11 @@ export class Caja implements OnInit, OnDestroy {
   subtotal = computed(() => r2(this.lineas().reduce((a, l) => a + l.cantidad * l.precio, 0)));
   total = computed(() => r2(this.subtotal() * (1 - Math.min(100, Math.max(0, this.descuento())) / 100)));
   piezas = computed(() => this.lineas().reduce((a, l) => a + l.cantidad, 0));
-  cambio = computed(() => (this.metodo() === 'Efectivo' && this.recibe() > this.abona() ? r2(this.recibe() - this.abona()) : 0));
-  faltaEfectivo = computed(() => this.metodo() === 'Efectivo' && this.recibe() > 0 && this.recibe() < this.abona());
+  cambio = computed(() => (this.efectivo() > 0 && this.recibe() > this.efectivo() ? r2(this.recibe() - this.efectivo()) : 0));
+  faltaEfectivo = computed(() => this.efectivo() > 0 && this.recibe() > 0 && this.recibe() < this.efectivo());
   billetes = computed(() => {
     // Montos con los que suelen pagar: redondeos hacia arriba a 10, 50, 100, 500 y 1000.
-    const t = this.abona();
+    const t = this.efectivo();
     return [...new Set(BILLETES.map((b) => Math.ceil(t / b) * b))].filter((b) => b > t).slice(0, 4);
   });
 
@@ -319,8 +344,21 @@ export class Caja implements OnInit, OnDestroy {
     setTimeout(() => this.recibeEl()?.nativeElement.focus(), 100);
   }
 
+  elegirMetodo(m: string) {
+    this.metodo.set(m);
+    if (m === 'Combinado') this.partes.set({ Efectivo: 0, Tarjeta: 0, Transferencia: 0 });
+  }
+
+  parte(k: Parte, v: number) { this.partes.update((p) => ({ ...p, [k]: v })); }
+
+  /** Llena esta forma de pago con lo que falta para el total. */
+  resto(k: Parte) {
+    const otras = PARTES.filter((x) => x !== k).reduce((a, x) => a + this.partes()[x], 0);
+    this.parte(k, r2(Math.max(0, this.total() - otras)));
+  }
+
   async confirmar() {
-    if (this.ocupado() || this.faltaEfectivo()) return;
+    if (this.ocupado() || this.faltaEfectivo() || this.pagado() > this.total() + 0.001) return;
     const cliente = this.clientes().find((c) => c.id === this.clienteId);
     const abona = Math.min(this.abona(), this.total());
     this.ocupado.set(true);
@@ -331,7 +369,9 @@ export class Caja implements OnInit, OnDestroy {
         items: this.lineas().map((l) => ({ productoId: l.productoId, descripcion: l.descripcion.trim(), cantidad: l.cantidad, precio: l.precio })),
         estado: this.despues() ? 'pendiente' : 'entregada',
         entrega: this.despues() ? this.entrega() : hoy(),
-        ...(abona > 0 ? { anticipo: { monto: abona, metodo: this.metodo() } } : {}),
+        ...(this.metodo() === 'Combinado'
+          ? { pagos: PARTES.filter((k) => this.partes()[k] > 0).map((k) => ({ monto: this.partes()[k], metodo: k })) }
+          : abona > 0 ? { anticipo: { monto: abona, metodo: this.metodo() } } : {}),
       });
       this.hecha.set({ id: r.id, nueva: true, recibido: this.cambio() ? this.recibe() : undefined, cambio: this.cambio() || undefined });
       this.pago.set(false);
