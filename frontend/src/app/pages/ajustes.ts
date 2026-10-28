@@ -8,10 +8,11 @@ import { evaluarClave } from '../core/clave';
 import { SesionService } from '../core/sesion.service';
 import { CampoClave } from '../ui/campo-clave';
 import { Esqueleto } from '../ui/esqueleto';
+import { Hoja } from '../ui/hoja';
 
 @Component({
   selector: 'app-ajustes',
-  imports: [FormsModule, DineroPipe, FechaPipe, CampoClave, Esqueleto],
+  imports: [FormsModule, DineroPipe, FechaPipe, CampoClave, Esqueleto, Hoja],
   template: `
     <div class="encabezado"><div><h1>Ajustes y plan</h1><p>Datos que aparecen en tus PDF y valores para calcular costos.</p></div></div>
     @if (t(); as t) {
@@ -76,8 +77,36 @@ import { Esqueleto } from '../ui/esqueleto';
             }
           </section>
         }
+
+        @if (s.rol() === 'dueno') {
+          <section class="caja border-bad/40">
+            <h3>Eliminar cuenta</h3>
+            <p class="tenue chico">Borra tu taller y todos sus datos: clientes, cotizaciones, ventas, pagos, inventario, compras y usuarios. Tienes {{ dias }} días para arrepentirte; después el borrado es definitivo.</p>
+            <div><button class="btn peligro" (click)="borrar.set({ nombre: '', clave: '', motivo: '', entiendo: false })">Eliminar mi cuenta</button></div>
+          </section>
+        }
       </div>
     } @else { <app-esqueleto tipo="formulario" [filas]="3" /> }
+    @if (borrar(); as b) {
+      <app-hoja titulo="Eliminar cuenta" ancho="560px" (cerrar)="borrar.set(null)">
+        <p>Al confirmar:</p>
+        <ul class="ml-5 list-disc text-[.92rem] text-tenue">
+          <li>La cuenta de <b class="text-tinta">{{ s.taller()?.nombre }}</b> se desactiva y nadie de tu equipo podrá entrar.</li>
+          <li>Durante {{ dias }} días puedes entrar con tu correo y restaurarla tal como estaba.</li>
+          <li>Pasado ese plazo borramos de forma definitiva todos sus datos. No se pueden recuperar.</li>
+        </ul>
+        <p class="tenue chico">Lo hacemos así para cumplir con tu derecho de cancelación (derechos ARCO) de la Ley Federal de Protección de Datos Personales en Posesión de los Particulares. Si antes quieres una copia de tu información, descarga los PDF que necesites o escríbenos a soporte&#64;elikarsystems.com.</p>
+        <div class="campo"><label for="e-n">Escribe <b>{{ s.taller()?.nombre }}</b> para confirmar</label><input id="e-n" [(ngModel)]="b.nombre" autocomplete="off"></div>
+        <app-campo-clave entrada="e-c" etiqueta="Tu contraseña" autocomplete="current-password" [(valor)]="b.clave" />
+        <div class="campo"><label for="e-m">¿Por qué te vas? (opcional)</label><textarea id="e-m" [(ngModel)]="b.motivo" maxlength="500" placeholder="Nos ayuda a mejorar"></textarea></div>
+        <label class="flex items-start gap-2 text-[.92rem]"><input type="checkbox" class="mt-1" [(ngModel)]="b.entiendo">Entiendo que después de {{ dias }} días mis datos se borran para siempre.</label>
+        <ng-container pie>
+          <button class="btn" (click)="borrar.set(null)">Cancelar</button>
+          <span class="flex-1"></span>
+          <button class="btn peligro" [disabled]="!b.entiendo || !b.clave || b.nombre.trim() !== s.taller()?.nombre || eliminando()" (click)="eliminarCuenta()">{{ eliminando() ? 'Eliminando…' : 'Eliminar cuenta' }}</button>
+        </ng-container>
+      </app-hoja>
+    }
   `,
 })
 export class Ajustes implements OnInit {
@@ -111,6 +140,19 @@ export class Ajustes implements OnInit {
       this.clave = { actual: '', nueva: '', nueva2: '' };
       this.aviso.ok('Contraseña cambiada');
     } catch (e) { this.aviso.error(mensajeError(e)); }
+  }
+  readonly dias = 30;
+  borrar = signal<{ nombre: string; clave: string; motivo: string; entiendo: boolean } | null>(null);
+  eliminando = signal(false);
+  async eliminarCuenta() {
+    const b = this.borrar()!;
+    this.eliminando.set(true);
+    try {
+      await this.api.post('/cuenta/eliminar', { password: b.clave, motivo: b.motivo.trim() || undefined });
+      this.borrar.set(null);
+      await this.s.cargar();
+    } catch (e) { this.aviso.error(mensajeError(e)); }
+    finally { this.eliminando.set(false); }
   }
   async pagar(plan: string) {
     try {

@@ -75,6 +75,8 @@ export class Taller {
   estadoSuscripcion: EstadoSuscripcion;
   @Column({ type: 'date', nullable: true }) pruebaHasta: string | null;
   @Column({ type: 'date', nullable: true }) pagadoHasta: string | null;
+  /** Eliminación solicitada por el dueño: ese día se borran todos los datos del taller. Mientras, la cuenta queda bloqueada. */
+  @Column({ type: 'date', nullable: true }) eliminarEn: string | null;
   @CreateDateColumn() creadoEn: Date;
 }
 
@@ -103,6 +105,8 @@ export class Usuario {
   @Column({ default: false }) emailVerificado: boolean;
   /** Las sesiones emitidas antes de esta fecha dejan de valer (cambio o restablecimiento de contraseña). */
   @Column({ type: 'datetime', precision: 3, nullable: true }) claveCambiadaEn: Date | null;
+  /** Ya vio (o se saltó) la bienvenida con el recorrido guiado. */
+  @Column({ default: false }) recorridoVisto: boolean;
   @CreateDateColumn() creadoEn: Date;
 }
 

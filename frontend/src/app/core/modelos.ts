@@ -6,10 +6,10 @@ export type EstadoVenta = 'pendiente' | 'produccion' | 'lista' | 'entregada' | '
 export interface Taller {
   id: number; nombre: string; telefono: string; email: string; direccion: string; moneda: string; lada: string;
   tarifaMinuto: number; margenObjetivo: number; vigenciaDias: number; notasCotizacion: string | null;
-  plan: string; estadoSuscripcion: string; pruebaHasta: string | null; pagadoHasta: string | null;
+  plan: string; estadoSuscripcion: string; pruebaHasta: string | null; pagadoHasta: string | null; eliminarEn?: string | null;
 }
 export interface Sucursal { id: number; nombre: string; direccion: string; telefono: string; activa: boolean }
-export interface Usuario { id: number; nombre: string; email: string; rol: Rol; sucursalId: number | null; activo?: boolean; emailVerificado?: boolean }
+export interface Usuario { id: number; nombre: string; email: string; rol: Rol; sucursalId: number | null; activo?: boolean; emailVerificado?: boolean; recorridoVisto?: boolean }
 export interface Plan { id: string; nombre: string; precioMensual: number; precioAnual: number; sucursales: number; usuarios: number; incluye: string[] }
 export interface Suscripcion {
   plan: string; estado: string; vigente: boolean; vence: string | null; diasRestantes: number | null;

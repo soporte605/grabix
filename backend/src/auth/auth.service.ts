@@ -66,6 +66,8 @@ export class AuthService {
       .getOne();
     if (!u || !u.activo || !(await bcrypt.compare(dto.password, u.passwordHash)))
       throw new UnauthorizedException('Correo o contraseña incorrectos');
+    if (u.rol !== Rol.Dueno && (await this.talleres.findOneBy({ id: u.tallerId }))?.eliminarEn)
+      throw new UnauthorizedException('Esta cuenta está en proceso de eliminación. Pide al dueño que la restaure.');
     return this.respuesta(u);
   }
 
@@ -162,7 +164,7 @@ export class AuthService {
     const vence = t.estadoSuscripcion === EstadoSuscripcion.Prueba ? t.pruebaHasta : t.pagadoHasta;
     const dias = vence ? Math.round((Date.parse(vence) - Date.parse(hoy())) / 86400000) : null;
     return {
-      usuario: { id: u.id, nombre: u.nombre, email: u.email, rol: u.rol, sucursalId: u.sucursalId, emailVerificado: u.emailVerificado },
+      usuario: { id: u.id, nombre: u.nombre, email: u.email, rol: u.rol, sucursalId: u.sucursalId, emailVerificado: u.emailVerificado, recorridoVisto: u.recorridoVisto },
       taller: t,
       sucursales,
       suscripcion: {

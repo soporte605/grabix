@@ -46,9 +46,16 @@ export class AuthGuard implements CanActivate {
     const roles = meta<Rol[]>(ROLES);
     if (roles && !roles.includes(u.rol)) throw new ForbiddenException('Tu rol no tiene permiso para esta acción');
 
+    const t = await this.talleres.findOneBy({ id: u.tallerId });
+    if (!t) throw new UnauthorizedException('Cuenta no encontrada');
+    // Cuenta en periodo de eliminación: solo el dueño entra, y solo para ver su perfil o restaurarla.
+    if (t.eliminarEn) {
+      if (u.rol !== Rol.Dueno) throw new UnauthorizedException('Esta cuenta está en proceso de eliminación');
+      if (!/^\/api\/(auth|cuenta)\//.test(String(req.path ?? req.url)))
+        throw new ForbiddenException('La cuenta está programada para eliminarse. Restáurala para seguir usando Grabix.');
+    }
     if (req.method !== 'GET' && !meta<boolean>(SIN_SUSCRIPCION)) {
-      const t = await this.talleres.findOneBy({ id: u.tallerId });
-      if (!t || !suscripcionVigente(t))
+      if (!suscripcionVigente(t))
         throw new HttpException('Tu suscripción venció. Renueva tu plan para seguir registrando.', HttpStatus.PAYMENT_REQUIRED);
     }
 
