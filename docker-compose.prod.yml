@@ -1,0 +1,101 @@
+# Producción en un VPS con Docker. Ver docs/PRODUCCION.md.
+#   docker compose -f docker-compose.prod.yml --env-file .env.produccion up -d --build
+# Caddy publica la landing en https://DOMINIO y el sistema en https://app.DOMINIO, con certificados HTTPS automáticos.
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-grabix}
+      MYSQL_USER: ${DB_USER:-grabix}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Falta DB_ROOT_PASSWORD}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - datos:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${DB_USER:-grabix}", "-p${DB_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-grabix}
+      DB_USER: ${DB_USER:-grabix}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_SYNC: ${DB_SYNC:-true}
+      JWT_SECRET: ${JWT_SECRET:?Falta JWT_SECRET}
+      PUBLIC_URL: https://app.${DOMINIO:?Falta DOMINIO}
+      CORS_ORIGIN: https://${DOMINIO},https://app.${DOMINIO}
+      # Caddy -> Nginx -> API: la IP real del visitante está dos saltos atrás.
+      TRUST_PROXY: 2
+      PAGOS_MODO: ${PAGOS_MODO:-demo}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-Grabix <no-responder@${DOMINIO}>}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ASISTENTE_MODELO: ${ASISTENTE_MODELO:-claude-opus-5-5}
+      ASISTENTE_LIMITE_DIARIO: ${ASISTENTE_LIMITE_DIARIO:-}
+      COTIZADOR_LIMITE: ${COTIZADOR_LIMITE:-3}
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMINIO: ${DOMINIO}
+      CORREO_SSL: ${CORREO_SSL:-soporte@elikarsystems.com}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_datos:/data
+      - caddy_config:/config
+
+  # Respaldo diario de la base de datos en ./respaldos (guarda los últimos 14 días).
+  respaldos:
+    image: mysql:8.0
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      MYSQL_PWD: ${DB_ROOT_PASSWORD}
+      DB_NAME: ${DB_NAME:-grabix}
+    volumes:
+      - ./respaldos:/respaldos
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          f=/respaldos/grabix-$$(date +%F).sql.gz
+          mysqldump -h db -uroot --single-transaction --routines "$$DB_NAME" | gzip > "$$f" && echo "Respaldo $$f"
+          find /respaldos -name 'grabix-*.sql.gz' -mtime +14 -delete
+          sleep 86400
+        done
+
+volumes:
+  datos:
+  caddy_datos:
+  caddy_config:

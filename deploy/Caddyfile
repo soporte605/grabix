@@ -1,0 +1,24 @@
+{
+	email {$CORREO_SSL}
+}
+
+# Landing: https://DOMINIO (y www). Las pantallas de cuenta y el sistema viven en app.DOMINIO.
+{$DOMINIO}, www.{$DOMINIO} {
+	encode zstd gzip
+	@www host www.{$DOMINIO}
+	redir @www https://{$DOMINIO}{uri} permanent
+
+	@sistema path /app /app/* /entrar* /registro* /verificar-correo* /olvide-contrasena* /restablecer-contrasena* /invitacion*
+	redir @sistema https://app.{$DOMINIO}{uri}
+
+	reverse_proxy web:80
+}
+
+# Sistema: https://app.DOMINIO
+app.{$DOMINIO} {
+	encode zstd gzip
+	@raiz path /
+	redir @raiz /entrar
+
+	reverse_proxy web:80
+}
