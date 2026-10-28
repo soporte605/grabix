@@ -10,11 +10,12 @@ import { Confirmar } from '../ui/confirmar';
 import { ConfirmarService } from '../core/confirmar.service';
 import { pagina, Paginador } from '../ui/paginador';
 import { Hoja } from '../ui/hoja';
+import { WhatsappCliente } from '../ui/whatsapp-cliente';
 import { Icono } from '../ui/icono';
 
 @Component({
   selector: 'app-clientes',
-  imports: [FormsModule, DineroPipe, Hoja, Icono, Confirmar, Esqueleto, Paginador],
+  imports: [FormsModule, DineroPipe, Hoja, Icono, Confirmar, Esqueleto, Paginador, WhatsappCliente],
   template: `
     <div class="encabezado">
       <div><h1>Clientes</h1><p>{{ clientes().length }} registrados</p></div>
@@ -32,7 +33,7 @@ import { Icono } from '../ui/icono';
             <span class="d m">{{ c.pedidos }} pedido{{ c.pedidos === 1 ? '' : 's' }}</span>
           </button>
           <span class="acciones">
-            @if (c.telefono) { <a class="ico max-sm:hidden" target="_blank" rel="noopener" [href]="wa(c)" title="WhatsApp" aria-label="WhatsApp a {{ c.nombre }}"><app-icono nombre="wa" /></a> }
+            @if (c.telefono) { <button type="button" class="ico text-wa" (click)="waDe.set(c)" title="Mandar WhatsApp" aria-label="WhatsApp a {{ c.nombre }}"><app-icono nombre="wa" /></button> }
             <button type="button" class="ico max-sm:hidden" title="Editar" aria-label="Editar {{ c.nombre }}" (click)="abrir(c)"><app-icono nombre="editar" /></button>
             @if (s.verCostos()) { <button type="button" class="ico peligro" title="Eliminar" aria-label="Eliminar {{ c.nombre }}" (click)="preguntarEliminar(c)"><app-icono nombre="basura" /></button> }
           </span>
@@ -41,6 +42,7 @@ import { Icono } from '../ui/icono';
     }
     </div>
     <app-paginador [total]="visibles().length" [(pagina)]="pagina" />
+    @if (waDe(); as c) { <app-whatsapp-cliente [cliente]="c" (cerrar)="waDe.set(null)" /> }
     @if (e(); as e) {
       <app-hoja [titulo]="e.id ? e.nombre ?? '' : 'Nuevo cliente'" (cerrar)="e_.set(null)">
         <div class="campos">
@@ -52,7 +54,7 @@ import { Icono } from '../ui/icono';
         </div>
         <ng-container pie>
           @if (e.id && s.verCostos()) { <app-confirmar pregunta="¿Eliminar este cliente?" detalle="Sus cotizaciones y ventas se conservan. No se puede deshacer." (confirmado)="eliminar()" /> }
-          @if (e.telefono) { <a class="btn wa" target="_blank" rel="noopener" [href]="wa(e)"><app-icono nombre="wa" />WhatsApp</a> }
+          @if (e.id && e.telefono) { <button class="btn wa" (click)="waDe.set($any(e)); e_.set(null)"><app-icono nombre="wa" />WhatsApp</button> }
           <span class="flex-1"></span>
           <button class="btn pri" (click)="guardar()">Guardar</button>
         </ng-container>
@@ -76,16 +78,12 @@ export class Clientes implements OnInit {
   });
 
   pagina = signal(1);
+  waDe = signal<Cliente | null>(null);
   enPagina = computed(() => pagina(this.visibles(), this.pagina()));
 
   ngOnInit() { this.cargar(); }
   async cargar() { this.clientes.set(await this.api.get('/clientes')); this.listo.set(true); }
   abrir(c?: Cliente) { this.e_.set(c ? { ...c } : { nombre: '', telefono: '', email: '', empresa: '', notas: '' }); }
-  wa(c: Partial<Cliente>) {
-    let t = (c.telefono ?? '').replace(/\D/g, '');
-    if (t.length === 10) t = (this.s.taller()?.lada ?? '') + t;
-    return `https://wa.me/${t}?text=${encodeURIComponent(`Hola ${c.nombre}, `)}`;
-  }
   async guardar() {
     const e = this.e()!;
     if (!e.nombre?.trim()) { this.aviso.error('Escribe el nombre'); return; }

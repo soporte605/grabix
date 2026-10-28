@@ -30,7 +30,7 @@ export interface Pago { id: number; fecha: string; monto: number; metodo: string
 export interface Documento {
   id: number; sucursalId: number; folio: string; fecha: string; clienteId: number | null; cliente?: Cliente | null;
   clienteNombre: string; clienteTelefono: string; descuentoTipo: 'pct' | 'monto'; descuentoValor: number; promocionId: number | null;
-  notas: string | null; subtotal: number; descuento: number; total: number; costo?: number; items: Renglon[];
+  notas: string | null; subtotal: number; descuento: number; total: number; costo?: number; items: Renglon[]; tokenPublico?: string;
 }
 export interface Cotizacion extends Documento { estado: EstadoCotizacion; vigenciaDias: number }
 export interface Venta extends Documento { estado: EstadoVenta; entrega: string | null; pagado: number; saldo: number; pagos: Pago[]; cotizacionId: number | null }

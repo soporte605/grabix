@@ -66,6 +66,7 @@ export class CompraDto {
 export class FiltroDto {
   @IsOptional() @IsString() q?: string;
   @IsOptional() @IsString() estado?: string;
+  @IsOptional() @Type(() => Number) @IsInt() clienteId?: number;
   @IsOptional() @IsDateString() desde?: string;
   @IsOptional() @IsDateString() hasta?: string;
   /** Con `pagina` la respuesta es { items, total, resumen } en lugar de la lista completa. */

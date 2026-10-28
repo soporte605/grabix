@@ -91,6 +91,7 @@ export class DocumentosService {
     const qb = em.createQueryBuilder(ent, 'd').leftJoin('d.cliente', 'c').where('d.tallerId = :t', { t: s.tallerId });
     if (s.sucursal) qb.andWhere('d.sucursalId = :s', { s: s.sucursal });
     if (f.estado) qb.andWhere('d.estado IN (:...e)', { e: f.estado.split(',') });
+    if (f.clienteId) qb.andWhere('d.clienteId = :cl', { cl: f.clienteId });
     if (f.desde) qb.andWhere('d.fecha >= :desde', { desde: f.desde });
     if (f.hasta) qb.andWhere('d.fecha <= :hasta', { hasta: f.hasta });
     if (f.q)
