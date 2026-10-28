@@ -59,10 +59,10 @@ const BILLETES = [10, 50, 100, 500, 1000];
           <div class="chips flex-nowrap overflow-x-auto pb-0.5">
             @for (c of categorias(); track c) { <button class="chip flex-none" [class.on]="cat() === c" (click)="cat.set(c)">{{ c }}</button> }
           </div>
-          <div class="grid min-h-0 flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(138px,1fr))] gap-2 overflow-y-auto pb-24 lg:pb-2">
+          <div class="grid min-h-0 flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(138px,1fr))] gap-2 overflow-y-auto pt-2 pr-2 pb-24 lg:pb-2">
             @for (p of visibles(); track p.id) {
               <button class="group relative flex min-h-[104px] flex-col justify-between gap-1.5 rounded-xl border border-linea bg-superficie p-3 text-left transition hover:-translate-y-px hover:border-marca hover:shadow-caja active:translate-y-0 disabled:opacity-45"
-                (click)="agregar(p)" [disabled]="agotado(p)">
+                (click)="agregar(p)" [disabled]="agotado(p)" [class.!border-marca]="enCarrito(p.id)">
                 <span class="line-clamp-3 text-[.9rem] leading-snug font-semibold">{{ limpio(p.nombre) }}</span>
                 <span class="flex items-end justify-between gap-1">
                   <b class="num text-[1.05rem] text-marca">{{ p.precio | dinero }}</b>
