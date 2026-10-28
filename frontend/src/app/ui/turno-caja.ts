@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, OnInit, output, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, input, OnInit, output, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
@@ -132,29 +132,34 @@ export class MovimientoCaja {
             }
           </div>
         } @else {
-          <input class="entrada num text-[1.3rem]" type="number" inputmode="decimal" min="0" placeholder="0.00" [ngModel]="contadoLibre()" (ngModelChange)="contadoLibre.set(+$event || 0); tocado.set(true)" aria-label="Efectivo contado">
+          <input #campoContado class="entrada num text-[1.3rem]" type="number" inputmode="decimal" min="0" placeholder="Escribe el efectivo contado" [ngModel]="tocado() ? contadoLibre() : null"
+            (ngModelChange)="contadoLibre.set(+$event || 0); tocado.set($event !== null && $event !== '')" aria-label="Efectivo contado">
         }
 
         <div class="grid grid-cols-2 gap-2.5">
           <div class="rounded-xl bg-superficie-2 p-3.5"><p class="chico tenue">Contado</p><p class="num text-[1.4rem] font-semibold">{{ contado() | dinero }}</p></div>
           <div class="rounded-xl p-3.5" [class]="!tocado() ? 'bg-superficie-2' : diferencia() === 0 ? 'bg-ok-suave text-ok' : diferencia() > 0 ? 'bg-warn-suave text-warn' : 'bg-bad-suave text-bad'">
             <p class="chico font-semibold">{{ !tocado() ? 'Diferencia' : diferencia() === 0 ? 'Cuadra' : diferencia() > 0 ? 'Sobran' : 'Faltan' }}</p>
-            <p class="num text-[1.4rem] font-semibold">{{ (diferencia() < 0 ? -diferencia() : diferencia()) | dinero }}</p>
+            @if (tocado()) { <p class="num text-[1.4rem] font-semibold">{{ (diferencia() < 0 ? -diferencia() : diferencia()) | dinero }}</p> }
+            @else { <p class="pt-1.5 text-[.9rem] text-tenue">Aparece al capturar lo contado</p> }
           </div>
         </div>
 
         <div class="grid gap-3 sm:grid-cols-2">
           <div class="campo"><label for="cc-d">Se deja en caja para el siguiente turno</label>
-            <input id="cc-d" class="num" type="number" inputmode="decimal" min="0" [ngModel]="dejado()" (ngModelChange)="dejado.set(+$event || 0)">
-            <div class="mt-1 flex gap-1.5"><button class="chip" (click)="dejado.set(turno().fondo)">Mismo fondo</button><button class="chip" (click)="dejado.set(0)">Nada</button></div>
+            <input id="cc-d" class="num" type="number" inputmode="decimal" min="0" [ngModel]="dejado()" (ngModelChange)="dejadoManual.set(+$event || 0)">
+            <div class="mt-1 flex gap-1.5"><button class="chip" (click)="dejadoManual.set(turno().fondo)">Mismo fondo ({{ turno().fondo | dinero }})</button><button class="chip" (click)="dejadoManual.set(0)">Nada</button></div>
+            @if (tocado() && retiro() < 0) { <p class="chico mt-1 text-bad">No puedes dejar más de lo que contaste.</p> }
           </div>
-          <div class="rounded-xl border border-linea p-3"><p class="chico tenue">Retiro (se lleva)</p><p class="num text-[1.4rem] font-semibold" [class.text-bad]="retiro() < 0">{{ retiro() | dinero }}</p></div>
+          <div class="rounded-xl border border-linea p-3"><p class="chico tenue">Retiro (se lleva)</p>@if (tocado()) { <p class="num text-[1.4rem] font-semibold" [class.text-bad]="retiro() < 0">{{ retiro() | dinero }}</p> }
+            @else { <p class="pt-1.5 text-[.9rem] text-tenue">Contado menos lo que se deja</p> }</div>
         </div>
         <div class="campo"><label for="cc-n">Notas del corte {{ tocado() && diferencia() !== 0 ? '(explica la diferencia)' : '(opcional)' }}</label><textarea id="cc-n" rows="2" [(ngModel)]="notas" maxlength="1000"></textarea></div>
       }
       <ng-container pie>
         <button class="btn" (click)="cerrar.emit()">Volver</button><span class="flex-1"></span>
-        <button class="btn pri" (click)="confirmar()" [disabled]="ocupado() || !tocado() || retiro() < 0"><app-icono nombre="caja" />{{ ocupado() ? 'Cerrando…' : 'Cerrar caja' }}</button>
+        @if (falta(); as f) { <span class="chico self-center text-tenue">{{ f }}</span> }
+        <button class="btn pri" (click)="confirmar()" [disabled]="ocupado() || !!falta()"><app-icono nombre="caja" />{{ ocupado() ? 'Cerrando…' : 'Cerrar caja' }}</button>
       </ng-container>
     </app-hoja>
   `,
@@ -172,7 +177,9 @@ export class CerrarCaja implements OnInit {
   piezas = signal<Record<number, number>>({});
   contadoLibre = signal(0);
   tocado = signal(false);
-  dejado = signal(0);
+  /** Lo que se deja: el fondo (sin pasar de lo contado) mientras no lo cambien a mano. */
+  dejadoManual = signal<number | null>(null);
+  dejado = computed(() => this.dejadoManual() ?? Math.min(this.turno().fondo, this.tocado() ? this.contado() : this.turno().fondo));
   notas = '';
   ocupado = signal(false);
 
@@ -181,11 +188,13 @@ export class CerrarCaja implements OnInit {
   diferencia = computed(() => r2(this.contado() - (this.turno().resumen?.esperado ?? 0)));
   retiro = computed(() => r2(this.contado() - this.dejado()));
 
-  ngOnInit() { this.dejado.set(this.turno().fondo); }
+  falta = computed(() => (!this.tocado() ? 'Captura el efectivo contado' : this.retiro() < 0 ? 'Ajusta lo que se deja' : ''));
+  private campo = viewChild<ElementRef<HTMLInputElement>>('campoContado');
+  ngOnInit() { setTimeout(() => this.campo()?.nativeElement.focus(), 150); }
   pieza(d: number, n: number) { this.piezas.update((p) => ({ ...p, [d]: Math.max(0, Math.floor(n || 0)) })); this.tocado.set(true); }
 
   async confirmar() {
-    if (this.ocupado() || !this.tocado() || this.retiro() < 0) return;
+    if (this.ocupado() || this.falta()) return;
     this.ocupado.set(true);
     try {
       const conteo = this.porPiezas() ? Object.fromEntries(Object.entries(this.piezas()).filter(([, n]) => n > 0)) : undefined;
