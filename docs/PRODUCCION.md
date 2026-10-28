@@ -98,6 +98,8 @@ docker compose -f docker-compose.prod.yml --env-file .env.produccion up -d --bui
 
 El servicio `respaldos` guarda cada día `respaldos/grabix-AAAA-MM-DD.sql.gz` y conserva 14 días. Copia esa carpeta fuera del servidor de vez en cuando, o activa los *snapshots* del proveedor.
 
+Las fotos de trabajos terminados se guardan como archivos en `fotos/` (una carpeta por taller), no en la base de datos. Respáldala junto con `respaldos/`, por ejemplo con `tar czf fotos-$(date +%F).tgz fotos`.
+
 Para restaurar:
 
 ```bash

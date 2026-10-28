@@ -5,6 +5,7 @@ import { ConfirmarService } from '../core/confirmar.service';
 import { DineroPipe, FechaPipe, hoy, sumarDias } from '../core/formato';
 import { Cotizacion, EST_COT, EST_VTA, Venta } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
+import { FotosPedido } from './fotos-pedido';
 import { Hoja } from './hoja';
 import { Icono } from './icono';
 
@@ -15,7 +16,7 @@ import { Icono } from './icono';
  */
 @Component({
   selector: 'app-vista-documento',
-  imports: [Hoja, Icono, DineroPipe, FechaPipe],
+  imports: [Hoja, Icono, DineroPipe, FechaPipe, FotosPedido],
   template: `
     @let v = venta();
     <app-hoja [titulo]="titulo()" ancho="640px" (cerrar)="cerrar.emit()">
@@ -68,6 +69,7 @@ import { Icono } from './icono';
           }
         </div>
       }
+      @if (esVenta() && modo() === 'documento' && v.id) { <app-fotos-pedido [ventaId]="v.id" [folio]="v.folio" /> }
 
       <ng-container pie>
         @if (puedeCancelar()) { <button class="btn peligro max-sm:order-last max-sm:w-full" (click)="cancelar()" [disabled]="ocupado()">Cancelar pedido</button> }

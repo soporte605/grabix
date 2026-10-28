@@ -93,3 +93,8 @@ export interface CajaTurno {
 }
 export interface PagoTurno { id: number; ventaId: number; folio: string; cliente: string; monto: number; metodo: string; creadoEn: string }
 export interface DetalleTurno extends CajaTurno { movimientos: CajaMovimiento[]; pagos: PagoTurno[] }
+
+/** Foto de un trabajo terminado (evidencia del pedido). */
+export interface FotoPedido { id: number; ventaId: number; ancho: number; alto: number; nota: string | null; usuarioId: number; usuarioNombre: string; creadoEn: string }
+/** Foto en la galería de un producto, con el pedido de donde salió. */
+export interface FotoTrabajo extends Omit<FotoPedido, 'usuarioId'> { folio: string; fecha: string; cliente: string }

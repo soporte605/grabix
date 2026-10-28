@@ -4,13 +4,14 @@ import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { FechaPipe } from '../core/formato';
 import { EtapaTaller, ETAPAS, Maquina, OrdenTaller, RenglonTaller } from '../core/modelos';
+import { FotosPedido } from './fotos-pedido';
 import { Hoja } from './hoja';
 import { Icono } from './icono';
 
 /** Detalle de un pedido en el taller: etapa, máquina, responsable, prioridad y avance de cada renglón. */
 @Component({
   selector: 'app-orden-taller',
-  imports: [FormsModule, Hoja, Icono, FechaPipe],
+  imports: [FormsModule, Hoja, Icono, FechaPipe, FotosPedido],
   template: `
     @let o = orden();
     <app-hoja [titulo]="o.folio + ' · ' + cliente()" ancho="620px" (cerrar)="cerrar.emit()">
@@ -59,6 +60,7 @@ import { Icono } from './icono';
           }
         </div>
       </section>
+      <app-fotos-pedido [ventaId]="o.id" [folio]="o.folio" />
       @if (o.notas) { <section class="rounded-xl border border-linea bg-superficie p-3"><p class="chico mb-0.5 font-semibold tenue">Notas del pedido</p><p class="whitespace-pre-line">{{ o.notas }}</p></section> }
 
       <ng-container pie>

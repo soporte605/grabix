@@ -9,6 +9,7 @@ import { SesionService } from '../core/sesion.service';
 import { Confirmar } from '../ui/confirmar';
 import { ConfirmarService } from '../core/confirmar.service';
 import { pagina, Paginador } from '../ui/paginador';
+import { TrabajosProducto } from '../ui/trabajos-producto';
 import { Buscador } from '../ui/buscador';
 import { Hoja } from '../ui/hoja';
 import { Icono } from '../ui/icono';
@@ -18,7 +19,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
 
 @Component({
   selector: 'app-inventario',
-  imports: [FormsModule, Buscador, DineroPipe, PctPipe, Hoja, Icono, Confirmar, Esqueleto, Paginador],
+  imports: [FormsModule, Buscador, DineroPipe, PctPipe, Hoja, Icono, Confirmar, Esqueleto, Paginador, TrabajosProducto],
   template: `
     <div class="encabezado">
       <div class="titulo"><span class="icono-modulo"><app-icono nombre="inventario" /></span><div><h1>Inventario</h1><p>{{ s.nombreSucursal() }} @if (s.verCostos()) { · Valor <span class="num">{{ valor() | dinero }}</span> }</p></div></div>
@@ -38,7 +39,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
       @if (!listo()) { <app-esqueleto /> } @else {
       @for (p of enPagina(); track p.id) {
         <div class="con-acciones">
-          <button class="renglon" (click)="s.verCostos() && abrir(p)">
+          <button class="renglon" (click)="s.verCostos() ? abrir(p) : p.tipo !== 'insumo' && trabajos.set(p)">
             <span class="t">{{ p.nombre }} <span class="pill" [class]="p.tipo === 'insumo' ? 'mut' : p.tipo === 'servicio' ? 'acc' : 'sec'">{{ tipos[p.tipo] }}</span></span>
             <span class="d">
               @if (p.controlaStock) { <span class="num" [class]="p.existencia <= p.minimo && p.minimo > 0 ? 'font-semibold text-bad' : ''">{{ p.existencia }} {{ p.unidad }}</span> }
@@ -51,12 +52,13 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
             </span>
             <span class="d m">@if (s.verCostos() && p.margen != null) { Margen {{ p.margen | pct }} }</span>
           </button>
-          @if (s.verCostos()) {
-            <span class="acciones">
+          <span class="acciones">
+            @if (p.tipo !== 'insumo') { <button type="button" class="ico" title="Trabajos hechos" aria-label="Fotos de trabajos de {{ p.nombre }}" (click)="trabajos.set(p)"><app-icono nombre="fotos" /></button> }
+            @if (s.verCostos()) {
               <button type="button" class="ico max-sm:hidden" title="Editar" aria-label="Editar {{ p.nombre }}" (click)="abrir(p)"><app-icono nombre="editar" /></button>
               <button type="button" class="ico peligro" title="Desactivar" aria-label="Desactivar {{ p.nombre }}" (click)="preguntarDesactivar(p)"><app-icono nombre="basura" /></button>
-            </span>
-          }
+            }
+          </span>
         </div>
       } @empty { <div class="vacio"><b>Sin artículos</b>Registra tus tazas, papel de sublimación, MDF, acrílico y servicios de corte.</div> }
     }
@@ -137,6 +139,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
         <ng-container pie><span class="flex-1"></span><button class="btn pri" (click)="traspasar()">Traspasar</button></ng-container>
       </app-hoja>
     }
+    @if (trabajos(); as t) { <app-trabajos-producto [productoId]="t.id" [nombre]="t.nombre" [esServicio]="t.tipo === 'servicio'" (cerrar)="trabajos.set(null)" /> }
   `,
 })
 export class Inventario implements OnInit {
@@ -144,6 +147,8 @@ export class Inventario implements OnInit {
   private api = inject(Api);
   private aviso = inject(AvisoService);
   private confirmar = inject(ConfirmarService);
+  /** Producto cuya galería de trabajos está abierta. */
+  trabajos = signal<Producto | null>(null);
   tipos = TIPOS;
   tiposLista = Object.entries(TIPOS);
   categorias = CATEGORIAS;

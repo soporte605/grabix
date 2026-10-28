@@ -485,7 +485,28 @@ export class CajaMovimiento {
   @CreateDateColumn() creadoEn: Date;
 }
 
+/** Foto de un trabajo terminado: evidencia del pedido y galería del producto. El archivo vive en FOTOS_DIR. */
+@Entity('fotos')
+export class Foto {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Index() @Column() ventaId: number;
+  @Column({ length: 60 }) archivo: string;
+  @Column({ length: 60 }) miniatura: string;
+  @Column({ type: 'int', default: 0 }) ancho: number;
+  @Column({ type: 'int', default: 0 }) alto: number;
+  @Column({ type: 'int', default: 0 }) bytes: number;
+  @Column({ type: 'varchar', length: 200, nullable: true }) nota: string | null;
+  @Column() usuarioId: number;
+  @Column({ length: 120 }) usuarioNombre: string;
+  @CreateDateColumn() creadoEn: Date;
+  @ManyToOne(() => Venta, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'ventaId' })
+  venta: Relation<Venta>;
+}
+
 export const ENTIDADES = [
+  Foto,
   Maquina,
   CajaTurno,
   CajaMovimiento,
