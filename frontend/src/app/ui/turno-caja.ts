@@ -22,7 +22,7 @@ const MONEDAS = [10, 5, 2, 1, 0.5];
     <app-hoja titulo="Abrir caja" ancho="460px" (cerrar)="cerrar.emit()">
       <p class="tenue">Cuenta el efectivo con el que empiezas: es el fondo para dar cambio.</p>
       @if (ultimo(); as u) { <p class="chico rounded-lg bg-superficie-2 px-3 py-2">El último corte ({{ u.folio }}, {{ u.cerroNombre }}) dejó <b class="num">{{ u.dejado | dinero }}</b> en caja.</p> }
-      <div class="campo"><label for="ac-f">Fondo inicial</label><input id="ac-f" class="num text-xl" type="number" inputmode="decimal" min="0" [(ngModel)]="fondo" (keydown.enter)="abrir()"></div>
+      <div class="campo"><label for="ac-f">Fondo inicial</label><input id="ac-f" name="fondo" required class="num text-xl" type="number" inputmode="decimal" min="0" [(ngModel)]="fondo" (keydown.enter)="abrir()"></div>
       <div class="campo"><label for="ac-n">Notas (opcional)</label><input id="ac-n" [(ngModel)]="notas" maxlength="500"></div>
       <ng-container pie>
         <button class="btn" (click)="cerrar.emit()">Cancelar</button><span class="flex-1"></span>
@@ -65,8 +65,8 @@ export class AbrirCaja implements OnInit {
         <button class="rounded-xl border-2 py-3 font-semibold" [class]="tipo() === 'entrada' ? 'border-marca bg-marca-suave text-marca' : 'border-linea'" (click)="tipo.set('entrada')">Entrada</button>
       </div>
       <p class="chico tenue">{{ tipo() === 'salida' ? 'Efectivo que sale del cajón: pago a proveedor, gasto, retiro parcial.' : 'Efectivo que entra sin ser venta: cambio que traen, reposición de fondo.' }}</p>
-      <div class="campo"><label for="mc-m">Monto</label><input id="mc-m" class="num text-xl" type="number" inputmode="decimal" min="0" [(ngModel)]="monto"></div>
-      <div class="campo"><label for="mc-c">Concepto</label><input id="mc-c" [(ngModel)]="concepto" maxlength="200" [placeholder]="tipo() === 'salida' ? 'Ej. Pago de garrafón' : 'Ej. Cambio del banco'" (keydown.enter)="guardar()"></div>
+      <div class="campo"><label for="mc-m">Monto</label><input id="mc-m" name="monto" required class="num text-xl" type="number" inputmode="decimal" min="0.01" [(ngModel)]="monto"></div>
+      <div class="campo"><label for="mc-c">Concepto</label><input id="mc-c" name="concepto" required [(ngModel)]="concepto" maxlength="200" [placeholder]="tipo() === 'salida' ? 'Ej. Pago de garrafón' : 'Ej. Cambio del banco'" (keydown.enter)="guardar()"></div>
       <ng-container pie>
         <button class="btn" (click)="cerrar.emit()">Cancelar</button><span class="flex-1"></span>
         <button class="btn pri" (click)="guardar()" [disabled]="ocupado() || !valido()">Registrar {{ tipo() }}</button>

@@ -1,8 +1,9 @@
-import { Component, inject, input, signal } from '@angular/core';
+import { Component, ElementRef, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { mensajeError } from '../core/aviso.service';
 import { SesionService } from '../core/sesion.service';
+import { validarFormulario } from '../core/validar';
 import { evaluarClave } from '../core/clave';
 import { CampoClave } from '../ui/campo-clave';
 import { MarcoAcceso } from '../ui/marco-acceso';
@@ -22,8 +23,8 @@ import { MarcoAcceso } from '../ui/marco-acceso';
           </div>
           <fieldset class="campos">
             <legend class="mb-2 text-xs font-bold tracking-[.08em] text-tenue uppercase">Tu taller</legend>
-            <div class="campo todo"><label for="a-t">Nombre del taller</label><input id="a-t" name="taller" [(ngModel)]="taller" required autocomplete="organization" placeholder="Ej. Láser y Diseño MX"></div>
-            <div class="campo"><label for="a-n">Tu nombre</label><input id="a-n" name="nombre" [(ngModel)]="nombre" required autocomplete="name"></div>
+            <div class="campo todo"><label for="a-t">Nombre del taller</label><input id="a-t" name="taller" [(ngModel)]="taller" required minlength="2" autocomplete="organization" placeholder="Ej. Láser y Diseño MX"></div>
+            <div class="campo"><label for="a-n">Tu nombre</label><input id="a-n" name="nombre" [(ngModel)]="nombre" required minlength="2" autocomplete="name"></div>
             <div class="campo"><label for="a-w">WhatsApp <span class="font-normal">(opcional)</span></label><input id="a-w" name="tel" type="tel" [(ngModel)]="telefono" autocomplete="tel"></div>
           </fieldset>
           <p class="mt-1 mb-[-4px] text-xs font-bold tracking-[.08em] text-tenue uppercase">Tu acceso</p>
@@ -62,6 +63,7 @@ import { MarcoAcceso } from '../ui/marco-acceso';
 export class Acceso {
   private sesion = inject(SesionService);
   private router = inject(Router);
+  private el = inject<ElementRef<HTMLElement>>(ElementRef);
   modo = input<'entrar' | 'registro'>('entrar');
   taller = ''; nombre = ''; telefono = ''; email = ''; password = ''; conEjemplos = true;
   error = signal('');
@@ -69,6 +71,7 @@ export class Acceso {
 
   async enviar() {
     this.error.set('');
+    if (!validarFormulario(this.el.nativeElement)) return;
     if (this.modo() === 'registro' && !evaluarClave(this.password, [this.email, this.nombre, this.taller]).valida)
       return this.error.set('Tu contraseña aún no es segura: revisa los puntos debajo del campo.');
     this.cargando.set(true);

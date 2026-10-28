@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, ElementRef, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
@@ -6,6 +6,7 @@ import { DineroPipe, FechaPipe } from '../core/formato';
 import { Taller } from '../core/modelos';
 import { evaluarClave } from '../core/clave';
 import { SesionService } from '../core/sesion.service';
+import { validarFormulario } from '../core/validar';
 import { CampoClave } from '../ui/campo-clave';
 import { Esqueleto } from '../ui/esqueleto';
 import { Hoja } from '../ui/hoja';
@@ -20,20 +21,20 @@ import { Hoja } from '../ui/hoja';
         <section class="caja">
           <h3>Tu negocio</h3>
           <div class="campos">
-            <div class="campo todo"><label for="a-n">Nombre comercial</label><input id="a-n" [(ngModel)]="t.nombre"></div>
+            <div class="campo todo"><label for="a-n">Nombre comercial</label><input id="a-n" name="nombre" required minlength="2" maxlength="120" [(ngModel)]="t.nombre"></div>
             <div class="campo"><label for="a-t">WhatsApp / teléfono</label><input id="a-t" type="tel" [(ngModel)]="t.telefono"></div>
-            <div class="campo"><label for="a-e">Correo</label><input id="a-e" type="email" [(ngModel)]="t.email"></div>
+            <div class="campo"><label for="a-e">Correo</label><input id="a-e" name="email" type="email" [(ngModel)]="t.email"></div>
             <div class="campo todo"><label for="a-d">Dirección</label><input id="a-d" [(ngModel)]="t.direccion"></div>
           </div>
         </section>
         <section class="caja">
           <h3>Costos y precios</h3>
           <div class="campos c3">
-            <div class="campo"><label for="a-tm">Costo de máquina por minuto</label><input id="a-tm" type="number" inputmode="decimal" [(ngModel)]="t.tarifaMinuto"></div>
-            <div class="campo"><label for="a-mg">Margen objetivo (%)</label><input id="a-mg" type="number" [(ngModel)]="t.margenObjetivo"></div>
-            <div class="campo"><label for="a-v">Vigencia de cotizaciones (días)</label><input id="a-v" type="number" [(ngModel)]="t.vigenciaDias"></div>
-            <div class="campo"><label for="a-mo">Moneda</label><input id="a-mo" [(ngModel)]="t.moneda"></div>
-            <div class="campo"><label for="a-l">Lada de país (WhatsApp)</label><input id="a-l" [(ngModel)]="t.lada"></div>
+            <div class="campo"><label for="a-tm">Costo de máquina por minuto</label><input id="a-tm" name="tarifaMinuto" min="0" type="number" inputmode="decimal" [(ngModel)]="t.tarifaMinuto"></div>
+            <div class="campo"><label for="a-mg">Margen objetivo (%)</label><input id="a-mg" name="margenObjetivo" min="0" max="95" type="number" [(ngModel)]="t.margenObjetivo"></div>
+            <div class="campo"><label for="a-v">Vigencia de cotizaciones (días)</label><input id="a-v" name="vigenciaDias" min="1" max="365" type="number" [(ngModel)]="t.vigenciaDias"></div>
+            <div class="campo"><label for="a-mo">Moneda</label><input id="a-mo" name="moneda" maxlength="8" [(ngModel)]="t.moneda"></div>
+            <div class="campo"><label for="a-l">Lada de país (WhatsApp)</label><input id="a-l" name="lada" maxlength="4" [(ngModel)]="t.lada"></div>
           </div>
           <p class="tenue chico">El costo por minuto cubre luz, desgaste del tubo y lentes, y tu tiempo. Para estimarlo: (gasto mensual de la máquina + sueldo que te asignas) ÷ minutos de trabajo al mes.</p>
         </section>
@@ -113,11 +114,15 @@ export class Ajustes implements OnInit {
   s = inject(SesionService);
   private api = inject(Api);
   private aviso = inject(AvisoService);
+  private el = inject<ElementRef<HTMLElement>>(ElementRef);
   t = signal<Taller | null>(null);
   anual = signal(false);
   async ngOnInit() { this.t.set(await this.api.get('/taller')); }
   nombrePlan(id: string) { return this.s.perfil()?.suscripcion.planes.find((p) => p.id === id)?.nombre ?? id; }
   async guardar() {
+    // Solo las secciones del negocio y los costos; el cambio de contraseña tiene su propio botón.
+    const secciones = ['#a-n', '#a-tm'].map((id) => this.el.nativeElement.querySelector(id)?.closest('section'));
+    if (!secciones.map((x) => !x || validarFormulario(x)).every(Boolean)) return;
     const t = this.t()!;
     try {
       await this.api.patch('/taller', {

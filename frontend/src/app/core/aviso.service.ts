@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { marcarErroresServidor } from './validar';
 
 export type TipoAviso = 'ok' | 'error' | 'info';
 export interface Aviso { id: number; texto: string; tipo: TipoAviso; titulo: string }
@@ -44,8 +45,10 @@ export class AvisoService {
 
 /** Mensaje legible a partir de un error HTTP de la API. */
 export function mensajeError(e: unknown): string {
-  const err = e as { status?: number; error?: { message?: string | string[] } };
+  const err = e as { status?: number; error?: { message?: string | string[]; campos?: Record<string, string> } };
   if (err?.status === 0) return 'No hay conexión con el servidor';
+  // Si el servidor dice qué campos rechazó, también se marcan en el formulario abierto.
+  if (err?.error?.campos) marcarErroresServidor(err.error.campos);
   const m = err?.error?.message;
   return Array.isArray(m) ? m[0] : m || 'Algo salió mal, intenta de nuevo';
 }

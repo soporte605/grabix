@@ -46,9 +46,9 @@ import { Icono } from '../ui/icono';
     @if (e(); as e) {
       <app-hoja [titulo]="e.id ? e.nombre ?? '' : 'Nuevo cliente'" (cerrar)="e_.set(null)">
         <div class="campos">
-          <div class="campo todo"><label for="c-n">Nombre</label><input id="c-n" [(ngModel)]="e.nombre"></div>
+          <div class="campo todo"><label for="c-n">Nombre</label><input id="c-n" name="nombre" required maxlength="160" [(ngModel)]="e.nombre"></div>
           <div class="campo"><label for="c-t">WhatsApp</label><input id="c-t" type="tel" [(ngModel)]="e.telefono"></div>
-          <div class="campo"><label for="c-e">Correo</label><input id="c-e" type="email" [(ngModel)]="e.email"></div>
+          <div class="campo"><label for="c-e">Correo</label><input id="c-e" name="email" type="email" [(ngModel)]="e.email"></div>
           <div class="campo todo"><label for="c-em">Empresa o negocio</label><input id="c-em" [(ngModel)]="e.empresa"></div>
           <div class="campo todo"><label for="c-no">Notas</label><textarea id="c-no" [(ngModel)]="e.notas"></textarea></div>
         </div>

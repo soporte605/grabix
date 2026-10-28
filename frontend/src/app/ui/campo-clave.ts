@@ -14,7 +14,7 @@ const TEXTOS = ['text-bad', 'text-bad', 'text-warn', 'text-ok', 'text-ok'];
     <label [for]="entrada()">{{ etiqueta() }}<ng-content select="[etiqueta]" /></label>
     <div class="relative">
       <input class="!pr-11" [id]="entrada()" [name]="entrada()" [type]="ver() ? 'text' : 'password'" [value]="valor()" (input)="valor.set($any($event.target).value)"
-        [attr.autocomplete]="autocomplete()" [attr.aria-describedby]="medidor() ? entrada() + '-seg' : null" required>
+        [attr.autocomplete]="autocomplete()" [attr.aria-describedby]="medidor() ? entrada() + '-seg' : null" [required]="obligatorio()">
       <button type="button" class="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-tenue hover:text-marca"
         (click)="ver.set(!ver())" [attr.aria-label]="ver() ? 'Ocultar contraseña' : 'Mostrar contraseña'" [attr.aria-pressed]="ver()">
         <app-icono class="text-xl" [nombre]="ver() ? 'ojo-no' : 'ojo'" />
@@ -48,6 +48,7 @@ export class CampoClave {
   etiqueta = input('Contraseña');
   autocomplete = input('new-password');
   medidor = input(false);
+  obligatorio = input(true);
   /** Correo, nombre o taller: la contraseña no debe contenerlos. */
   personales = input<(string | null | undefined)[]>([]);
   valor = model('');

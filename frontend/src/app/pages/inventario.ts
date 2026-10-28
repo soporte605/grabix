@@ -66,7 +66,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
     @if (e(); as e) {
       <app-hoja [titulo]="e.id ? e.nombre : 'Nuevo artículo'" (cerrar)="e_.set(null)">
         <div class="campos c3">
-          <div class="campo todo"><label for="p-n">Nombre</label><input id="p-n" [(ngModel)]="e.nombre"></div>
+          <div class="campo todo"><label for="p-n">Nombre</label><input id="p-n" name="nombre" required maxlength="160" [(ngModel)]="e.nombre"></div>
           <div class="campo"><label for="p-t">Tipo</label><select id="p-t" [(ngModel)]="e.tipo" (ngModelChange)="calc()">@for (t of tiposLista; track t[0]) { <option [value]="t[0]">{{ t[1] }}</option> }</select></div>
           <div class="campo"><label for="p-c">Línea</label><select id="p-c" [(ngModel)]="e.categoria">@for (c of categorias; track c) { <option>{{ c }}</option> }</select></div>
           <div class="campo"><label for="p-u">Unidad</label><input id="p-u" [(ngModel)]="e.unidad"></div>
@@ -88,10 +88,10 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
         <div class="caja">
           <h3>Costo y precio</h3>
           <div class="campos c3">
-            @if (!tieneReceta()) { <div class="campo"><label for="p-co">Costo de compra</label><input id="p-co" type="number" inputmode="decimal" [(ngModel)]="e.costo" (ngModelChange)="calc()"></div> }
-            <div class="campo"><label for="p-mi">Minutos de láser / plancha</label><input id="p-mi" type="number" inputmode="decimal" [(ngModel)]="e.minutos" (ngModelChange)="calc()"></div>
-            <div class="campo"><label for="p-ex">Otros costos por pieza</label><input id="p-ex" type="number" inputmode="decimal" [(ngModel)]="e.extra" (ngModelChange)="calc()"></div>
-            <div class="campo"><label for="p-pr">Precio de venta</label><input id="p-pr" type="number" inputmode="decimal" [(ngModel)]="e.precio" (ngModelChange)="calc()"></div>
+            @if (!tieneReceta()) { <div class="campo"><label for="p-co">Costo de compra</label><input id="p-co" name="costo" min="0" type="number" inputmode="decimal" [(ngModel)]="e.costo" (ngModelChange)="calc()"></div> }
+            <div class="campo"><label for="p-mi">Minutos de láser / plancha</label><input id="p-mi" name="minutos" min="0" type="number" inputmode="decimal" [(ngModel)]="e.minutos" (ngModelChange)="calc()"></div>
+            <div class="campo"><label for="p-ex">Otros costos por pieza</label><input id="p-ex" name="extra" min="0" type="number" inputmode="decimal" [(ngModel)]="e.extra" (ngModelChange)="calc()"></div>
+            <div class="campo"><label for="p-pr">Precio de venta</label><input id="p-pr" name="precio" min="0" type="number" inputmode="decimal" [(ngModel)]="e.precio" (ngModelChange)="calc()"></div>
           </div>
           <div class="totales">
             <span class="k">Costo por pieza</span><span>{{ costo() | dinero }}</span>
@@ -107,7 +107,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
             @else {
               <div class="campos">
                 <div class="campo"><label for="p-st">{{ e.id ? 'Conteo físico (ajuste)' : 'Existencia inicial' }}</label><input id="p-st" type="number" inputmode="decimal" [(ngModel)]="e.stockInicial"></div>
-                <div class="campo"><label for="p-mn">Avisarme cuando queden</label><input id="p-mn" type="number" inputmode="decimal" [(ngModel)]="e.minimo"></div>
+                <div class="campo"><label for="p-mn">Avisarme cuando queden</label><input id="p-mn" name="minimo" min="0" type="number" inputmode="decimal" [(ngModel)]="e.minimo"></div>
               </div>
             }
           </div>

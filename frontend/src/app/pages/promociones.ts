@@ -41,11 +41,11 @@ import { Icono } from '../ui/icono';
     @if (e(); as e) {
       <app-hoja [titulo]="e.id ? e.nombre! : 'Nueva promoción'" (cerrar)="e_.set(null)">
         <div class="campos">
-          <div class="campo todo"><label for="r-n">Nombre</label><input id="r-n" [(ngModel)]="e.nombre" [disabled]="!s.verCostos()"></div>
+          <div class="campo todo"><label for="r-n">Nombre</label><input id="r-n" name="nombre" required [(ngModel)]="e.nombre" [disabled]="!s.verCostos()"></div>
           <div class="campo"><label for="r-t">Tipo</label><select id="r-t" [(ngModel)]="e.tipo" [disabled]="!s.verCostos()"><option value="pct">Porcentaje</option><option value="monto">Cantidad fija</option></select></div>
-          <div class="campo"><label for="r-v">Valor</label><input id="r-v" type="number" [(ngModel)]="e.valor" [disabled]="!s.verCostos()"></div>
-          <div class="campo"><label for="r-i">Desde</label><input id="r-i" type="date" [(ngModel)]="e.inicio" [disabled]="!s.verCostos()"></div>
-          <div class="campo"><label for="r-f">Hasta</label><input id="r-f" type="date" [(ngModel)]="e.fin" [disabled]="!s.verCostos()"></div>
+          <div class="campo"><label for="r-v">Valor</label><input id="r-v" name="valor" required min="0" type="number" [(ngModel)]="e.valor" [disabled]="!s.verCostos()"></div>
+          <div class="campo"><label for="r-i">Desde</label><input id="r-i" name="inicio" type="date" [(ngModel)]="e.inicio" [disabled]="!s.verCostos()"></div>
+          <div class="campo"><label for="r-f">Hasta</label><input id="r-f" name="fin" type="date" [(ngModel)]="e.fin" [disabled]="!s.verCostos()"></div>
           <div class="campo todo"><label for="r-m">Mensaje para WhatsApp (usa {{ '{' }}cliente{{ '}' }} para el nombre)</label><textarea id="r-m" [(ngModel)]="e.mensaje" [disabled]="!s.verCostos()"></textarea></div>
           <label class="fila chico"><input type="checkbox" [(ngModel)]="e.activa" [disabled]="!s.verCostos()"> Activa</label>
         </div>

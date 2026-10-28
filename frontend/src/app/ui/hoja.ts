@@ -1,4 +1,5 @@
-import { Component, HostListener, input, output } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, HostListener, inject, input, output, viewChild } from '@angular/core';
+import { validarFormulario } from '../core/validar';
 
 /** Panel modal: hoja inferior en el celular, ventana centrada en escritorio. */
 @Component({
@@ -13,14 +14,28 @@ import { Component, HostListener, input, output } from '@angular/core';
         <button class="px-1.5 py-0.5 text-2xl leading-none text-tenue" (click)="cerrar.emit()" aria-label="Cerrar">×</button>
       </header>
       <div class="flex flex-col gap-3.5 overflow-x-hidden overflow-y-auto p-4"><ng-content /></div>
-      <footer class="flex flex-wrap gap-2 border-t border-linea bg-superficie px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] empty:hidden"><ng-content select="[pie]" /></footer>
+      <footer #pie class="flex flex-wrap gap-2 border-t border-linea bg-superficie px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] empty:hidden"><ng-content select="[pie]" /></footer>
     </section>
   `,
 })
-export class Hoja {
+export class Hoja implements AfterViewInit {
   titulo = input('');
   /** Ancho máximo en escritorio. */
   ancho = input('780px');
   cerrar = output();
+  private el = inject<ElementRef<HTMLElement>>(ElementRef);
+  private pie = viewChild.required<ElementRef<HTMLElement>>('pie');
+  // En captura, para revisar los campos antes que el (click) del botón.
+  ngAfterViewInit() { this.pie().nativeElement.addEventListener('click', (e) => this.validar(e), true); }
   @HostListener('document:keydown.escape') esc() { this.cerrar.emit(); }
+
+  /** El botón principal del pie (Guardar, Crear…) primero revisa los campos; si falta algo no llega a guardar. */
+  validar(ev: Event) {
+    const b = (ev.target as HTMLElement).closest('button.pri, button[type=submit]');
+    if (!b || b.hasAttribute('sin-validar')) return;
+    if (!validarFormulario(this.el.nativeElement.querySelector('section > div')!)) {
+      ev.stopImmediatePropagation();
+      ev.preventDefault();
+    }
+  }
 }

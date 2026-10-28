@@ -242,6 +242,10 @@
     &.todo { @apply col-span-full; }
     & label { @apply text-xs font-semibold tracking-[.02em] text-tenue; }
     & textarea { @apply min-h-[70px] resize-y; }
+    /* Obligatorio: asterisco junto a la etiqueta. Se pone solo con required, o con .req si el control no es nativo. */
+    &:has(> :is(input, select, textarea)[required], > div > input[required]) > label::after, &.req > label::after { content: ' *'; @apply text-bad; }
+    &.con-error :is(input, select, textarea) { @apply border-bad; }
+    & .error-campo { @apply text-xs font-medium text-bad; }
   }
   .campo input:not([type='checkbox']):not([type='radio']):not([type='range']), .campo select, .campo textarea, .entrada {
     @apply w-full min-w-0 rounded-lg border border-linea bg-superficie px-2.5 py-[9px];

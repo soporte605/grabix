@@ -43,11 +43,11 @@ interface Form {
           }
         </div>
         <div class="campos c3">
-          <div class="campo"><label for="d-f">Fecha</label><input id="d-f" type="date" [(ngModel)]="f.fecha" (ngModelChange)="tocar()"></div>
+          <div class="campo"><label for="d-f">Fecha</label><input id="d-f" name="fecha" type="date" [(ngModel)]="f.fecha" (ngModelChange)="tocar()"></div>
           @if (esVenta) {
-            <div class="campo"><label for="d-e">Fecha de entrega</label><input id="d-e" type="date" [(ngModel)]="f.entrega" (ngModelChange)="tocar()"></div>
+            <div class="campo"><label for="d-e">Fecha de entrega</label><input id="d-e" name="entrega" type="date" [(ngModel)]="f.entrega" (ngModelChange)="tocar()"></div>
           } @else {
-            <div class="campo"><label for="d-v">Vigencia (días)</label><input id="d-v" type="number" [(ngModel)]="f.vigenciaDias" (ngModelChange)="tocar()"></div>
+            <div class="campo"><label for="d-v">Vigencia (días)</label><input id="d-v" name="vigenciaDias" min="1" max="365" type="number" [(ngModel)]="f.vigenciaDias" (ngModelChange)="tocar()"></div>
           }
           <div class="campo"><label for="d-es">Estado</label>
             <select id="d-es" [(ngModel)]="f.estado" (ngModelChange)="tocar()">@for (k of estados; track k) { <option [value]="k">{{ mapa[k][0] }}</option> }</select>
@@ -85,7 +85,7 @@ interface Form {
           <div class="campo"><label for="d-dt">Tipo</label>
             <select id="d-dt" [(ngModel)]="f.descuentoTipo" (ngModelChange)="tocar()"><option value="pct">Porcentaje</option><option value="monto">Cantidad</option></select>
           </div>
-          <div class="campo"><label for="d-dv">Descuento</label><input id="d-dv" type="number" inputmode="decimal" [(ngModel)]="f.descuentoValor" (ngModelChange)="tocar()"></div>
+          <div class="campo"><label for="d-dv">Descuento</label><input id="d-dv" name="descuentoValor" min="0" type="number" inputmode="decimal" [(ngModel)]="f.descuentoValor" (ngModelChange)="tocar()"></div>
         </div>
       </section>
 
@@ -118,9 +118,9 @@ interface Form {
           </div>
           <div class="campos c3">
             <div class="campo"><label for="d-me">Forma de pago</label><select id="d-me" [(ngModel)]="f.metodo" (ngModelChange)="tocar()">@for (m of metodos; track m) { <option>{{ m }}</option> }</select></div>
-            <div class="campo"><label for="d-an">Abona ahora</label><input id="d-an" type="number" inputmode="decimal" [(ngModel)]="f.anticipo" (ngModelChange)="tocar()"></div>
+            <div class="campo"><label for="d-an">Abona ahora</label><input id="d-an" name="anticipo" min="0" type="number" inputmode="decimal" [(ngModel)]="f.anticipo" (ngModelChange)="tocar()"></div>
             @if (f.metodo === 'Efectivo') {
-              <div class="campo"><label for="d-pc">Paga con (efectivo)</label><input id="d-pc" type="number" inputmode="decimal" placeholder="Opcional" [(ngModel)]="pagaCon" (ngModelChange)="tocar()"></div>
+              <div class="campo"><label for="d-pc">Paga con (efectivo)</label><input id="d-pc" min="0" type="number" inputmode="decimal" placeholder="Opcional" [(ngModel)]="pagaCon" (ngModelChange)="tocar()"></div>
             }
           </div>
           @if (cobro().cambio > 0 || cobro().falta > 0) {

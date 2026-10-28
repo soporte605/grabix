@@ -32,7 +32,7 @@ import { Icono } from '../ui/icono';
     @if (e(); as e) {
       <app-hoja [titulo]="e.id ? e.nombre! : 'Nueva sucursal'" (cerrar)="e_.set(null)">
         <div class="campos">
-          <div class="campo todo"><label for="s-n">Nombre</label><input id="s-n" [(ngModel)]="e.nombre"></div>
+          <div class="campo todo"><label for="s-n">Nombre</label><input id="s-n" name="nombre" required minlength="2" maxlength="120" [(ngModel)]="e.nombre"></div>
           <div class="campo todo"><label for="s-d">Dirección</label><input id="s-d" [(ngModel)]="e.direccion"></div>
           <div class="campo"><label for="s-t">Teléfono / WhatsApp</label><input id="s-t" type="tel" [(ngModel)]="e.telefono"></div>
           @if (e.id) { <label class="fila chico"><input type="checkbox" [(ngModel)]="e.activa"> Activa</label> }
@@ -99,8 +99,8 @@ export class Sucursales implements OnInit {
     @if (e(); as e) {
       <app-hoja [titulo]="e.id ? e.nombre : 'Nuevo usuario'" (cerrar)="e_.set(null)">
         <div class="campos">
-          <div class="campo todo"><label for="u-n">Nombre</label><input id="u-n" [(ngModel)]="e.nombre"></div>
-          <div class="campo todo"><label for="u-e">Correo (con este entra)</label><input id="u-e" type="email" [(ngModel)]="e.email"></div>
+          <div class="campo todo"><label for="u-n">Nombre</label><input id="u-n" name="nombre" required minlength="2" maxlength="120" [(ngModel)]="e.nombre"></div>
+          <div class="campo todo"><label for="u-e">Correo (con este entra)</label><input id="u-e" name="email" required type="email" [(ngModel)]="e.email"></div>
           <div class="campo"><label for="u-r">Rol</label>
             <select id="u-r" [(ngModel)]="e.rol">@for (r of rolesPermitidos(); track r[0]) { <option [value]="r[0]">{{ r[1].nombre }}</option> }</select>
           </div>
@@ -109,7 +109,7 @@ export class Sucursales implements OnInit {
               <select id="u-s" [(ngModel)]="e.sucursalId"><option [ngValue]="null">Todas</option>@for (x of s.perfil()!.sucursales; track x.id) { <option [ngValue]="x.id">{{ x.nombre }}</option> }</select>
             </div>
           }
-          <app-campo-clave entrada="u-p" [etiqueta]="e.id ? 'Nueva contraseña (opcional)' : 'Contraseña inicial (opcional)'" [(valor)]="e.password!" [medidor]="true" [personales]="[e.email, e.nombre]" />
+          <app-campo-clave entrada="u-p" [obligatorio]="false" [etiqueta]="e.id ? 'Nueva contraseña (opcional)' : 'Contraseña inicial (opcional)'" [(valor)]="e.password!" [medidor]="true" [personales]="[e.email, e.nombre]" />
           @if (!e.id) { <p class="tenue chico todo">Si la dejas vacía, le enviamos un correo de invitación para que cree la suya.</p> }
           @if (e.id) { <label class="fila chico"><input type="checkbox" [(ngModel)]="e.activo"> Activo</label> }
         </div>
