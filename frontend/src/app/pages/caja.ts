@@ -4,13 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { DineroPipe, hoy, sumarDias } from '../core/formato';
-import { Cliente, Producto, Venta } from '../core/modelos';
+import { CajaTurno, Cliente, DetalleTurno, Producto } from '../core/modelos';
 import { VentaHecha } from '../core/pos.service';
 import { SesionService } from '../core/sesion.service';
 import { Buscador } from '../ui/buscador';
 import { Hoja } from '../ui/hoja';
 import { Icono } from '../ui/icono';
 import { VentaHechaVentana } from '../ui/venta-hecha';
+import { AbrirCaja, CerrarCaja, imprimirCorte, MovimientoCaja } from '../ui/turno-caja';
 
 interface Linea { productoId: number | null; descripcion: string; precio: number; cantidad: number }
 const METODOS = ['Efectivo', 'Tarjeta', 'Transferencia', 'Otro', 'Combinado'];
@@ -24,7 +25,7 @@ const BILLETES = [10, 50, 100, 500, 1000];
  */
 @Component({
   selector: 'app-caja',
-  imports: [FormsModule, NgTemplateOutlet, DineroPipe, Icono, Hoja, Buscador, VentaHechaVentana],
+  imports: [FormsModule, NgTemplateOutlet, DineroPipe, Icono, Hoja, Buscador, VentaHechaVentana, AbrirCaja, MovimientoCaja, CerrarCaja],
   host: { '(document:keydown)': 'atajo($event)', '(document:fullscreenchange)': 'alSalirDePantallaCompleta()' },
   template: `
     <div class="flex flex-col bg-fondo" [class]="grande() ? 'fixed inset-0 z-40 p-3 lg:p-4' : 'h-[calc(100dvh-170px)] min-h-[560px] lg:h-[calc(100dvh-110px)]'">
@@ -35,9 +36,17 @@ const BILLETES = [10, 50, 100, 500, 1000];
           <h1 class="text-[1.3rem] leading-tight">Caja</h1>
           <p class="chico truncate text-tenue">{{ s.nombreSucursal() }} · {{ s.perfil()?.usuario?.nombre }}</p>
         </div>
-        <div class="flex items-center gap-2 max-sm:order-last max-sm:w-full">
-          <span class="rounded-lg border border-linea bg-superficie px-3 py-1.5 text-[.82rem] text-tenue">Hoy <b class="num text-tinta">{{ hoyResumen().ventas }}</b> {{ hoyResumen().ventas === 1 ? 'venta' : 'ventas' }}</span>
-          <span class="rounded-lg border border-linea bg-superficie px-3 py-1.5 text-[.82rem] text-tenue">Cobrado <b class="num text-tinta">{{ hoyResumen().cobrado | dinero }}</b></span>
+        <div class="flex flex-wrap items-center gap-2 max-sm:order-last max-sm:w-full">
+          @if (turno(); as t) {
+            <span class="flex items-center gap-1.5 rounded-lg border border-linea bg-superficie px-3 py-1.5 text-[.82rem] text-tenue" [title]="'Abrió ' + t.abrioNombre">
+              <i class="inline-block size-2 rounded-full bg-ok"></i>{{ t.folio }} · desde {{ hora(t.abiertoEn) }}</span>
+            <span class="rounded-lg border border-linea bg-superficie px-3 py-1.5 text-[.82rem] text-tenue"><b class="num text-tinta">{{ t.resumen?.ventas ?? 0 }}</b> {{ t.resumen?.ventas === 1 ? 'venta' : 'ventas' }} · <b class="num text-tinta">{{ (t.resumen?.cobrado ?? 0) | dinero }}</b></span>
+            <button class="btn sm" (click)="verMov.set(true)" title="Entrada o salida de efectivo">± Efectivo</button>
+            <button class="btn sm" (click)="abrirCierre()"><app-icono nombre="caja" />Cerrar caja</button>
+          } @else if (estadoCaja()) {
+            <span class="flex items-center gap-1.5 rounded-lg border border-linea bg-superficie px-3 py-1.5 text-[.82rem] text-tenue"><i class="inline-block size-2 rounded-full bg-bad"></i>Caja cerrada</span>
+            <button class="btn sm pri" (click)="verApertura.set(true)">Abrir caja</button>
+          }
         </div>
         <button class="btn" (click)="alternarGrande()" [title]="grande() ? 'Minimizar (vuelve al sistema)' : 'Pantalla completa'">
           <app-icono [nombre]="grande() ? 'contraer' : 'expandir'" /><span class="max-sm:hidden">{{ grande() ? 'Minimizar' : 'Pantalla completa' }}</span>
@@ -46,6 +55,14 @@ const BILLETES = [10, 50, 100, 500, 1000];
 
       @if (!s.sucursal()) {
         <div class="tarjeta p-6 text-center"><b>Elige una sucursal</b><p class="tenue">La caja vende del inventario de una sucursal. Elígela arriba a la izquierda.</p></div>
+      } @else if (estadoCaja() && !turno()) {
+        <div class="tarjeta m-auto flex w-full max-w-[460px] flex-col items-center gap-3 p-8 text-center">
+          <span class="grid size-14 place-items-center rounded-2xl bg-marca-suave text-[1.6rem] text-marca"><app-icono nombre="caja" /></span>
+          <h2 class="text-[1.3rem]">La caja está cerrada</h2>
+          <p class="text-tenue">Ábrela con el efectivo que tienes para dar cambio. Al final del turno haces el corte y ves si cuadra.</p>
+          @if (estadoCaja()?.ultimo; as u) { <p class="chico tenue">Último corte: {{ u.folio }} por {{ u.cerroNombre }}, dejó <b class="num">{{ u.dejado | dinero }}</b>.</p> }
+          <button class="btn pri min-h-12 px-6 text-[1.05rem]" (click)="verApertura.set(true)">Abrir caja</button>
+        </div>
       } @else {
       <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_440px]">
         <!-- Productos -->
@@ -198,6 +215,23 @@ const BILLETES = [10, 50, 100, 500, 1000];
       </app-hoja>
     }
 
+    @if (verApertura()) { <app-abrir-caja [sugerido]="estadoCaja()?.sugerido ?? 0" [ultimo]="estadoCaja()?.ultimo ?? null" (cerrar)="verApertura.set(false)" (abierta)="verApertura.set(false); cargarTurno(); enfocar()" /> }
+    @if (verMov()) { <app-movimiento-caja (cerrar)="verMov.set(false)" (guardado)="verMov.set(false); cargarTurno()" /> }
+    @if (verCierre() && turno(); as t) { <app-cerrar-caja [turno]="t" (cerrar)="verCierre.set(false)" (cerrada)="verCierre.set(false); corte.set($event); cargarTurno()" /> }
+    @if (corte(); as c) {
+      <app-hoja [titulo]="'Corte ' + c.folio" ancho="440px" (cerrar)="corte.set(null)">
+        <div class="flex flex-col items-center gap-1 text-center">
+          <span class="grid size-12 place-items-center rounded-full text-[1.4rem]" [class]="c.diferencia === 0 ? 'bg-ok-suave text-ok' : c.diferencia > 0 ? 'bg-warn-suave text-warn' : 'bg-bad-suave text-bad'"><app-icono [nombre]="c.diferencia === 0 ? 'ok' : 'alerta'" /></span>
+          <h2 class="text-[1.25rem]">{{ c.diferencia === 0 ? 'La caja cuadra' : c.diferencia > 0 ? 'Sobran ' + (c.diferencia | dinero) : 'Faltan ' + (-c.diferencia | dinero) }}</h2>
+          <p class="text-tenue">Cobrado {{ c.resumen?.cobrado | dinero }} · Se deja {{ c.dejado | dinero }} · Retiro {{ c.retiro | dinero }}</p>
+        </div>
+        <ng-container pie>
+          <button class="btn" (click)="imprimirCorte(c)"><app-icono nombre="imprimir" />Imprimir corte</button><span class="flex-1"></span>
+          <button class="btn pri" (click)="corte.set(null)">Listo</button>
+        </ng-container>
+      </app-hoja>
+    }
+
     @if (hecha(); as h) {
       <app-venta-hecha [datos]="h" (cerrar)="hecha.set(null); enfocar()" (nueva)="hecha.set(null); enfocar()" />
     }
@@ -234,7 +268,13 @@ export class Caja implements OnInit, OnDestroy {
   efectivo = computed(() => (this.metodo() === 'Combinado' ? this.partes().Efectivo : this.metodo() === 'Efectivo' ? this.abona() : 0));
   ocupado = signal(false);
   hecha = signal<VentaHecha | null>(null);
-  hoyResumen = signal({ ventas: 0, cobrado: 0 });
+  /** Estado de la caja en la sucursal: turno abierto o, si está cerrada, cuánto dejó el último corte. */
+  estadoCaja = signal<{ turno: CajaTurno | null; sugerido?: number; ultimo?: { folio: string; cerroNombre: string; dejado: number } | null } | null>(null);
+  turno = computed(() => this.estadoCaja()?.turno ?? null);
+  verApertura = signal(false);
+  verMov = signal(false);
+  verCierre = signal(false);
+  corte = signal<DetalleTurno | null>(null);
 
   private vendibles = computed(() => this.productos().filter((p) => p.activo && p.tipo !== 'insumo'));
   categorias = computed(() => {
@@ -283,14 +323,20 @@ export class Caja implements OnInit, OnDestroy {
   async cargar() {
     try {
       this.productos.set(await this.api.get<Producto[]>('/productos'));
-      const h = hoy();
-      const vs = await this.api.get<Venta[]>('/ventas', { desde: h, hasta: h });
-      const validas = vs.filter((v) => v.estado !== 'cancelada');
-      this.hoyResumen.set({ ventas: validas.length, cobrado: r2(validas.reduce((a, v) => a + v.pagado, 0)) });
+      await this.cargarTurno();
     } catch (e) {
       this.aviso.error(mensajeError(e));
     }
   }
+
+  async cargarTurno() {
+    if (!this.s.sucursal()) { this.estadoCaja.set(null); return; }
+    this.estadoCaja.set(await this.api.get('/caja/turno'));
+  }
+
+  async abrirCierre() { await this.cargarTurno(); this.verCierre.set(true); }
+  hora(d: string) { return new Date(d).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }); }
+  imprimirCorte(c: DetalleTurno) { imprimirCorte(c, this.s); }
 
   limpio(n: string) { return n.replace(/ \(ejemplo\)$/, ''); }
   enCarrito(id: number) { return this.lineas().filter((l) => l.productoId === id).reduce((a, l) => a + l.cantidad, 0); }
@@ -335,6 +381,7 @@ export class Caja implements OnInit, OnDestroy {
 
   cobrar() {
     if (!this.lineas().length || this.pago()) return;
+    if (!this.turno()) { this.verApertura.set(true); return; }
     if (this.lineas().some((l) => !l.descripcion.trim())) { this.aviso.error('Escribe la descripción del concepto libre'); this.verCarrito.set(true); return; }
     this.verCarrito.set(false);
     this.metodo.set('Efectivo');
@@ -367,6 +414,7 @@ export class Caja implements OnInit, OnDestroy {
         clienteId: this.clienteId, clienteNombre: cliente?.nombre ?? '', clienteTelefono: cliente?.telefono ?? '',
         fecha: hoy(), descuentoTipo: 'pct', descuentoValor: this.descuento(), promocionId: null, notas: '',
         items: this.lineas().map((l) => ({ productoId: l.productoId, descripcion: l.descripcion.trim(), cantidad: l.cantidad, precio: l.precio })),
+        origen: 'caja',
         estado: this.despues() ? 'pendiente' : 'entregada',
         entrega: this.despues() ? this.entrega() : hoy(),
         ...(this.metodo() === 'Combinado'
@@ -405,7 +453,7 @@ export class Caja implements OnInit, OnDestroy {
   }
 
   atajo(ev: KeyboardEvent) {
-    if (this.hecha()) return;
+    if (this.hecha() || this.verCierre() || this.verApertura() || this.verMov()) return;
     if (ev.key === 'F2') { ev.preventDefault(); this.cobrar(); return; }
     const t = ev.target as HTMLElement;
     const escribiendo = t.closest('input, textarea, select, [contenteditable]');

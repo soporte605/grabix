@@ -42,6 +42,8 @@ export const routes: Routes = [
         ],
       },
       { path: 'caja', canActivate: [VENTA], loadComponent: () => import('./pages/caja').then((m) => m.Caja), title: 'Caja · Grabix' },
+      { path: 'cortes', canActivate: [VENTA], loadComponent: () => import('./pages/cortes').then((m) => m.Cortes), title: 'Cortes de caja · Grabix' },
+      { path: 'reportes', canActivate: [COSTOS], loadComponent: () => import('./pages/reportes').then((m) => m.Reportes), title: 'Reportes · Grabix' },
       { path: 'produccion', loadComponent: () => import('./pages/produccion').then((m) => m.Produccion), title: 'Producción · Grabix' },
       { path: 'inventario', canActivate: [VENTA], loadComponent: () => import('./pages/inventario').then((m) => m.Inventario), title: 'Inventario · Grabix' },
       { path: 'clientes', canActivate: [VENTA], loadComponent: () => import('./pages/clientes').then((m) => m.Clientes), title: 'Clientes · Grabix' },

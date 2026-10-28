@@ -25,6 +25,8 @@ const MENU: Item[] = [
   { ruta: 'inventario', texto: 'Inventario', icono: 'inventario', roles: TODOS.filter((r) => r !== 'produccion') },
   { ruta: 'clientes', texto: 'Clientes', icono: 'clientes', roles: [...COSTOS, 'vendedor'] },
   { ruta: 'compras', texto: 'Compras', icono: 'compras', roles: COSTOS },
+  { ruta: 'cortes', texto: 'Cortes de caja', icono: 'cortes', roles: [...COSTOS, 'vendedor'] },
+  { ruta: 'reportes', texto: 'Reportes', icono: 'reportes', roles: COSTOS },
   { ruta: 'promociones', texto: 'Promociones', icono: 'promociones', roles: [...COSTOS, 'vendedor'] },
   { ruta: 'sucursales', texto: 'Sucursales', icono: 'sucursales', roles: GER },
   { ruta: 'usuarios', texto: 'Usuarios', icono: 'usuarios', roles: GER },

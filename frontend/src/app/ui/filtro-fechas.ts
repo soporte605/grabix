@@ -4,7 +4,7 @@ import { fecha, hoy, sumarDias } from '../core/formato';
 import { Icono } from './icono';
 
 export interface Rango { desde: string; hasta: string }
-type Periodo = 'todo' | 'hoy' | 'semana' | 'mes' | 'mes_pasado' | 'anio' | 'fechas';
+export type Periodo = 'todo' | 'hoy' | 'semana' | 'mes' | 'mes_pasado' | 'anio' | 'fechas';
 
 const TEXTO: Record<Periodo, string> = {
   todo: 'Cualquier fecha', hoy: 'Hoy', semana: 'Esta semana', mes: 'Este mes', mes_pasado: 'Mes pasado', anio: 'Este año', fechas: 'Elegir fechas',
@@ -62,7 +62,10 @@ export class FiltroFechas {
   opciones = input<Periodo[]>(['todo', 'hoy', 'semana', 'mes', 'mes_pasado', 'anio', 'fechas']);
   nombres = TEXTO;
   abierto = signal(false);
+  /** Periodo con el que arranca (debe coincidir con el rango inicial). */
+  inicial = input<Periodo>('todo');
   periodo = signal<Periodo>('todo');
+  ngOnInit() { this.periodo.set(this.inicial()); }
   texto = computed(() => {
     const p = this.periodo(), r = this.rango();
     if (p !== 'fechas') return TEXTO[p];

@@ -61,3 +61,15 @@ export const EST_VTA: Record<EstadoVenta, [string, string]> = {
   pendiente: ['Pendiente', 'warn'], produccion: ['En producción', 'sec'], lista: ['Lista para entregar', 'acc'], entregada: ['Entregada', 'ok'], cancelada: ['Cancelada', 'bad'],
 };
 export const TIPOS: Record<TipoProducto, string> = { producto: 'Producto', insumo: 'Insumo', servicio: 'Servicio' };
+
+export interface ResumenTurno { porMetodo: Record<string, number>; cobrado: number; ventas: number; entradas: number; salidas: number; esperado: number }
+export interface CajaMovimiento { id: number; turnoId: number; tipo: 'entrada' | 'salida'; monto: number; concepto: string; usuarioNombre: string; creadoEn: string }
+export interface CajaTurno {
+  id: number; sucursalId: number; folio: string; estado: 'abierto' | 'cerrado';
+  abrioId: number; abrioNombre: string; abiertoEn: string; fondo: number; notasApertura: string | null;
+  cerroId: number | null; cerroNombre: string; cerradoEn: string | null;
+  esperado: number; contado: number; diferencia: number; dejado: number; retiro: number;
+  conteo: Record<string, number> | null; resumen: ResumenTurno | null; notasCierre: string | null;
+}
+export interface PagoTurno { id: number; ventaId: number; folio: string; cliente: string; monto: number; metodo: string; creadoEn: string }
+export interface DetalleTurno extends CajaTurno { movimientos: CajaMovimiento[]; pagos: PagoTurno[] }

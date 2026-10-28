@@ -312,6 +312,9 @@ export class Pago {
   @Column(money) monto: number;
   @Column({ length: 30, default: 'Efectivo' }) metodo: string;
   @Column({ type: 'int', nullable: true }) usuarioId: number | null;
+  /** Turno de caja abierto cuando se cobró (para el corte). */
+  @Index() @Column({ type: 'int', nullable: true }) turnoId: number | null;
+  @CreateDateColumn() creadoEn: Date;
 }
 
 @Entity('compras')
@@ -389,7 +392,66 @@ export class CotizadorUso {
   @Column({ type: 'int', default: 0 }) usos: number;
 }
 
+export enum EstadoTurno {
+  Abierto = 'abierto',
+  Cerrado = 'cerrado',
+}
+
+/** Resumen guardado al cerrar: no cambia aunque después se editen ventas. */
+export interface ResumenTurno {
+  porMetodo: Record<string, number>;
+  cobrado: number;
+  ventas: number;
+  entradas: number;
+  salidas: number;
+  esperado: number;
+}
+
+/** Turno de caja: de la apertura (fondo) al corte (efectivo contado y lo que se deja). Uno abierto por sucursal. */
+@Entity('caja_turnos')
+export class CajaTurno {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Index() @Column() sucursalId: number;
+  @Column({ length: 20 }) folio: string;
+  @Column({ type: 'enum', enum: EstadoTurno, default: EstadoTurno.Abierto }) estado: EstadoTurno;
+  @Column() abrioId: number;
+  @Column({ length: 120 }) abrioNombre: string;
+  @CreateDateColumn() abiertoEn: Date;
+  @Column(money) fondo: number;
+  @Column({ type: 'text', nullable: true }) notasApertura: string | null;
+  @Column({ type: 'int', nullable: true }) cerroId: number | null;
+  @Column({ length: 120, default: '' }) cerroNombre: string;
+  @Column({ type: 'datetime', nullable: true }) cerradoEn: Date | null;
+  /** Efectivo esperado, contado y diferencia (contado − esperado: + sobra, − falta). */
+  @Column(money) esperado: number;
+  @Column(money) contado: number;
+  @Column(money) diferencia: number;
+  /** Lo que se queda en el cajón para el siguiente turno; el resto es retiro. */
+  @Column(money) dejado: number;
+  @Column(money) retiro: number;
+  @Column({ type: 'json', nullable: true }) conteo: Record<string, number> | null;
+  @Column({ type: 'json', nullable: true }) resumen: ResumenTurno | null;
+  @Column({ type: 'text', nullable: true }) notasCierre: string | null;
+}
+
+@Entity('caja_movimientos')
+export class CajaMovimiento {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Index() @Column() turnoId: number;
+  /** entrada | salida */
+  @Column({ length: 10 }) tipo: string;
+  @Column(money) monto: number;
+  @Column({ length: 200 }) concepto: string;
+  @Column() usuarioId: number;
+  @Column({ length: 120 }) usuarioNombre: string;
+  @CreateDateColumn() creadoEn: Date;
+}
+
 export const ENTIDADES = [
+  CajaTurno,
+  CajaMovimiento,
   CotizadorUso,
   Taller,
   Sucursal,

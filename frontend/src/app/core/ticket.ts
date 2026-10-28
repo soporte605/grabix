@@ -75,3 +75,44 @@ export function imprimirTicket(html: string) {
   w.addEventListener('afterprint', quitar);
   setTimeout(() => { w.focus(); w.print(); setTimeout(quitar, 60_000); }, 150);
 }
+
+/** Ticket del corte de caja (mismo formato térmico que el de venta). */
+export function corteHtml(t: import('./modelos').DetalleTurno, taller: Taller, sucursal: string, ancho: AnchoTicket) {
+  const m = (n: number) => dinero(n, taller.moneda || '$');
+  const hora = (d: string | null) => (d ? new Date(d).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }) : '—');
+  const fila = (k: string, val: string, fuerte = false) => `<div class="f${fuerte ? ' b' : ''}"><span>${k}</span><span>${val}</span></div>`;
+  const r = t.resumen!;
+  const dif = t.diferencia;
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Corte ${esc(t.folio)}</title><style>
+@page { size: ${ancho}mm auto; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #fff; color: #000; }
+body { width: ${ancho}mm; padding: 4mm ${ancho === 58 ? 2.5 : 4}mm 6mm; font: ${ancho === 58 ? 11 : 12}px/1.35 ui-monospace, 'Cascadia Mono', Consolas, 'Courier New', monospace; }
+.c { text-align: center; } .b { font-weight: 700; } .t { font-size: 1.2em; font-weight: 700; margin-bottom: 1mm; }
+hr { border: 0; border-top: 1px dashed #000; margin: 2mm 0; }
+.f { display: flex; justify-content: space-between; gap: 2mm; } .f span:last-child { text-align: right; white-space: nowrap; }
+.s { font-weight: 700; margin: 1mm 0; }
+</style></head><body>
+<div class="c"><div class="t">${esc(taller.nombre)}</div><div>${esc(sucursal)}</div><div class="b">CORTE DE CAJA ${esc(t.folio)}</div></div>
+<hr>
+${fila('Abrió', esc(t.abrioNombre))}${fila('Apertura', hora(t.abiertoEn))}
+${fila('Cerró', esc(t.cerroNombre || '—'))}${fila('Cierre', hora(t.cerradoEn))}
+<hr>
+<div class="s">Cobros (${r.ventas} ${r.ventas === 1 ? 'venta' : 'ventas'})</div>
+${Object.entries(r.porMetodo).map(([k, v]) => fila(esc(k), m(v))).join('') || '<div>Sin cobros</div>'}
+${fila('Total cobrado', m(r.cobrado), true)}
+<hr>
+<div class="s">Efectivo</div>
+${fila('Fondo inicial', m(t.fondo))}
+${fila('Cobros en efectivo', m(r.porMetodo['Efectivo'] ?? 0))}
+${r.entradas ? fila('Entradas', m(r.entradas)) : ''}${r.salidas ? fila('Salidas', '-' + m(r.salidas)) : ''}
+${fila('Esperado', m(r.esperado), true)}
+${fila('Contado', m(t.contado), true)}
+${fila(dif === 0 ? 'Cuadra' : dif > 0 ? 'Sobrante' : 'Faltante', m(Math.abs(dif)), true)}
+<hr>
+${fila('Se deja en caja', m(t.dejado))}${fila('Retiro', m(t.retiro), true)}
+${t.movimientos.length ? '<hr><div class="s">Movimientos</div>' + t.movimientos.map((x) => fila(`${x.tipo === 'entrada' ? '+' : '-'} ${esc(x.concepto)}`, m(x.monto))).join('') : ''}
+${t.notasCierre ? `<hr><div>${esc(t.notasCierre)}</div>` : ''}
+<br><br><div class="c">______________________</div><div class="c">Firma</div>
+</body></html>`;
+}

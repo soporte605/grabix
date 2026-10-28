@@ -42,6 +42,8 @@ export class VentaDto extends DocumentoDto {
   @IsOptional() @ValidateNested() @Type(() => PagoDto) anticipo?: PagoDto;
   /** Solo al crear: pago combinado (por ejemplo, parte en efectivo y parte con tarjeta). */
   @IsOptional() @IsArray() @ArrayMaxSize(4) @ValidateNested({ each: true }) @Type(() => PagoDto) pagos?: PagoDto[];
+  /** 'caja' exige un turno de caja abierto en la sucursal. */
+  @IsOptional() @IsIn(['caja']) origen?: 'caja';
 }
 
 export class EstadoVentaDto {

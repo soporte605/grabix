@@ -7,6 +7,8 @@ const P: Record<string, string> = {
   expandir: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
   contraer: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>',
   menos: '<path d="M5 12h14"/>',
+  reportes: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  cortes: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
   editar: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
   basura: '<path d="M4 7h16M10 7V4h4v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
   izq: '<path d="M15 6l-6 6 6 6"/>',

@@ -19,6 +19,8 @@ import {
   TipoProducto,
   Venta,
   VentaItem,
+  CajaTurno,
+  EstadoTurno,
 } from '../entities';
 import { BitacoraService } from '../common/bitacora.service';
 import { Sesion } from '../common/sesion';
@@ -232,17 +234,25 @@ export class DocumentosService {
       pagos: [],
       pagado: 0,
     });
+    const turnoId = await this.turnoAbierto(em, s.tallerId, v.sucursalId);
+    if (dto.origen === 'caja' && !turnoId) throw new BadRequestException('La caja está cerrada. Ábrela para empezar a cobrar.');
     await this.llenar(em, s, v, dto, () => em.create(VentaItem));
     const pagos = [...(dto.anticipo?.monto ? [dto.anticipo] : []), ...(dto.pagos ?? []).filter((p) => p.monto > 0)];
     const suma = r2(pagos.reduce((a, p) => a + p.monto, 0));
     if (suma > v.total + 0.009) throw new BadRequestException('Los pagos suman más que el total de la venta');
     for (const p of pagos)
-      v.pagos.push(em.create(Pago, { fecha: p.fecha ?? hoy(), monto: r2(p.monto), metodo: p.metodo ?? 'Efectivo', usuarioId: s.usuarioId }));
+      v.pagos.push(em.create(Pago, { fecha: p.fecha ?? hoy(), monto: r2(p.monto), metodo: p.metodo ?? 'Efectivo', usuarioId: s.usuarioId, turnoId }));
     v.pagado = suma;
     await this.aplicarStock(em, s, v);
     const r = await em.save(v);
     await this.bitacora.registrar(s, 'crear', 'venta', r.id, { folio: r.folio, total: r.total }, em);
     return r;
+  }
+
+  /** Turno de caja abierto en la sucursal: los cobros quedan ligados a él para el corte. */
+  private async turnoAbierto(em: EntityManager, tallerId: number, sucursalId: number) {
+    const t = await em.findOne(CajaTurno, { where: { tallerId, sucursalId, estado: EstadoTurno.Abierto }, select: { id: true } });
+    return t?.id ?? null;
   }
 
   async editarVenta(s: Sesion, id: number, dto: VentaDto) {
@@ -279,7 +289,8 @@ export class DocumentosService {
     return this.ds.transaction(async (em) => {
       const v = await this.uno(em, Venta, s, id, true);
       if (v.estado === EstadoVenta.Cancelada) throw new BadRequestException('La venta está cancelada');
-      const p = em.create(Pago, { ventaId: v.id, fecha: dto.fecha ?? hoy(), monto: dto.monto, metodo: dto.metodo ?? 'Efectivo', usuarioId: s.usuarioId });
+      const turnoId = await this.turnoAbierto(em, s.tallerId, v.sucursalId);
+      const p = em.create(Pago, { ventaId: v.id, fecha: dto.fecha ?? hoy(), monto: dto.monto, metodo: dto.metodo ?? 'Efectivo', usuarioId: s.usuarioId, turnoId });
       await em.save(p);
       v.pagado = r2(v.pagado + dto.monto);
       await em.update(Venta, { id: v.id }, { pagado: v.pagado });

@@ -18,6 +18,8 @@ export const QUE_HACE: Record<string, string> = {
   inventario: 'Insumos, productos con receta y servicios, con su costo y existencia.',
   clientes: 'Tu cartera de clientes y lo que cada uno te ha comprado.',
   compras: 'Lo que compras a proveedores: suma inventario y actualiza tu costo.',
+  cortes: 'Cada turno de caja: apertura, cobros, entradas y salidas, y si cuadró el efectivo.',
+  reportes: 'Ventas por día, forma de pago, producto, vendedor y cliente, descargables en Excel.',
   promociones: 'Descuentos listos para aplicar y anunciar por WhatsApp.',
   sucursales: 'Tus talleres o puntos de venta, cada uno con su inventario.',
   usuarios: 'Invita a tu equipo y define qué puede ver y hacer cada quien.',
