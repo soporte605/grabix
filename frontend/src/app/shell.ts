@@ -47,9 +47,9 @@ function leer() {
         <div class="flex items-center gap-1 pb-[18px]" [class.flex-col]="corto()">
           <a class="flex min-w-0 flex-1 items-center gap-2.5 px-2 text-tinta no-underline" [class.!px-0]="corto()" routerLink="/app" [title]="corto() ? 'Grabix · ' + (s.taller()?.nombre ?? '') : ''">
             <app-logo [tamano]="32" [texto]="false" />
-            @if (!corto()) { <span class="min-w-0"><b class="block font-titulo text-[1.2rem] font-extrabold tracking-[-.02em]">Grabix</b><small class="block truncate text-[.75rem] text-tenue">{{ s.taller()?.nombre }}</small></span> }
+            @if (!corto()) { <span class="min-w-0"><b class="block font-titulo text-xl font-extrabold tracking-[-.02em]">Grabix</b><small class="block truncate text-xs text-tenue">{{ s.taller()?.nombre }}</small></span> }
           </a>
-          <button class="flex size-9 flex-none items-center justify-center rounded-lg text-[1.15rem] text-tenue hover:bg-superficie-2 hover:text-tinta" (click)="alternarMenu()"
+          <button class="flex size-9 flex-none items-center justify-center rounded-lg text-xl text-tenue hover:bg-superficie-2 hover:text-tinta" (click)="alternarMenu()"
             [attr.aria-label]="corto() ? 'Expandir menú' : 'Colapsar menú'" [title]="corto() ? 'Expandir menú' : 'Colapsar menú'" [attr.aria-expanded]="!corto()">
             <app-icono [nombre]="corto() ? 'panel-abrir' : 'panel'" />
           </button>
@@ -57,10 +57,10 @@ function leer() {
         <nav class="flex flex-col gap-0.5">
           @for (m of menu(); track m.ruta) {
             <a [routerLink]="m.ruta" [attr.data-tour]="'m-' + m.ruta" routerLinkActive="!bg-marca-suave !text-marca" [class]="ITEM + ' hover:bg-superficie-2' + (corto() ? CORTO : '')"
-              [title]="corto() ? m.texto : ''" [attr.aria-label]="corto() ? m.texto : null"><app-icono class="text-[1.1rem]" [nombre]="m.icono" />@if (!corto()) { <span class="truncate">{{ m.texto }}</span> }</a>
+              [title]="corto() ? m.texto : ''" [attr.aria-label]="corto() ? m.texto : null"><app-icono class="text-lg" [nombre]="m.icono" />@if (!corto()) { <span class="truncate">{{ m.texto }}</span> }</a>
           }
         </nav>
-        <button [class]="ITEM + ' mt-auto !text-tenue hover:bg-superficie-2' + (corto() ? CORTO : '')" (click)="s.salir()" [title]="corto() ? 'Salir' : ''" [attr.aria-label]="corto() ? 'Salir' : null"><app-icono class="text-[1.1rem]" nombre="salir" />@if (!corto()) { Salir }</button>
+        <button [class]="ITEM + ' mt-auto !text-tenue hover:bg-superficie-2' + (corto() ? CORTO : '')" (click)="s.salir()" [title]="corto() ? 'Salir' : ''" [attr.aria-label]="corto() ? 'Salir' : null"><app-icono class="text-lg" nombre="salir" />@if (!corto()) { Salir }</button>
       </aside>
 
       <div class="min-w-0">
@@ -77,14 +77,14 @@ function leer() {
             }
           </div>
           <div class="flex min-w-0 items-center gap-1">
-            <button data-tour="asistente" class="mr-1 flex h-9 items-center gap-1.5 rounded-lg border border-linea px-2.5 text-[.88rem] font-semibold hover:border-marca"
+            <button data-tour="asistente" class="mr-1 flex h-9 items-center gap-1.5 rounded-lg border border-linea px-2.5 text-base font-semibold hover:border-marca"
               [class.!border-marca]="asistente.abierto()" [class.!bg-marca-suave]="asistente.abierto()" (click)="asistente.abierto() ? asistente.abierto.set(false) : asistente.abrir()"
               [attr.aria-expanded]="asistente.abierto()" aria-label="Asistente con IA">
-              <app-icono class="text-[1.1rem] text-acento-2" nombre="chispa" /><span class="max-[380px]:hidden">Asistente</span>
+              <app-icono class="text-lg text-acento-2" nombre="chispa" /><span class="max-[380px]:hidden">Asistente</span>
             </button>
             <span class="chico truncate text-tenue max-sm:hidden">{{ s.perfil()?.usuario?.nombre }}</span>
             <button data-tour="ayuda" class="flex size-9 items-center justify-center rounded-lg text-tenue hover:bg-superficie-2 hover:text-tinta" (click)="tour.iniciar(menu())"
-              title="Recorrido guiado" aria-label="Ver el recorrido guiado"><app-icono class="text-[1.15rem]" nombre="info" /></button>
+              title="Recorrido guiado" aria-label="Ver el recorrido guiado"><app-icono class="text-xl" nombre="info" /></button>
             <app-selector-tema />
           </div>
         </div>
@@ -105,17 +105,17 @@ function leer() {
 
       <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-linea bg-superficie pt-1.5 pr-[max(6px,env(safe-area-inset-right,0px))] pb-[calc(6px+env(safe-area-inset-bottom,0px))] pl-[max(6px,env(safe-area-inset-left,0px))] lg:hidden">
         @for (m of principales(); track m.ruta) {
-          <a [routerLink]="m.ruta" [attr.data-tour]="'m-' + m.ruta" routerLinkActive="!text-marca" [class]="PESTANA"><app-icono class="text-[1.25rem]" [nombre]="m.icono" />{{ m.texto }}</a>
+          <a [routerLink]="m.ruta" [attr.data-tour]="'m-' + m.ruta" routerLinkActive="!text-marca" [class]="PESTANA"><app-icono class="text-xl" [nombre]="m.icono" />{{ m.texto }}</a>
         }
-        <button [class]="PESTANA" [class.!text-marca]="mas()" (click)="mas.set(!mas())"><app-icono class="text-[1.25rem]" nombre="mas" />Más</button>
+        <button [class]="PESTANA" [class.!text-marca]="mas()" (click)="mas.set(!mas())"><app-icono class="text-xl" nombre="mas" />Más</button>
       </nav>
       <app-asistente />
       @if (bienvenida()) { <app-bienvenida [modulos]="menu()" (cerrar)="vista.set(true)" /> }
       @if (s.taller()?.eliminarEn; as fecha) {
         <div class="fixed inset-0 z-[70] grid place-items-center bg-fondo p-4">
           <div class="tarjeta flex w-full max-w-[520px] flex-col gap-3 p-6">
-            <span class="grid size-11 place-items-center rounded-xl bg-bad-suave text-bad"><app-icono class="text-[1.3rem]" nombre="alerta" /></span>
-            <h1 class="text-[1.35rem]">Tu cuenta se eliminará el {{ fecha | fecha }}</h1>
+            <span class="grid size-11 place-items-center rounded-xl bg-bad-suave text-bad"><app-icono class="text-xl" nombre="alerta" /></span>
+            <h1 class="text-xl">Tu cuenta se eliminará el {{ fecha | fecha }}</h1>
             <p class="text-tenue">Mientras tanto nadie de tu equipo puede entrar. Ese día se borran de forma definitiva todos los datos de {{ s.taller()!.nombre }}.</p>
             <p class="text-tenue">Si cambiaste de opinión, restáurala y todo seguirá como estaba.</p>
             <div class="fila mt-2">
@@ -139,8 +139,8 @@ function leer() {
 export class Shell {
   readonly ITEM = 'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[9px] text-left font-medium text-tinta no-underline';
   readonly CORTO = ' justify-center !px-0';
-  readonly PESTANA = 'flex flex-col items-center gap-0.5 py-1 text-[.68rem] text-tenue no-underline';
-  readonly BANNER = 'mx-[max(16px,env(safe-area-inset-left,0px))] lg:mx-6 mt-3 flex flex-wrap gap-2.5 rounded-[10px] px-3.5 py-2.5 text-[.88rem]';
+  readonly PESTANA = 'flex flex-col items-center gap-0.5 py-1 text-xs text-tenue no-underline';
+  readonly BANNER = 'mx-[max(16px,env(safe-area-inset-left,0px))] lg:mx-6 mt-3 flex flex-wrap gap-2.5 rounded-[10px] px-3.5 py-2.5 text-base';
   s = inject(SesionService);
   avisos = inject(AvisoService);
   asistente = inject(AsistenteService);

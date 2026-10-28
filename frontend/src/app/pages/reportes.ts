@@ -44,8 +44,8 @@ const VISTAS: { id: Vista; texto: string; clave: string; cuenta: 'ventas' | 'pag
         @for (v of vistas; track v.id) { <button class="chip" [class.on]="vista() === v.id" (click)="vista.set(v.id)">{{ v.texto }}</button> }
       </div>
       <div class="tarjeta overflow-x-auto">
-        <table class="w-full min-w-[560px] text-[.92rem]">
-          <thead><tr class="border-b border-linea text-left text-[.72rem] font-semibold tracking-[.06em] text-tenue uppercase">
+        <table class="w-full min-w-[560px] text-base">
+          <thead><tr class="border-b border-linea text-left text-xs font-semibold tracking-[.06em] text-tenue uppercase">
             <th class="px-4 py-2.5">{{ def().clave }}</th>
             <th class="px-3 py-2.5 text-right">{{ def().cuentaTexto }}</th>
             <th class="w-[34%] px-3 py-2.5 text-right">Total</th>

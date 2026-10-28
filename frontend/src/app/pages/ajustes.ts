@@ -90,7 +90,7 @@ import { Hoja } from '../ui/hoja';
     @if (borrar(); as b) {
       <app-hoja titulo="Eliminar cuenta" ancho="560px" (cerrar)="borrar.set(null)">
         <p>Al confirmar:</p>
-        <ul class="ml-5 list-disc text-[.92rem] text-tenue">
+        <ul class="ml-5 list-disc text-base text-tenue">
           <li>La cuenta de <b class="text-tinta">{{ s.taller()?.nombre }}</b> se desactiva y nadie de tu equipo podrá entrar.</li>
           <li>Durante {{ dias }} días puedes entrar con tu correo y restaurarla tal como estaba.</li>
           <li>Pasado ese plazo borramos de forma definitiva todos sus datos. No se pueden recuperar.</li>
@@ -99,7 +99,7 @@ import { Hoja } from '../ui/hoja';
         <div class="campo"><label for="e-n">Escribe <b>{{ s.taller()?.nombre }}</b> para confirmar</label><input id="e-n" [(ngModel)]="b.nombre" autocomplete="off"></div>
         <app-campo-clave entrada="e-c" etiqueta="Tu contraseña" autocomplete="current-password" [(valor)]="b.clave" />
         <div class="campo"><label for="e-m">¿Por qué te vas? (opcional)</label><textarea id="e-m" [(ngModel)]="b.motivo" maxlength="500" placeholder="Nos ayuda a mejorar"></textarea></div>
-        <label class="flex items-start gap-2 text-[.92rem]"><input type="checkbox" class="mt-1" [(ngModel)]="b.entiendo">Entiendo que después de {{ dias }} días mis datos se borran para siempre.</label>
+        <label class="flex items-start gap-2 text-base"><input type="checkbox" class="mt-1" [(ngModel)]="b.entiendo">Entiendo que después de {{ dias }} días mis datos se borran para siempre.</label>
         <ng-container pie>
           <button class="btn" (click)="borrar.set(null)">Cancelar</button>
           <span class="flex-1"></span>

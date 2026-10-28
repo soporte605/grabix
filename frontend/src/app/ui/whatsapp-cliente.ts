@@ -31,7 +31,7 @@ const limpio = (s: string) => s.replace(/\s*\(ejemplo\)\s*$/i, '').trim();
               <span class="mt-0.5 grid size-4 flex-none place-items-center rounded-full border-2" [class]="elegida() === p.id ? 'border-marca' : 'border-linea'">
                 @if (elegida() === p.id) { <span class="size-2 rounded-full bg-marca"></span> }
               </span>
-              <span class="min-w-0"><b class="block text-[.95rem]">{{ p.titulo }}</b><span class="block text-[.84rem] text-tenue">{{ p.detalle }}</span></span>
+              <span class="min-w-0"><b class="block text-base">{{ p.titulo }}</b><span class="block text-sm text-tenue">{{ p.detalle }}</span></span>
             </button>
           }
         </div>

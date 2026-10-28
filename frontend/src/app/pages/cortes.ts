@@ -56,7 +56,7 @@ import { imprimirCorte } from '../ui/turno-caja';
     @if (detalle(); as d) {
       <app-hoja [titulo]="'Turno ' + d.folio" ancho="720px" (cerrar)="detalle.set(null)">
         <span cabeza class="pill" [class]="d.estado === 'abierto' ? 'ok' : 'mut'">{{ d.estado === 'abierto' ? 'Abierto' : 'Cerrado' }}</span>
-        <div class="grid gap-x-6 gap-y-1 text-[.92rem] sm:grid-cols-2">
+        <div class="grid gap-x-6 gap-y-1 text-base sm:grid-cols-2">
           <div class="flex justify-between"><span class="text-tenue">Abrió</span><span>{{ d.abrioNombre }} · {{ fechaHora(d.abiertoEn) }}</span></div>
           <div class="flex justify-between"><span class="text-tenue">Cerró</span><span>{{ d.cerradoEn ? d.cerroNombre + ' · ' + fechaHora(d.cerradoEn) : '—' }}</span></div>
           <div class="flex justify-between"><span class="text-tenue">Sucursal</span><span>{{ sucursal(d.sucursalId) }}</span></div>
@@ -65,25 +65,25 @@ import { imprimirCorte } from '../ui/turno-caja';
         @if (d.resumen; as r) {
           <div class="grid gap-3 sm:grid-cols-2">
             <section class="rounded-xl border border-linea bg-superficie p-3">
-              <h3 class="mb-1.5 text-[.95rem]">Cobros</h3>
-              @for (k of llaves(r.porMetodo); track k) { <div class="flex justify-between text-[.92rem]"><span class="text-tenue">{{ k }}</span><span class="num">{{ r.porMetodo[k] | dinero }}</span></div> }
+              <h3 class="mb-1.5 text-base">Cobros</h3>
+              @for (k of llaves(r.porMetodo); track k) { <div class="flex justify-between text-base"><span class="text-tenue">{{ k }}</span><span class="num">{{ r.porMetodo[k] | dinero }}</span></div> }
               @empty { <p class="chico tenue">Sin cobros.</p> }
               <div class="mt-1.5 flex justify-between border-t border-linea pt-1.5 font-semibold"><span>Total ({{ r.ventas }} {{ r.ventas === 1 ? 'venta' : 'ventas' }})</span><span class="num">{{ r.cobrado | dinero }}</span></div>
             </section>
             <section class="rounded-xl border border-linea bg-superficie p-3">
-              <h3 class="mb-1.5 text-[.95rem]">Efectivo</h3>
-              <div class="flex justify-between text-[.92rem]"><span class="text-tenue">Esperado</span><span class="num">{{ r.esperado | dinero }}</span></div>
+              <h3 class="mb-1.5 text-base">Efectivo</h3>
+              <div class="flex justify-between text-base"><span class="text-tenue">Esperado</span><span class="num">{{ r.esperado | dinero }}</span></div>
               @if (d.estado === 'cerrado') {
-                <div class="flex justify-between text-[.92rem]"><span class="text-tenue">Contado</span><span class="num">{{ d.contado | dinero }}</span></div>
-                <div class="flex justify-between text-[.92rem] font-semibold" [class]="d.diferencia === 0 ? 'text-ok' : d.diferencia > 0 ? 'text-warn' : 'text-bad'"><span>{{ d.diferencia === 0 ? 'Cuadró' : d.diferencia > 0 ? 'Sobrante' : 'Faltante' }}</span><span class="num">{{ (d.diferencia < 0 ? -d.diferencia : d.diferencia) | dinero }}</span></div>
-                <div class="mt-1.5 flex justify-between border-t border-linea pt-1.5 text-[.92rem]"><span class="text-tenue">Se dejó en caja</span><span class="num">{{ d.dejado | dinero }}</span></div>
-                <div class="flex justify-between text-[.92rem] font-semibold"><span>Retiro</span><span class="num">{{ d.retiro | dinero }}</span></div>
+                <div class="flex justify-between text-base"><span class="text-tenue">Contado</span><span class="num">{{ d.contado | dinero }}</span></div>
+                <div class="flex justify-between text-base font-semibold" [class]="d.diferencia === 0 ? 'text-ok' : d.diferencia > 0 ? 'text-warn' : 'text-bad'"><span>{{ d.diferencia === 0 ? 'Cuadró' : d.diferencia > 0 ? 'Sobrante' : 'Faltante' }}</span><span class="num">{{ (d.diferencia < 0 ? -d.diferencia : d.diferencia) | dinero }}</span></div>
+                <div class="mt-1.5 flex justify-between border-t border-linea pt-1.5 text-base"><span class="text-tenue">Se dejó en caja</span><span class="num">{{ d.dejado | dinero }}</span></div>
+                <div class="flex justify-between text-base font-semibold"><span>Retiro</span><span class="num">{{ d.retiro | dinero }}</span></div>
               }
             </section>
           </div>
         }
         @if (d.movimientos.length) {
-          <section><h3 class="mb-1.5 text-[.95rem]">Entradas y salidas</h3>
+          <section><h3 class="mb-1.5 text-base">Entradas y salidas</h3>
             <div class="tarjeta lista">
               @for (m of d.movimientos; track m.id) {
                 <div class="renglon cursor-default hover:bg-transparent"><span class="t">{{ m.concepto }}</span><span class="d num" [class]="m.tipo === 'salida' ? 'text-bad' : 'text-ok'">{{ m.tipo === 'salida' ? '−' : '+' }}{{ m.monto | dinero }}</span>
@@ -92,7 +92,7 @@ import { imprimirCorte } from '../ui/turno-caja';
             </div>
           </section>
         }
-        <section><h3 class="mb-1.5 text-[.95rem]">Cobros del turno</h3>
+        <section><h3 class="mb-1.5 text-base">Cobros del turno</h3>
           <div class="tarjeta lista">
             @for (p of d.pagos; track p.id) {
               <div class="renglon cursor-default hover:bg-transparent"><span class="t">{{ p.cliente }}</span><span class="d num">{{ p.monto | dinero }}</span>

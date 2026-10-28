@@ -34,7 +34,7 @@ export function rangoDe(p: Periodo): Rango {
   imports: [FormsModule, Icono],
   host: { class: 'relative inline-flex', '(document:click)': 'fuera($event)', '(keydown.escape)': 'abierto.set(false)' },
   template: `
-    <button type="button" class="flex min-h-10 items-center gap-2 rounded-[9px] border border-linea bg-superficie px-3 py-2 text-[.9rem] font-medium hover:border-marca"
+    <button type="button" class="flex min-h-10 items-center gap-2 rounded-[9px] border border-linea bg-superficie px-3 py-2 text-base font-medium hover:border-marca"
       [class.!border-marca]="periodo() !== 'todo'" [class.!text-marca]="periodo() !== 'todo'"
       (click)="abierto.set(!abierto())" aria-haspopup="menu" [attr.aria-expanded]="abierto()">
       <app-icono nombre="calendario" />{{ texto() }}<app-icono nombre="abajo" class="text-tenue" />
@@ -43,12 +43,12 @@ export function rangoDe(p: Periodo): Rango {
       <div class="absolute top-full right-0 z-40 mt-1.5 flex w-64 animate-entra flex-col gap-0.5 rounded-xl border border-linea bg-superficie p-1.5 shadow-caja max-sm:left-0 max-sm:right-auto" role="menu">
         @for (p of opciones(); track p) {
           <button type="button" role="menuitemradio" [attr.aria-checked]="periodo() === p" (click)="elegir(p)"
-            class="rounded-lg px-2.5 py-2 text-left text-[.9rem] hover:bg-superficie-2" [class.!bg-marca-suave]="periodo() === p" [class.font-semibold]="periodo() === p">{{ nombres[p] }}</button>
+            class="rounded-lg px-2.5 py-2 text-left text-base hover:bg-superficie-2" [class.!bg-marca-suave]="periodo() === p" [class.font-semibold]="periodo() === p">{{ nombres[p] }}</button>
         }
         @if (periodo() === 'fechas') {
           <div class="mt-1 grid grid-cols-2 gap-2 border-t border-linea px-1 pt-2.5 pb-1">
-            <label class="flex flex-col gap-1 text-[.74rem] font-semibold text-tenue">Desde<input class="entrada text-[.88rem] text-tinta" type="date" [ngModel]="rango().desde" (ngModelChange)="fijar({ desde: $event, hasta: rango().hasta })"></label>
-            <label class="flex flex-col gap-1 text-[.74rem] font-semibold text-tenue">Hasta<input class="entrada text-[.88rem] text-tinta" type="date" [ngModel]="rango().hasta" (ngModelChange)="fijar({ desde: rango().desde, hasta: $event })"></label>
+            <label class="flex flex-col gap-1 text-xs font-semibold text-tenue">Desde<input class="entrada text-base text-tinta" type="date" [ngModel]="rango().desde" (ngModelChange)="fijar({ desde: $event, hasta: rango().hasta })"></label>
+            <label class="flex flex-col gap-1 text-xs font-semibold text-tenue">Hasta<input class="entrada text-base text-tinta" type="date" [ngModel]="rango().hasta" (ngModelChange)="fijar({ desde: rango().desde, hasta: $event })"></label>
           </div>
         }
       </div>

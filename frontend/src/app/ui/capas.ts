@@ -27,10 +27,10 @@ const ESTILO = {
           [class]="estilo[a.tipo].borde" [attr.role]="a.tipo === 'error' ? 'alert' : 'status'" (mouseenter)="avisos.pausar(a.id)" (mouseleave)="avisos.reanudar(a)">
           <span class="flex size-8 flex-none items-center justify-center rounded-full" [class]="estilo[a.tipo].circulo"><app-icono [nombre]="estilo[a.tipo].icono" /></span>
           <div class="min-w-0 flex-1 pt-0.5">
-            <p class="text-[.9rem] font-semibold">{{ a.titulo }}</p>
-            <p class="text-[.86rem] text-tenue wrap-anywhere">{{ a.texto }}</p>
+            <p class="text-base font-semibold">{{ a.titulo }}</p>
+            <p class="text-sm text-tenue wrap-anywhere">{{ a.texto }}</p>
           </div>
-          <button class="flex size-8 flex-none items-center justify-center rounded-lg text-[1.3rem] leading-none text-tenue hover:bg-superficie-2 hover:text-tinta"
+          <button class="flex size-8 flex-none items-center justify-center rounded-lg text-xl leading-none text-tenue hover:bg-superficie-2 hover:text-tinta"
             (click)="avisos.cerrar(a.id)" aria-label="Cerrar aviso">×</button>
         </div>
       }
@@ -42,12 +42,12 @@ const ESTILO = {
         <section class="relative w-full max-w-[420px] rounded-t-2xl bg-superficie p-5 pb-[calc(20px+env(safe-area-inset-bottom,0px))] shadow-caja motion-safe:animate-sube sm:rounded-2xl sm:pb-5"
           role="alertdialog" aria-modal="true" aria-labelledby="conf-t" aria-describedby="conf-d">
           <div class="flex gap-3.5">
-            <span class="flex size-10 flex-none items-center justify-center rounded-full text-[1.2rem]" [class]="p.peligro ? 'bg-bad-suave text-bad' : 'bg-marca-suave text-marca'">
+            <span class="flex size-10 flex-none items-center justify-center rounded-full text-xl" [class]="p.peligro ? 'bg-bad-suave text-bad' : 'bg-marca-suave text-marca'">
               <app-icono [nombre]="p.peligro ? 'alerta' : 'info'" />
             </span>
             <div class="min-w-0">
               <h2 id="conf-t">{{ p.titulo }}</h2>
-              @if (p.texto) { <p id="conf-d" class="mt-1.5 text-[.92rem] text-tenue">{{ p.texto }}</p> }
+              @if (p.texto) { <p id="conf-d" class="mt-1.5 text-base text-tenue">{{ p.texto }}</p> }
             </div>
           </div>
           <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

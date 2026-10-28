@@ -64,10 +64,10 @@ interface Form {
               <input class="entrada col-span-6 p-2 sm:col-span-3" [(ngModel)]="it.descripcion" (ngModelChange)="tocar()" placeholder="Descripción" aria-label="Descripción">
               <input class="entrada col-span-2 p-2" type="number" inputmode="decimal" [(ngModel)]="it.cantidad" (ngModelChange)="tocar()" placeholder="Cant." aria-label="Cantidad">
               <input class="entrada col-span-2 p-2" type="number" inputmode="decimal" [(ngModel)]="it.precio" (ngModelChange)="tocar()" placeholder="Precio c/u" aria-label="Precio unitario">
-              <span class="num col-span-2 flex flex-col self-center text-right text-[.9rem]">{{ (it.cantidad || 0) * (it.precio || 0) | dinero }}
-                @if (s.verCostos() && it.productoId) { <small class="text-[.72rem] text-tenue">costo {{ costoDe(it) | dinero }}</small> }</span>
+              <span class="num col-span-2 flex flex-col self-center text-right text-base">{{ (it.cantidad || 0) * (it.precio || 0) | dinero }}
+                @if (s.verCostos() && it.productoId) { <small class="text-xs text-tenue">costo {{ costoDe(it) | dinero }}</small> }</span>
             </div>
-            <button class="text-[1.4rem] text-bad" (click)="quitar(i)" aria-label="Quitar concepto">×</button>
+            <button class="text-2xl text-bad" (click)="quitar(i)" aria-label="Quitar concepto">×</button>
           </div>
         }
         <div><button class="btn sm" (click)="agregar()"><app-icono nombre="mas1" />Agregar concepto</button></div>
@@ -125,7 +125,7 @@ interface Form {
           </div>
           @if (cobro().cambio > 0 || cobro().falta > 0) {
             <div class="flex flex-wrap gap-2.5">
-              @if (cobro().cambio > 0) { <p class="rounded-xl bg-ok-suave px-3.5 py-2 text-ok">Cambio <b class="num text-[1.2rem]">{{ cobro().cambio | dinero }}</b></p> }
+              @if (cobro().cambio > 0) { <p class="rounded-xl bg-ok-suave px-3.5 py-2 text-ok">Cambio <b class="num text-xl">{{ cobro().cambio | dinero }}</b></p> }
               @if (cobro().falta > 0) { <p class="rounded-xl bg-warn-suave px-3.5 py-2 text-warn">Le faltan <b class="num">{{ cobro().falta | dinero }}</b> para cubrir lo que abona</p> }
             </div>
           }

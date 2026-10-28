@@ -7,12 +7,12 @@ import { Icono } from './icono';
   imports: [Icono],
   template: `
     @if (total() > por()) {
-      <nav class="mt-3 flex flex-wrap items-center justify-between gap-2 text-[.84rem] text-tenue" aria-label="Páginas">
+      <nav class="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-tenue" aria-label="Páginas">
         <span class="num">{{ desde() }}–{{ hasta() }} de {{ total() }}</span>
         <span class="flex items-center gap-1">
           <button type="button" class="ico" [disabled]="pagina() <= 1" (click)="ir(pagina() - 1)" aria-label="Página anterior"><app-icono nombre="izq" /></button>
           @for (n of numeros(); track $index) {
-            @if (n) { <button type="button" class="ico num text-[.84rem]" [class.pagina-on]="n === pagina()" [attr.aria-current]="n === pagina() ? 'page' : null" (click)="ir(n)">{{ n }}</button> }
+            @if (n) { <button type="button" class="ico num text-sm" [class.pagina-on]="n === pagina()" [attr.aria-current]="n === pagina() ? 'page' : null" (click)="ir(n)">{{ n }}</button> }
             @else { <span class="px-1">…</span> }
           }
           <button type="button" class="ico" [disabled]="pagina() >= paginas()" (click)="ir(pagina() + 1)" aria-label="Página siguiente"><app-icono nombre="der" /></button>

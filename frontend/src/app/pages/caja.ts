@@ -31,20 +31,20 @@ const BILLETES = [10, 50, 100, 500, 1000];
     <div class="flex flex-col bg-fondo" [class]="grande() ? 'fixed inset-0 z-40 p-3 lg:p-4' : 'h-[calc(100dvh-170px)] min-h-[560px] lg:h-[calc(100dvh-110px)]'">
       <!-- Barra de la caja -->
       <header class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span class="flex size-10 flex-none items-center justify-center rounded-xl bg-[#002150] text-[1.25rem] text-[#8fd85a]"><app-icono nombre="caja" /></span>
+        <span class="flex size-10 flex-none items-center justify-center rounded-xl bg-[#002150] text-xl text-[#8fd85a]"><app-icono nombre="caja" /></span>
         <div class="min-w-0 flex-1">
-          <h1 class="text-[1.3rem] leading-tight">Caja</h1>
+          <h1 class="text-xl leading-tight">Caja</h1>
           <p class="chico truncate text-tenue">{{ s.nombreSucursal() }} · {{ s.perfil()?.usuario?.nombre }}</p>
         </div>
         <div class="flex flex-wrap items-center gap-2 max-sm:order-last max-sm:w-full">
           @if (turno(); as t) {
-            <span class="flex items-center gap-1.5 rounded-lg border border-linea bg-superficie px-3 py-1.5 text-[.82rem] text-tenue" [title]="'Abrió ' + t.abrioNombre">
+            <span class="flex items-center gap-1.5 rounded-lg border border-linea bg-superficie px-3 py-1.5 text-sm text-tenue" [title]="'Abrió ' + t.abrioNombre">
               <i class="inline-block size-2 rounded-full bg-ok"></i>{{ t.folio }} · desde {{ hora(t.abiertoEn) }}</span>
-            <span class="rounded-lg border border-linea bg-superficie px-3 py-1.5 text-[.82rem] text-tenue"><b class="num text-tinta">{{ t.resumen?.ventas ?? 0 }}</b> {{ t.resumen?.ventas === 1 ? 'venta' : 'ventas' }} · <b class="num text-tinta">{{ (t.resumen?.cobrado ?? 0) | dinero }}</b></span>
+            <span class="rounded-lg border border-linea bg-superficie px-3 py-1.5 text-sm text-tenue"><b class="num text-tinta">{{ t.resumen?.ventas ?? 0 }}</b> {{ t.resumen?.ventas === 1 ? 'venta' : 'ventas' }} · <b class="num text-tinta">{{ (t.resumen?.cobrado ?? 0) | dinero }}</b></span>
             <button class="btn sm" (click)="verMov.set(true)" title="Entrada o salida de efectivo">± Efectivo</button>
             <button class="btn sm" (click)="abrirCierre()"><app-icono nombre="caja" />Cerrar caja</button>
           } @else if (estadoCaja()) {
-            <span class="flex items-center gap-1.5 rounded-lg border border-linea bg-superficie px-3 py-1.5 text-[.82rem] text-tenue"><i class="inline-block size-2 rounded-full bg-bad"></i>Caja cerrada</span>
+            <span class="flex items-center gap-1.5 rounded-lg border border-linea bg-superficie px-3 py-1.5 text-sm text-tenue"><i class="inline-block size-2 rounded-full bg-bad"></i>Caja cerrada</span>
             <button class="btn sm pri" (click)="verApertura.set(true)">Abrir caja</button>
           }
         </div>
@@ -57,11 +57,11 @@ const BILLETES = [10, 50, 100, 500, 1000];
         <div class="tarjeta p-6 text-center"><b>Elige una sucursal</b><p class="tenue">La caja vende del inventario de una sucursal. Elígela arriba a la izquierda.</p></div>
       } @else if (estadoCaja() && !turno()) {
         <div class="tarjeta m-auto flex w-full max-w-[460px] flex-col items-center gap-3 p-8 text-center">
-          <span class="grid size-14 place-items-center rounded-2xl bg-marca-suave text-[1.6rem] text-marca"><app-icono nombre="caja" /></span>
-          <h2 class="text-[1.3rem]">La caja está cerrada</h2>
+          <span class="grid size-14 place-items-center rounded-2xl bg-marca-suave text-2xl text-marca"><app-icono nombre="caja" /></span>
+          <h2 class="text-xl">La caja está cerrada</h2>
           <p class="text-tenue">Ábrela con el efectivo que tienes para dar cambio. Al final del turno haces el corte y ves si cuadra.</p>
           @if (estadoCaja()?.ultimo; as u) { <p class="chico tenue">Último corte: {{ u.folio }} por {{ u.cerroNombre }}, dejó <b class="num">{{ u.dejado | dinero }}</b>.</p> }
-          <button class="btn pri min-h-12 px-6 text-[1.05rem]" (click)="verApertura.set(true)">Abrir caja</button>
+          <button class="btn pri min-h-12 px-6 text-lg" (click)="verApertura.set(true)">Abrir caja</button>
         </div>
       } @else {
       <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_440px]">
@@ -70,7 +70,7 @@ const BILLETES = [10, 50, 100, 500, 1000];
           <div class="flex items-center gap-2">
             <div class="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-linea bg-superficie px-3 focus-within:border-marca">
               <app-icono nombre="buscar" class="text-tenue" />
-              <input #busqueda class="min-w-0 flex-1 bg-transparent py-2.5 text-[1rem] outline-none" type="search" placeholder="Buscar producto  ( / )" [ngModel]="q()" (ngModelChange)="q.set($event)"
+              <input #busqueda class="min-w-0 flex-1 bg-transparent py-2.5 text-lg outline-none" type="search" placeholder="Buscar producto  ( / )" [ngModel]="q()" (ngModelChange)="q.set($event)"
                 (keydown.enter)="agregarPrimero()" (keydown.escape)="q.set('')" aria-label="Buscar producto" autocomplete="off">
             </div>
             <button class="btn" (click)="libre()" title="Agregar un concepto que no está en el catálogo"><app-icono nombre="mas1" /><span class="max-sm:hidden">Concepto libre</span></button>
@@ -82,12 +82,12 @@ const BILLETES = [10, 50, 100, 500, 1000];
             @for (p of visibles(); track p.id) {
               <button class="group relative flex min-h-[104px] flex-col justify-between gap-1.5 rounded-xl border border-linea bg-superficie p-3 text-left transition hover:-translate-y-px hover:border-marca hover:shadow-caja active:translate-y-0 disabled:opacity-45"
                 (click)="agregar(p)" [disabled]="agotado(p)" [class.!border-marca]="enCarrito(p.id)">
-                <span class="line-clamp-3 text-[.9rem] leading-snug font-semibold">{{ limpio(p.nombre) }}</span>
+                <span class="line-clamp-3 text-base leading-snug font-semibold">{{ limpio(p.nombre) }}</span>
                 <span class="flex items-end justify-between gap-1">
-                  <b class="num text-[1.05rem] text-marca">{{ p.precio | dinero }}</b>
-                  @if (p.controlaStock) { <span class="text-[.7rem]" [class]="p.existencia <= p.minimo ? 'font-semibold text-warn' : 'text-tenue'">{{ agotado(p) ? 'Agotado' : p.existencia + ' ' + p.unidad }}</span> }
+                  <b class="num text-lg text-marca">{{ p.precio | dinero }}</b>
+                  @if (p.controlaStock) { <span class="text-xs" [class]="p.existencia <= p.minimo ? 'font-semibold text-warn' : 'text-tenue'">{{ agotado(p) ? 'Agotado' : p.existencia + ' ' + p.unidad }}</span> }
                 </span>
-                @if (enCarrito(p.id); as n) { <span class="absolute -top-1.5 -right-1.5 flex size-6 items-center justify-center rounded-full bg-marca text-[.75rem] font-bold text-sobre-marca">{{ n }}</span> }
+                @if (enCarrito(p.id); as n) { <span class="absolute -top-1.5 -right-1.5 flex size-6 items-center justify-center rounded-full bg-marca text-xs font-bold text-sobre-marca">{{ n }}</span> }
               </button>
             } @empty {
               <p class="col-span-full p-6 text-center text-tenue">Sin productos{{ q() ? ' para “' + q() + '”' : '' }}. Agrégalos en Inventario o usa Concepto libre.</p>
@@ -104,7 +104,7 @@ const BILLETES = [10, 50, 100, 500, 1000];
       <!-- Barra del carrito (celular) -->
       <button class="fixed inset-x-3 bottom-[calc(76px+env(safe-area-inset-bottom,0px))] z-30 flex items-center justify-between gap-3 rounded-2xl bg-[#002150] px-4 py-3 text-white shadow-caja lg:hidden"
         [class.!bottom-3]="grande()" (click)="verCarrito.set(true)">
-        <span class="text-left text-[.85rem] text-white/75">{{ piezas() }} artículo{{ piezas() === 1 ? '' : 's' }}<br><b class="num text-[1.35rem] text-white">{{ total() | dinero }}</b></span>
+        <span class="text-left text-sm text-white/75">{{ piezas() }} artículo{{ piezas() === 1 ? '' : 's' }}<br><b class="num text-xl text-white">{{ total() | dinero }}</b></span>
         <span class="rounded-xl bg-[#67be28] px-4 py-2.5 font-semibold text-[#001536]">Ver y cobrar</span>
       </button>
       }
@@ -119,9 +119,9 @@ const BILLETES = [10, 50, 100, 500, 1000];
         @for (l of lineas(); track $index; let i = $index) {
           <div class="rounded-xl border border-linea bg-superficie-2 p-2.5">
             <div class="flex items-start gap-2">
-              @if (l.productoId) { <p class="min-w-0 flex-1 text-[.92rem] font-semibold">{{ l.descripcion }}</p> }
-              @else { <input class="entrada min-w-0 flex-1 p-1.5 text-[.9rem]" placeholder="Descripción" [ngModel]="l.descripcion" (ngModelChange)="cambiar(i, { descripcion: $event })" aria-label="Descripción"> }
-              <button class="text-[1.2rem] leading-none text-tenue hover:text-bad" (click)="quitar(i)" aria-label="Quitar">×</button>
+              @if (l.productoId) { <p class="min-w-0 flex-1 text-base font-semibold">{{ l.descripcion }}</p> }
+              @else { <input class="entrada min-w-0 flex-1 p-1.5 text-base" placeholder="Descripción" [ngModel]="l.descripcion" (ngModelChange)="cambiar(i, { descripcion: $event })" aria-label="Descripción"> }
+              <button class="text-xl leading-none text-tenue hover:text-bad" (click)="quitar(i)" aria-label="Quitar">×</button>
             </div>
             <div class="mt-2 flex items-center gap-2">
               <div class="flex items-center rounded-lg border border-linea bg-superficie">
@@ -136,22 +136,22 @@ const BILLETES = [10, 50, 100, 500, 1000];
           </div>
         } @empty {
           <div class="m-auto flex flex-col items-center gap-2 p-6 text-center text-tenue">
-            <span class="text-[2rem]"><app-icono nombre="ventas" /></span>
+            <span class="text-3xl"><app-icono nombre="ventas" /></span>
             <p>Toca un producto para agregarlo.</p>
-            <p class="text-[.78rem]">Atajos: <kbd class="rounded border border-linea px-1">/</kbd> buscar · <kbd class="rounded border border-linea px-1">Enter</kbd> agrega el primero · <kbd class="rounded border border-linea px-1">F2</kbd> cobrar</p>
+            <p class="text-sm">Atajos: <kbd class="rounded border border-linea px-1">/</kbd> buscar · <kbd class="rounded border border-linea px-1">Enter</kbd> agrega el primero · <kbd class="rounded border border-linea px-1">F2</kbd> cobrar</p>
           </div>
         }
       </div>
       <div class="flex flex-col gap-2.5 border-t border-linea bg-superficie p-3">
-        <div class="flex flex-wrap items-center gap-2 text-[.88rem]">
+        <div class="flex flex-wrap items-center gap-2 text-base">
           <label class="flex items-center gap-1.5 text-tenue">Descuento
             <input class="entrada num w-16 p-1.5 text-right" type="number" inputmode="decimal" [ngModel]="descuento()" (ngModelChange)="descuento.set(+$event || 0); guardarLocal()" aria-label="Descuento en porcentaje">%</label>
           <label class="ml-auto flex items-center gap-1.5"><input type="checkbox" [ngModel]="despues()" (ngModelChange)="despues.set($event)"> Entregar después</label>
           @if (despues()) { <input class="entrada w-auto p-1.5" type="date" [ngModel]="entrega()" (ngModelChange)="entrega.set($event)" aria-label="Fecha de entrega"> }
         </div>
-        @if (descuento()) { <div class="flex justify-between text-[.9rem] text-tenue"><span>Subtotal {{ subtotal() | dinero }}</span><span>Descuento −{{ subtotal() - total() | dinero }}</span></div> }
-        <div class="flex items-end justify-between"><span class="text-tenue">Total</span><b class="num text-[2rem] leading-none">{{ total() | dinero }}</b></div>
-        <button class="btn pri min-h-14 text-[1.1rem]" (click)="cobrar()" [disabled]="!lineas().length">Cobrar <kbd class="ml-1 rounded max-lg:hidden bg-white/15 px-1.5 text-[.75rem] font-normal">F2</kbd></button>
+        @if (descuento()) { <div class="flex justify-between text-base text-tenue"><span>Subtotal {{ subtotal() | dinero }}</span><span>Descuento −{{ subtotal() - total() | dinero }}</span></div> }
+        <div class="flex items-end justify-between"><span class="text-tenue">Total</span><b class="num text-3xl leading-none">{{ total() | dinero }}</b></div>
+        <button class="btn pri min-h-14 text-lg" (click)="cobrar()" [disabled]="!lineas().length">Cobrar <kbd class="ml-1 rounded max-lg:hidden bg-white/15 px-1.5 text-xs font-normal">F2</kbd></button>
       </div>
     </ng-template>
 
@@ -166,7 +166,7 @@ const BILLETES = [10, 50, 100, 500, 1000];
         <div class="flex flex-col gap-4" (keydown.enter)="$event.preventDefault(); confirmar()">
           <div class="grid grid-cols-3 gap-2 sm:grid-cols-5">
             @for (m of metodos; track m) {
-              <button class="min-w-0 rounded-xl border-2 px-1 py-3 text-[.85rem] font-semibold" [class]="metodo() === m ? 'border-marca bg-marca-suave text-marca' : 'border-linea'" (click)="elegirMetodo(m)">{{ m }}</button>
+              <button class="min-w-0 rounded-xl border-2 px-1 py-3 text-sm font-semibold" [class]="metodo() === m ? 'border-marca bg-marca-suave text-marca' : 'border-linea'" (click)="elegirMetodo(m)">{{ m }}</button>
             }
           </div>
           @if (metodo() === 'Combinado') {
@@ -174,20 +174,20 @@ const BILLETES = [10, 50, 100, 500, 1000];
               <p class="chico tenue">Reparte el pago entre varias formas. "Resto" llena lo que falta.</p>
               @for (k of partesMetodos; track k) {
                 <div class="flex items-center gap-2">
-                  <label class="w-28 flex-none text-[.92rem] font-semibold" [for]="'c-p-' + k">{{ k }}</label>
-                  <input class="entrada num flex-1 text-[1.05rem]" [id]="'c-p-' + k" type="number" inputmode="decimal" placeholder="0" [ngModel]="partes()[k] || null" (ngModelChange)="parte(k, +$event || 0)">
+                  <label class="w-28 flex-none text-base font-semibold" [for]="'c-p-' + k">{{ k }}</label>
+                  <input class="entrada num flex-1 text-lg" [id]="'c-p-' + k" type="number" inputmode="decimal" placeholder="0" [ngModel]="partes()[k] || null" (ngModelChange)="parte(k, +$event || 0)">
                   <button class="btn sm" (click)="resto(k)">Resto</button>
                 </div>
               }
             </div>
           } @else {
-            <div class="campo"><label for="c-abona">Paga ahora</label><input id="c-abona" class="num text-[1.1rem]" type="number" inputmode="decimal" [ngModel]="abona()" (ngModelChange)="abona.set(+$event || 0)"></div>
+            <div class="campo"><label for="c-abona">Paga ahora</label><input id="c-abona" class="num text-lg" type="number" inputmode="decimal" [ngModel]="abona()" (ngModelChange)="abona.set(+$event || 0)"></div>
           }
           @if (efectivo() > 0) {
             <div class="flex flex-col gap-2 rounded-xl border border-linea p-3">
               <div class="flex items-center gap-2">
-                <label class="w-28 flex-none text-[.92rem] font-semibold" for="c-con">Recibe efectivo</label>
-                <input #campoRecibe id="c-con" class="entrada num flex-1 text-[1.05rem]" type="number" inputmode="decimal" placeholder="Opcional" [ngModel]="recibe() || null" (ngModelChange)="recibe.set(+$event || 0)">
+                <label class="w-28 flex-none text-base font-semibold" for="c-con">Recibe efectivo</label>
+                <input #campoRecibe id="c-con" class="entrada num flex-1 text-lg" type="number" inputmode="decimal" placeholder="Opcional" [ngModel]="recibe() || null" (ngModelChange)="recibe.set(+$event || 0)">
               </div>
               <div class="flex flex-wrap gap-2">
                 <button class="chip" (click)="recibe.set(efectivo())">Exacto</button>
@@ -198,11 +198,11 @@ const BILLETES = [10, 50, 100, 500, 1000];
           <div class="grid grid-cols-2 gap-2.5">
             <div class="rounded-xl p-3.5" [class]="pagado() > total() + 0.001 ? 'bg-bad-suave text-bad' : 'bg-superficie-2'">
               <p class="chico" [class.tenue]="pagado() <= total() + 0.001">{{ pagado() > total() + 0.001 ? 'Pasa del total por' : pagado() < total() ? 'Queda a deber' : 'Paga' }}</p>
-              <p class="num text-[1.5rem] font-semibold">{{ (pagado() > total() ? pagado() - total() : pagado() < total() ? total() - pagado() : total()) | dinero }}</p>
+              <p class="num text-2xl font-semibold">{{ (pagado() > total() ? pagado() - total() : pagado() < total() ? total() - pagado() : total()) | dinero }}</p>
             </div>
             <div class="rounded-xl p-3.5" [class]="faltaEfectivo() ? 'bg-bad-suave text-bad' : 'bg-ok-suave text-ok'">
               <p class="chico font-semibold">{{ faltaEfectivo() ? 'Falta efectivo' : 'Cambio' }}</p>
-              <p class="num text-[1.5rem] font-semibold">{{ (faltaEfectivo() ? efectivo() - recibe() : cambio()) | dinero }}</p>
+              <p class="num text-2xl font-semibold">{{ (faltaEfectivo() ? efectivo() - recibe() : cambio()) | dinero }}</p>
             </div>
           </div>
           @if (pagado() < total() - 0.001) { <p class="chico rounded-lg bg-warn-suave px-3 py-2 text-warn">Se registra como anticipo y la venta queda con saldo pendiente.</p> }
@@ -210,7 +210,7 @@ const BILLETES = [10, 50, 100, 500, 1000];
         <ng-container pie>
           <button class="btn" (click)="pago.set(false)">Volver</button>
           <span class="flex-1"></span>
-          <button class="btn pri min-h-12 min-w-44 text-[1.05rem]" (click)="confirmar()" [disabled]="ocupado() || faltaEfectivo() || pagado() > total() + 0.001">{{ ocupado() ? 'Registrando…' : 'Confirmar cobro' }}</button>
+          <button class="btn pri min-h-12 min-w-44 text-lg" (click)="confirmar()" [disabled]="ocupado() || faltaEfectivo() || pagado() > total() + 0.001">{{ ocupado() ? 'Registrando…' : 'Confirmar cobro' }}</button>
         </ng-container>
       </app-hoja>
     }
@@ -221,8 +221,8 @@ const BILLETES = [10, 50, 100, 500, 1000];
     @if (corte(); as c) {
       <app-hoja [titulo]="'Corte ' + c.folio" ancho="440px" (cerrar)="corte.set(null)">
         <div class="flex flex-col items-center gap-1 text-center">
-          <span class="grid size-12 place-items-center rounded-full text-[1.4rem]" [class]="c.diferencia === 0 ? 'bg-ok-suave text-ok' : c.diferencia > 0 ? 'bg-warn-suave text-warn' : 'bg-bad-suave text-bad'"><app-icono [nombre]="c.diferencia === 0 ? 'ok' : 'alerta'" /></span>
-          <h2 class="text-[1.25rem]">{{ c.diferencia === 0 ? 'La caja cuadra' : c.diferencia > 0 ? 'Sobran ' + (c.diferencia | dinero) : 'Faltan ' + (-c.diferencia | dinero) }}</h2>
+          <span class="grid size-12 place-items-center rounded-full text-2xl" [class]="c.diferencia === 0 ? 'bg-ok-suave text-ok' : c.diferencia > 0 ? 'bg-warn-suave text-warn' : 'bg-bad-suave text-bad'"><app-icono [nombre]="c.diferencia === 0 ? 'ok' : 'alerta'" /></span>
+          <h2 class="text-xl">{{ c.diferencia === 0 ? 'La caja cuadra' : c.diferencia > 0 ? 'Sobran ' + (c.diferencia | dinero) : 'Faltan ' + (-c.diferencia | dinero) }}</h2>
           <p class="text-tenue">Cobrado {{ c.resumen?.cobrado | dinero }} · Se deja {{ c.dejado | dinero }} · Retiro {{ c.retiro | dinero }}</p>
         </div>
         <ng-container pie>

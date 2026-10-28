@@ -36,22 +36,22 @@ const normal = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLower
       [style.top.px]="pos().top" [style.bottom.px]="pos().bottom" [style.left.px]="pos().left" [style.width.px]="pos().ancho" [style.max-height.px]="pos().alto">
       <div class="flex items-center gap-2 border-b border-linea px-3">
         <app-icono nombre="buscar" class="flex-none text-tenue" />
-        <input #caja class="min-w-0 flex-1 bg-transparent py-2.5 text-[.95rem] outline-none" [placeholder]="placeholder()" [value]="q()"
+        <input #caja class="min-w-0 flex-1 bg-transparent py-2.5 text-base outline-none" [placeholder]="placeholder()" [value]="q()"
           (input)="buscar($any($event.target).value)" (keydown)="tecla($event)" aria-label="Buscar" autocomplete="off">
       </div>
       <ul class="flex-1 overflow-y-auto overscroll-contain p-1.5" role="listbox">
         @for (o of visibles(); track $index; let i = $index) {
           @if (o.grupo && o.grupo !== visibles()[i - 1]?.grupo) {
-            <li class="px-2.5 pt-2 pb-1 text-[.7rem] font-bold tracking-[.08em] text-tenue uppercase" role="presentation">{{ o.grupo }}</li>
+            <li class="px-2.5 pt-2 pb-1 text-xs font-bold tracking-[.08em] text-tenue uppercase" role="presentation">{{ o.grupo }}</li>
           }
           <li role="option" [attr.aria-selected]="o.valor === valor()" (pointerdown)="$event.preventDefault()" (click)="elegir(o)" (pointermove)="activo.set(i)"
-            class="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-[.92rem]"
+            class="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-base"
             [class.bg-superficie-2]="activo() === i" [class.font-semibold]="o.valor === valor()" [class.text-marca]="o.valor === valor()">
             <span class="min-w-0 flex-1">{{ o.texto }}</span>
-            @if (o.detalle) { <span class="flex-none text-[.78rem] text-tenue">{{ o.detalle }}</span> }
+            @if (o.detalle) { <span class="flex-none text-sm text-tenue">{{ o.detalle }}</span> }
           </li>
         } @empty {
-          <li class="px-2.5 py-3 text-[.88rem] text-tenue">Sin resultados para “{{ q() }}”</li>
+          <li class="px-2.5 py-3 text-base text-tenue">Sin resultados para “{{ q() }}”</li>
         }
       </ul>
     </div>

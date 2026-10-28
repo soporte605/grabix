@@ -22,7 +22,7 @@ const MONEDAS = [10, 5, 2, 1, 0.5];
     <app-hoja titulo="Abrir caja" ancho="460px" (cerrar)="cerrar.emit()">
       <p class="tenue">Cuenta el efectivo con el que empiezas: es el fondo para dar cambio.</p>
       @if (ultimo(); as u) { <p class="chico rounded-lg bg-superficie-2 px-3 py-2">El último corte ({{ u.folio }}, {{ u.cerroNombre }}) dejó <b class="num">{{ u.dejado | dinero }}</b> en caja.</p> }
-      <div class="campo"><label for="ac-f">Fondo inicial</label><input id="ac-f" class="num text-[1.2rem]" type="number" inputmode="decimal" min="0" [(ngModel)]="fondo" (keydown.enter)="abrir()"></div>
+      <div class="campo"><label for="ac-f">Fondo inicial</label><input id="ac-f" class="num text-xl" type="number" inputmode="decimal" min="0" [(ngModel)]="fondo" (keydown.enter)="abrir()"></div>
       <div class="campo"><label for="ac-n">Notas (opcional)</label><input id="ac-n" [(ngModel)]="notas" maxlength="500"></div>
       <ng-container pie>
         <button class="btn" (click)="cerrar.emit()">Cancelar</button><span class="flex-1"></span>
@@ -65,7 +65,7 @@ export class AbrirCaja implements OnInit {
         <button class="rounded-xl border-2 py-3 font-semibold" [class]="tipo() === 'entrada' ? 'border-marca bg-marca-suave text-marca' : 'border-linea'" (click)="tipo.set('entrada')">Entrada</button>
       </div>
       <p class="chico tenue">{{ tipo() === 'salida' ? 'Efectivo que sale del cajón: pago a proveedor, gasto, retiro parcial.' : 'Efectivo que entra sin ser venta: cambio que traen, reposición de fondo.' }}</p>
-      <div class="campo"><label for="mc-m">Monto</label><input id="mc-m" class="num text-[1.2rem]" type="number" inputmode="decimal" min="0" [(ngModel)]="monto"></div>
+      <div class="campo"><label for="mc-m">Monto</label><input id="mc-m" class="num text-xl" type="number" inputmode="decimal" min="0" [(ngModel)]="monto"></div>
       <div class="campo"><label for="mc-c">Concepto</label><input id="mc-c" [(ngModel)]="concepto" maxlength="200" [placeholder]="tipo() === 'salida' ? 'Ej. Pago de garrafón' : 'Ej. Cambio del banco'" (keydown.enter)="guardar()"></div>
       <ng-container pie>
         <button class="btn" (click)="cerrar.emit()">Cancelar</button><span class="flex-1"></span>
@@ -105,43 +105,43 @@ export class MovimientoCaja {
       @if (turno().resumen; as r) {
         <div class="grid gap-3 sm:grid-cols-2">
           <section class="rounded-xl border border-linea bg-superficie p-3">
-            <h3 class="mb-1.5 text-[.95rem]">Cobros del turno</h3>
-            @for (k of metodos(); track k) { <div class="flex justify-between text-[.92rem]"><span class="text-tenue">{{ k }}</span><span class="num">{{ r.porMetodo[k] | dinero }}</span></div> }
+            <h3 class="mb-1.5 text-base">Cobros del turno</h3>
+            @for (k of metodos(); track k) { <div class="flex justify-between text-base"><span class="text-tenue">{{ k }}</span><span class="num">{{ r.porMetodo[k] | dinero }}</span></div> }
             @empty { <p class="chico tenue">Sin cobros todavía.</p> }
             <div class="mt-1.5 flex justify-between border-t border-linea pt-1.5 font-semibold"><span>Total ({{ r.ventas }} {{ r.ventas === 1 ? 'venta' : 'ventas' }})</span><span class="num">{{ r.cobrado | dinero }}</span></div>
           </section>
           <section class="rounded-xl border border-linea bg-superficie p-3">
-            <h3 class="mb-1.5 text-[.95rem]">Efectivo esperado</h3>
-            <div class="flex justify-between text-[.92rem]"><span class="text-tenue">Fondo inicial</span><span class="num">{{ turno().fondo | dinero }}</span></div>
-            <div class="flex justify-between text-[.92rem]"><span class="text-tenue">+ Cobros en efectivo</span><span class="num">{{ r.porMetodo['Efectivo'] | dinero }}</span></div>
-            @if (r.entradas) { <div class="flex justify-between text-[.92rem]"><span class="text-tenue">+ Entradas</span><span class="num">{{ r.entradas | dinero }}</span></div> }
-            @if (r.salidas) { <div class="flex justify-between text-[.92rem]"><span class="text-tenue">− Salidas</span><span class="num">{{ r.salidas | dinero }}</span></div> }
+            <h3 class="mb-1.5 text-base">Efectivo esperado</h3>
+            <div class="flex justify-between text-base"><span class="text-tenue">Fondo inicial</span><span class="num">{{ turno().fondo | dinero }}</span></div>
+            <div class="flex justify-between text-base"><span class="text-tenue">+ Cobros en efectivo</span><span class="num">{{ r.porMetodo['Efectivo'] | dinero }}</span></div>
+            @if (r.entradas) { <div class="flex justify-between text-base"><span class="text-tenue">+ Entradas</span><span class="num">{{ r.entradas | dinero }}</span></div> }
+            @if (r.salidas) { <div class="flex justify-between text-base"><span class="text-tenue">− Salidas</span><span class="num">{{ r.salidas | dinero }}</span></div> }
             <div class="mt-1.5 flex justify-between border-t border-linea pt-1.5 font-semibold"><span>Debe haber</span><span class="num">{{ r.esperado | dinero }}</span></div>
           </section>
         </div>
 
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <h3 class="text-[1rem]">¿Cuánto efectivo hay en el cajón?</h3>
+          <h3 class="text-lg">¿Cuánto efectivo hay en el cajón?</h3>
           <div class="chips"><button class="chip" [class.on]="!porPiezas()" (click)="porPiezas.set(false)">Total</button><button class="chip" [class.on]="porPiezas()" (click)="porPiezas.set(true)">Billetes y monedas</button></div>
         </div>
         @if (porPiezas()) {
           <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-3">
             @for (d of denominaciones; track d) {
-              <label class="flex items-center gap-2 text-[.9rem]"><span class="num w-14 text-right text-tenue">{{ d | dinero }}</span><span class="text-tenue">×</span>
+              <label class="flex items-center gap-2 text-base"><span class="num w-14 text-right text-tenue">{{ d | dinero }}</span><span class="text-tenue">×</span>
                 <input class="entrada num w-16 p-1.5 text-right" type="number" inputmode="numeric" min="0" [ngModel]="piezas()[d] || null" (ngModelChange)="pieza(d, +$event)" [attr.aria-label]="'Piezas de ' + d"></label>
             }
           </div>
         } @else {
-          <input #campoContado class="entrada num text-[1.3rem]" type="number" inputmode="decimal" min="0" placeholder="Escribe el efectivo contado" [ngModel]="tocado() ? contadoLibre() : null"
+          <input #campoContado class="entrada num text-xl" type="number" inputmode="decimal" min="0" placeholder="Escribe el efectivo contado" [ngModel]="tocado() ? contadoLibre() : null"
             (ngModelChange)="contadoLibre.set(+$event || 0); tocado.set($event !== null && $event !== '')" aria-label="Efectivo contado">
         }
 
         <div class="grid grid-cols-2 gap-2.5">
-          <div class="rounded-xl bg-superficie-2 p-3.5"><p class="chico tenue">Contado</p><p class="num text-[1.4rem] font-semibold">{{ contado() | dinero }}</p></div>
+          <div class="rounded-xl bg-superficie-2 p-3.5"><p class="chico tenue">Contado</p><p class="num text-2xl font-semibold">{{ contado() | dinero }}</p></div>
           <div class="rounded-xl p-3.5" [class]="!tocado() ? 'bg-superficie-2' : diferencia() === 0 ? 'bg-ok-suave text-ok' : diferencia() > 0 ? 'bg-warn-suave text-warn' : 'bg-bad-suave text-bad'">
             <p class="chico font-semibold">{{ !tocado() ? 'Diferencia' : diferencia() === 0 ? 'Cuadra' : diferencia() > 0 ? 'Sobran' : 'Faltan' }}</p>
-            @if (tocado()) { <p class="num text-[1.4rem] font-semibold">{{ (diferencia() < 0 ? -diferencia() : diferencia()) | dinero }}</p> }
-            @else { <p class="pt-1.5 text-[.9rem] text-tenue">Aparece al capturar lo contado</p> }
+            @if (tocado()) { <p class="num text-2xl font-semibold">{{ (diferencia() < 0 ? -diferencia() : diferencia()) | dinero }}</p> }
+            @else { <p class="pt-1.5 text-base text-tenue">Aparece al capturar lo contado</p> }
           </div>
         </div>
 
@@ -151,8 +151,8 @@ export class MovimientoCaja {
             <div class="mt-1 flex gap-1.5"><button class="chip" (click)="dejadoManual.set(turno().fondo)">Mismo fondo ({{ turno().fondo | dinero }})</button><button class="chip" (click)="dejadoManual.set(0)">Nada</button></div>
             @if (tocado() && retiro() < 0) { <p class="chico mt-1 text-bad">No puedes dejar más de lo que contaste.</p> }
           </div>
-          <div class="rounded-xl border border-linea p-3"><p class="chico tenue">Retiro (se lleva)</p>@if (tocado()) { <p class="num text-[1.4rem] font-semibold" [class.text-bad]="retiro() < 0">{{ retiro() | dinero }}</p> }
-            @else { <p class="pt-1.5 text-[.9rem] text-tenue">Contado menos lo que se deja</p> }</div>
+          <div class="rounded-xl border border-linea p-3"><p class="chico tenue">Retiro (se lleva)</p>@if (tocado()) { <p class="num text-2xl font-semibold" [class.text-bad]="retiro() < 0">{{ retiro() | dinero }}</p> }
+            @else { <p class="pt-1.5 text-base text-tenue">Contado menos lo que se deja</p> }</div>
         </div>
         <div class="campo"><label for="cc-n">Notas del corte {{ tocado() && diferencia() !== 0 ? '(explica la diferencia)' : '(opcional)' }}</label><textarea id="cc-n" rows="2" [(ngModel)]="notas" maxlength="1000"></textarea></div>
       }

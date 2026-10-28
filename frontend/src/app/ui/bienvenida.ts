@@ -83,14 +83,14 @@ export class RecorridoService {
     <app-hoja [titulo]="''" ancho="720px" (cerrar)="omitir()">
       <div class="flex flex-col items-center gap-2 pt-1 text-center">
         <app-logo [tamano]="52" [texto]="false" />
-        <h2 class="text-[1.45rem]">Bienvenido a Grabix, {{ nombre() }}</h2>
+        <h2 class="text-2xl">Bienvenido a Grabix, {{ nombre() }}</h2>
         <p class="max-w-[52ch] text-tenue">{{ esDueno() ? 'Tu taller ya está listo.' : 'Ya tienes acceso al taller.' }} Esto es lo que puedes hacer desde aquí:</p>
       </div>
       <div class="grid gap-2 sm:grid-cols-2">
         @for (m of modulos(); track m.ruta) {
           <div class="flex items-start gap-3 rounded-xl border border-linea bg-superficie p-3">
-            <span class="grid size-9 flex-none place-items-center rounded-[10px] bg-marca-suave text-marca"><app-icono class="text-[1.1rem]" [nombre]="m.icono" /></span>
-            <span class="min-w-0"><b class="block text-[.95rem]">{{ m.texto }}</b><span class="block text-[.84rem] leading-snug text-tenue">{{ que[m.ruta] }}</span></span>
+            <span class="grid size-9 flex-none place-items-center rounded-[10px] bg-marca-suave text-marca"><app-icono class="text-lg" [nombre]="m.icono" /></span>
+            <span class="min-w-0"><b class="block text-base">{{ m.texto }}</b><span class="block text-sm leading-snug text-tenue">{{ que[m.ruta] }}</span></span>
           </div>
         }
       </div>

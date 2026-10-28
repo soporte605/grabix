@@ -26,8 +26,8 @@ import { SelectorTema } from './selector-tema';
 
         <a class="relative no-underline [--logo-borde:rgba(255,255,255,.3)] [&_span]:!text-white" routerLink="/" aria-label="Grabix, inicio"><app-logo [tamano]="36" /></a>
         <div class="relative mt-auto max-w-[440px]">
-          <h2 class="text-[2rem]/[1.15] font-extrabold tracking-[-.03em]">Cotiza, produce y cobra desde un solo lugar</h2>
-          <ul class="mt-7 grid gap-3.5 text-[.95rem] text-white/85">
+          <h2 class="text-3xl/[1.15] font-extrabold tracking-[-.03em]">Cotiza, produce y cobra desde un solo lugar</h2>
+          <ul class="mt-7 grid gap-3.5 text-base text-white/85">
             @for (b of beneficios; track b) {
               <li class="flex items-start gap-3">
                 <span class="mt-0.5 flex size-6 flex-none items-center justify-center rounded-full bg-[#67be28]/20 text-[#8fd85a]"><app-icono nombre="ok" /></span>{{ b }}
@@ -35,7 +35,7 @@ import { SelectorTema } from './selector-tema';
             }
           </ul>
         </div>
-        <p class="relative mt-12 text-[.8rem] text-white/55">14 días gratis · Sin tarjeta · Un producto de Elikar Systems</p>
+        <p class="relative mt-12 text-sm text-white/55">14 días gratis · Sin tarjeta · Un producto de Elikar Systems</p>
       </aside>
 
       <!-- Formulario -->
@@ -43,7 +43,7 @@ import { SelectorTema } from './selector-tema';
         <div class="absolute top-3 right-3"><app-selector-tema /></div>
         <a class="no-underline lg:hidden" routerLink="/" aria-label="Grabix, inicio"><app-logo [tamano]="34" /></a>
         <div class="tarjeta flex w-full max-w-[420px] flex-col gap-3.5 p-6 shadow-caja sm:p-8 lg:max-w-[400px] lg:border-0 lg:p-0 lg:shadow-none
-          [&_h1]:text-[1.65rem] [&_h1]:tracking-[-.03em] [&_.campo_input]:min-h-11 [&_.btn.pri]:min-h-11 [&_.btn.pri]:text-[.95rem]">
+          [&_h1]:text-2xl [&_h1]:tracking-[-.03em] [&_.campo_input]:min-h-11 [&_.btn.pri]:min-h-11 [&_.btn.pri]:text-base">
           <ng-content />
         </div>
       </main>

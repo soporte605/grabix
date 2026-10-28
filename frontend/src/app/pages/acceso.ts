@@ -21,12 +21,12 @@ import { MarcoAcceso } from '../ui/marco-acceso';
             <p class="mt-1 tenue">Configura tu taller en menos de un minuto.</p>
           </div>
           <fieldset class="campos">
-            <legend class="mb-2 text-[.72rem] font-bold tracking-[.08em] text-tenue uppercase">Tu taller</legend>
+            <legend class="mb-2 text-xs font-bold tracking-[.08em] text-tenue uppercase">Tu taller</legend>
             <div class="campo todo"><label for="a-t">Nombre del taller</label><input id="a-t" name="taller" [(ngModel)]="taller" required autocomplete="organization" placeholder="Ej. Láser y Diseño MX"></div>
             <div class="campo"><label for="a-n">Tu nombre</label><input id="a-n" name="nombre" [(ngModel)]="nombre" required autocomplete="name"></div>
             <div class="campo"><label for="a-w">WhatsApp <span class="font-normal">(opcional)</span></label><input id="a-w" name="tel" type="tel" [(ngModel)]="telefono" autocomplete="tel"></div>
           </fieldset>
-          <p class="mt-1 mb-[-4px] text-[.72rem] font-bold tracking-[.08em] text-tenue uppercase">Tu acceso</p>
+          <p class="mt-1 mb-[-4px] text-xs font-bold tracking-[.08em] text-tenue uppercase">Tu acceso</p>
         } @else {
           <div>
             <h1>Bienvenido de nuevo</h1>
@@ -39,21 +39,21 @@ import { MarcoAcceso } from '../ui/marco-acceso';
           @if (modo() === 'entrar') { <a etiqueta class="chico float-right font-semibold tracking-normal no-underline hover:underline" routerLink="/olvide-contrasena" [queryParams]="email ? { email } : {}">¿La olvidaste?</a> }
         </app-campo-clave>
         @if (modo() === 'registro') {
-          <label class="flex items-start gap-2.5 rounded-lg border border-linea bg-superficie-2 px-3 py-2.5 text-[.86rem]">
+          <label class="flex items-start gap-2.5 rounded-lg border border-linea bg-superficie-2 px-3 py-2.5 text-sm">
             <input class="mt-1" type="checkbox" name="ej" [(ngModel)]="conEjemplos">
             <span><b class="font-semibold">Cargar datos de ejemplo</b><br><span class="tenue">Clientes, materiales y cotizaciones para conocer la app. Los puedes borrar después.</span></span>
           </label>
         }
         @if (error()) { <p class="error rounded-lg bg-bad-suave px-3 py-2" role="alert">{{ error() }}</p> }
         <button class="btn pri mt-1 w-full" [disabled]="cargando()">{{ cargando() ? 'Un momento…' : modo() === 'registro' ? 'Crear mi cuenta gratis' : 'Entrar' }}</button>
-        <div class="my-1 flex items-center gap-3 text-[.8rem] text-tenue" aria-hidden="true"><span class="h-px flex-1 bg-linea"></span>o<span class="h-px flex-1 bg-linea"></span></div>
+        <div class="my-1 flex items-center gap-3 text-sm text-tenue" aria-hidden="true"><span class="h-px flex-1 bg-linea"></span>o<span class="h-px flex-1 bg-linea"></span></div>
         @if (modo() === 'registro') {
           <a class="btn w-full" routerLink="/entrar">Ya tengo cuenta, entrar</a>
         } @else {
           <a class="btn w-full" routerLink="/registro">Crear una cuenta gratis</a>
         }
         @if (modo() === 'registro') {
-          <p class="text-center text-[.76rem] text-tenue">Al crear tu cuenta aceptas que te enviemos correos sobre tu cuenta y tu suscripción.</p>
+          <p class="text-center text-xs text-tenue">Al crear tu cuenta aceptas que te enviemos correos sobre tu cuenta y tu suscripción.</p>
         }
       </form>
     </app-marco-acceso>

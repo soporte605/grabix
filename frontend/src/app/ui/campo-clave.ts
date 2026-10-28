@@ -17,7 +17,7 @@ const TEXTOS = ['text-bad', 'text-bad', 'text-warn', 'text-ok', 'text-ok'];
         [attr.autocomplete]="autocomplete()" [attr.aria-describedby]="medidor() ? entrada() + '-seg' : null" required>
       <button type="button" class="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-tenue hover:text-marca"
         (click)="ver.set(!ver())" [attr.aria-label]="ver() ? 'Ocultar contraseña' : 'Mostrar contraseña'" [attr.aria-pressed]="ver()">
-        <app-icono class="text-[1.15rem]" [nombre]="ver() ? 'ojo-no' : 'ojo'" />
+        <app-icono class="text-xl" [nombre]="ver() ? 'ojo-no' : 'ojo'" />
       </button>
     </div>
     @if (medidor() && valor()) {
@@ -28,9 +28,9 @@ const TEXTOS = ['text-bad', 'text-bad', 'text-warn', 'text-ok', 'text-ok'];
               <span class="h-1.5 rounded-full transition-colors" [class]="f().nivel >= i ? colores[f().nivel] : 'bg-linea'"></span>
             }
           </div>
-          <span class="w-20 text-right text-[.76rem] font-semibold" [class]="textos[f().nivel]">{{ f().etiqueta }}</span>
+          <span class="w-20 text-right text-xs font-semibold" [class]="textos[f().nivel]">{{ f().etiqueta }}</span>
         </div>
-        <ul class="grid gap-0.5 text-[.78rem]">
+        <ul class="grid gap-0.5 text-sm">
           @for (r of f().requisitos; track r.texto) {
             <li class="flex items-start gap-1.5" [class]="r.ok ? 'text-ok' : r.obligatorio ? 'text-tinta' : 'text-tenue'">
               @if (r.ok) { <app-icono nombre="ok" /> } @else { <span class="inline-block size-[1.2em] text-center leading-[1.2em]">·</span> }

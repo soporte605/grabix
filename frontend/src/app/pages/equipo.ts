@@ -176,7 +176,7 @@ const ACCIONES: Record<string, string> = {
         <details class="renglon block cursor-default">
           <summary class="cursor-pointer"><b>{{ b.usuarioNombre }}</b> {{ accion(b.accion) }} {{ b.entidad }} @if (b.entidadId) { #{{ b.entidadId }} }
             <span class="tenue chico"> · {{ b.creadoEn | date: 'dd/MM/yyyy HH:mm' }}</span></summary>
-          <pre class="mt-2 font-mono text-[.78rem] whitespace-pre-wrap text-tenue wrap-anywhere">{{ b.detalle | json }}</pre>
+          <pre class="mt-2 text-sm whitespace-pre-wrap text-tenue wrap-anywhere">{{ b.detalle | json }}</pre>
         </details>
       } @empty { <div class="vacio">Sin movimientos</div> }
     }

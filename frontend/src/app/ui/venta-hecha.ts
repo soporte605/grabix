@@ -24,27 +24,27 @@ const CLAVE_ANCHO = 'grabix.ticket-ancho';
           <div class="flex flex-col gap-4">
             @if (datos().nueva) {
               <div class="flex items-center gap-3">
-                <span class="flex size-12 flex-none items-center justify-center rounded-full bg-ok-suave text-[1.5rem] text-ok motion-safe:animate-entra"><app-icono nombre="ok" /></span>
+                <span class="flex size-12 flex-none items-center justify-center rounded-full bg-ok-suave text-2xl text-ok motion-safe:animate-entra"><app-icono nombre="ok" /></span>
                 <div>
-                  <p class="font-titulo text-[1.2rem] font-bold">¡Listo! Venta <span class="num">{{ v.folio }}</span></p>
+                  <p class="font-titulo text-xl font-bold">¡Listo! Venta <span class="num">{{ v.folio }}</span></p>
                   <p class="chico tenue">{{ v.cliente?.nombre || v.clienteNombre || 'Público en general' }} · {{ v.items.length }} concepto{{ v.items.length === 1 ? '' : 's' }}</p>
                 </div>
               </div>
             }
 
             <div class="grid grid-cols-2 gap-2.5">
-              <div class="rounded-xl bg-superficie-2 p-3.5"><p class="chico tenue">Total</p><p class="num text-[1.6rem] font-semibold">{{ v.total | dinero }}</p></div>
+              <div class="rounded-xl bg-superficie-2 p-3.5"><p class="chico tenue">Total</p><p class="num text-2xl font-semibold">{{ v.total | dinero }}</p></div>
               @if (datos().cambio) {
-                <div class="rounded-xl bg-ok-suave p-3.5 text-ok"><p class="chico font-semibold">Cambio</p><p class="num text-[1.6rem] font-semibold">{{ datos().cambio! | dinero }}</p></div>
+                <div class="rounded-xl bg-ok-suave p-3.5 text-ok"><p class="chico font-semibold">Cambio</p><p class="num text-2xl font-semibold">{{ datos().cambio! | dinero }}</p></div>
               } @else {
                 @if (saldo() > 0) {
-                  <div class="rounded-xl bg-warn-suave p-3.5 text-warn"><p class="chico font-semibold">Saldo por cobrar</p><p class="num text-[1.6rem] font-semibold">{{ saldo() | dinero }}</p></div>
+                  <div class="rounded-xl bg-warn-suave p-3.5 text-warn"><p class="chico font-semibold">Saldo por cobrar</p><p class="num text-2xl font-semibold">{{ saldo() | dinero }}</p></div>
                 } @else {
-                  <div class="flex items-center gap-2.5 rounded-xl bg-ok-suave p-3.5 text-ok"><app-icono nombre="ok" class="text-[1.6rem]" /><div><p class="font-titulo text-[1.15rem] font-bold">Pagada</p><p class="chico">Sin saldo pendiente</p></div></div>
+                  <div class="flex items-center gap-2.5 rounded-xl bg-ok-suave p-3.5 text-ok"><app-icono nombre="ok" class="text-2xl" /><div><p class="font-titulo text-xl font-bold">Pagada</p><p class="chico">Sin saldo pendiente</p></div></div>
                 }
               }
             </div>
-            <dl class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-[.92rem] [&_dd]:font-mono [&_dd]:tabular-nums [&_dd]:text-right [&_dt]:text-tenue">
+            <dl class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-base [&_dd]:[&_dd]:tabular-nums [&_dd]:text-right [&_dt]:text-tenue">
               @for (p of v.pagos; track p.id) { <dt>Pago {{ p.metodo.toLowerCase() }}</dt><dd>{{ p.monto | dinero }}</dd> }
               @if (v.pagos.length !== 1) { <dt>Total pagado</dt><dd>{{ v.pagado | dinero }}</dd> }
               @if (datos().recibido) { <dt>Recibido en efectivo</dt><dd>{{ datos().recibido! | dinero }}</dd> }
@@ -53,7 +53,7 @@ const CLAVE_ANCHO = 'grabix.ticket-ancho';
             </dl>
 
             <div class="mt-auto grid grid-cols-2 gap-2 pt-1">
-              <button class="btn pri col-span-2 min-h-12 text-[1rem]" (click)="imprimir()"><app-icono nombre="imprimir" />Imprimir ticket</button>
+              <button class="btn pri col-span-2 min-h-12 text-lg" (click)="imprimir()"><app-icono nombre="imprimir" />Imprimir ticket</button>
               <button class="btn min-h-11" (click)="descargar()" [disabled]="ocupado()"><app-icono nombre="descargar" />Descargar nota</button>
               <button class="btn wa min-h-11" (click)="whatsapp()" [disabled]="ocupado()"><app-icono nombre="wa" />WhatsApp</button>
             </div>
@@ -65,7 +65,7 @@ const CLAVE_ANCHO = 'grabix.ticket-ancho';
               @for (a of anchos; track a) { <button class="chip" [class.on]="ancho() === a" (click)="cambiarAncho(a)">{{ a }} mm</button> }
             </div>
             <iframe class="rounded-sm bg-white shadow-caja" [style.width.mm]="ancho()" [style.height.px]="alto()" [attr.srcdoc]="previa()" title="Vista previa del ticket" (load)="medir($event)"></iframe>
-            <p class="max-w-[260px] text-center text-[.74rem] text-tenue">Elige el ancho de tu impresora térmica. Se guarda en este equipo.</p>
+            <p class="max-w-[260px] text-center text-xs text-tenue">Elige el ancho de tu impresora térmica. Se guarda en este equipo.</p>
           </div>
         </div>
       } @else {

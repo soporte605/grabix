@@ -30,8 +30,8 @@ type Periodo = 'mes' | 'anterior' | 'anio' | 'doce';
   template: `
     <section class="tarjeta saludo relative mb-3.5 grid items-center gap-4 overflow-hidden px-5 py-5 sm:grid-cols-[1fr_auto] sm:px-6">
       <div class="min-w-0">
-        <p class="text-[.8rem] text-tenue">{{ s.nombreSucursal() }} · {{ hoyLargo }}</p>
-        <h1 class="mt-0.5 text-[1.5rem] leading-tight sm:text-[1.75rem]">{{ saludo }}, {{ nombre() }}</h1>
+        <p class="text-sm text-tenue">{{ s.nombreSucursal() }} · {{ hoyLargo }}</p>
+        <h1 class="mt-0.5 text-2xl leading-tight sm:text-3xl">{{ saludo }}, {{ nombre() }}</h1>
         <p class="mt-1 text-tenue">
           @if (e(); as e) {
             @if (e.hoy.pedidos) { Hoy llevas <b class="num text-tinta">{{ e.hoy.ventas | dinero }}</b> en {{ e.hoy.pedidos }} {{ e.hoy.pedidos === 1 ? 'venta' : 'ventas' }}. }
@@ -87,7 +87,7 @@ type Periodo = 'mes' | 'anterior' | 'anio' | 'doce';
         <div class="rejilla">
           <section class="tarjeta pad">
             <div class="fila entre mb-2"><h2>Últimos 12 meses</h2>
-              <span class="flex items-center gap-[5px] text-[.8rem] text-tenue"><i class="ml-2 inline-block size-2.5 rounded-[2px] bg-marca"></i>Ventas <i class="ml-2 inline-block size-2.5 rounded-[2px] bg-acento"></i>Ganancia</span></div>
+              <span class="flex items-center gap-[5px] text-sm text-tenue"><i class="ml-2 inline-block size-2.5 rounded-[2px] bg-marca"></i>Ventas <i class="ml-2 inline-block size-2.5 rounded-[2px] bg-acento"></i>Ganancia</span></div>
             <app-grafica [serie]="e.serie" />
           </section>
           <section class="tarjeta">

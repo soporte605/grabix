@@ -21,37 +21,37 @@ const SUGERENCIAS: Record<string, string[]> = {
       <section class="fixed inset-0 z-40 flex animate-entra flex-col bg-superficie sm:inset-auto sm:right-4 sm:bottom-4 sm:h-[min(680px,calc(100dvh-32px))] sm:w-[420px] sm:rounded-2xl sm:border sm:border-linea sm:shadow-caja lg:right-6 lg:bottom-6"
         role="dialog" aria-label="Asistente de Grabix">
         <header class="flex items-center gap-3 border-b border-linea px-4 py-3">
-          <span class="flex size-9 flex-none items-center justify-center rounded-xl bg-[#002150] text-[1.15rem] text-[#8fd85a]"><app-icono nombre="chispa" /></span>
+          <span class="flex size-9 flex-none items-center justify-center rounded-xl bg-[#002150] text-xl text-[#8fd85a]"><app-icono nombre="chispa" /></span>
           <div class="min-w-0 flex-1">
-            <h2 class="text-[.98rem]">Asistente</h2>
-            <p class="truncate text-[.76rem] text-tenue">Consulta datos de {{ s.nombreSucursal() }}</p>
+            <h2 class="text-lg">Asistente</h2>
+            <p class="truncate text-xs text-tenue">Consulta datos de {{ s.nombreSucursal() }}</p>
           </div>
           @if (a.mensajes().length) {
-            <button class="flex size-9 items-center justify-center rounded-lg text-[1.1rem] text-tenue hover:bg-superficie-2 hover:text-tinta" (click)="a.nueva()" title="Nueva conversación" aria-label="Nueva conversación"><app-icono nombre="nueva" /></button>
+            <button class="flex size-9 items-center justify-center rounded-lg text-lg text-tenue hover:bg-superficie-2 hover:text-tinta" (click)="a.nueva()" title="Nueva conversación" aria-label="Nueva conversación"><app-icono nombre="nueva" /></button>
           }
-          <button class="flex size-9 items-center justify-center rounded-lg text-[1.1rem] text-tenue hover:bg-superficie-2 hover:text-tinta" (click)="a.abierto.set(false)" aria-label="Cerrar el asistente"><app-icono nombre="cerrar" /></button>
+          <button class="flex size-9 items-center justify-center rounded-lg text-lg text-tenue hover:bg-superficie-2 hover:text-tinta" (click)="a.abierto.set(false)" aria-label="Cerrar el asistente"><app-icono nombre="cerrar" /></button>
         </header>
 
         <div #lista class="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4" (click)="enlace($event)" aria-live="polite">
           @if (a.estado()?.disponible === false) {
-            <p class="rounded-xl bg-warn-suave px-3.5 py-3 text-[.86rem] text-warn">El asistente todavía no está activado en este servidor. Falta agregar la llave de IA en la configuración.</p>
+            <p class="rounded-xl bg-warn-suave px-3.5 py-3 text-sm text-warn">El asistente todavía no está activado en este servidor. Falta agregar la llave de IA en la configuración.</p>
           }
           @if (!a.mensajes().length) {
             <div class="flex flex-col gap-1 pt-2">
-              <p class="font-titulo text-[1.15rem] font-bold">Hola, {{ nombre() }}</p>
-              <p class="text-[.92rem] text-tenue">Pregúntame por tus ventas, pedidos, inventario o clientes, o cómo hacer algo en Grabix. Respondo con los datos de tu sucursal.</p>
+              <p class="font-titulo text-xl font-bold">Hola, {{ nombre() }}</p>
+              <p class="text-base text-tenue">Pregúntame por tus ventas, pedidos, inventario o clientes, o cómo hacer algo en Grabix. Respondo con los datos de tu sucursal.</p>
             </div>
             <div class="mt-1 flex flex-col items-start gap-2">
               @for (q of sugerencias(); track q) {
-                <button class="rounded-xl border border-linea bg-superficie px-3.5 py-2 text-left text-[.88rem] hover:border-marca hover:bg-marca-suave" (click)="enviar(q)">{{ q }}</button>
+                <button class="rounded-xl border border-linea bg-superficie px-3.5 py-2 text-left text-base hover:border-marca hover:bg-marca-suave" (click)="enviar(q)">{{ q }}</button>
               }
             </div>
           }
           @for (m of a.mensajes(); track $index) {
             @if (m.rol === 'usuario') {
-              <p class="max-w-[85%] self-end rounded-2xl rounded-br-md bg-marca px-3.5 py-2 text-[.92rem] whitespace-pre-wrap text-sobre-marca">{{ m.texto }}</p>
+              <p class="max-w-[85%] self-end rounded-2xl rounded-br-md bg-marca px-3.5 py-2 text-base whitespace-pre-wrap text-sobre-marca">{{ m.texto }}</p>
             } @else {
-              <div class="max-w-[92%] self-start rounded-2xl rounded-bl-md px-3.5 py-2.5 text-[.92rem] leading-relaxed
+              <div class="max-w-[92%] self-start rounded-2xl rounded-bl-md px-3.5 py-2.5 text-base leading-relaxed
                 [&_a]:font-semibold [&_a]:text-marca [&_li]:my-0.5 [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_strong]:font-bold [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-5"
                 [class]="m.error ? 'bg-bad-suave text-bad' : 'bg-superficie-2'" [innerHTML]="html(m.texto)"></div>
             }
@@ -66,11 +66,11 @@ const SUGERENCIAS: Record<string, string[]> = {
         <form class="border-t border-linea px-3 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] sm:pb-3" (submit)="$event.preventDefault(); enviar()">
           <div class="flex items-end gap-2 rounded-xl border border-linea bg-superficie px-2 py-1.5 focus-within:border-marca">
             <label class="sr" for="asis-txt">Escribe tu pregunta</label>
-            <textarea #caja id="asis-txt" rows="1" class="max-h-32 min-h-9 flex-1 resize-none bg-transparent px-1.5 py-1.5 text-[.95rem] outline-none" placeholder="Escribe tu pregunta…"
+            <textarea #caja id="asis-txt" rows="1" class="max-h-32 min-h-9 flex-1 resize-none bg-transparent px-1.5 py-1.5 text-base outline-none" placeholder="Escribe tu pregunta…"
               [value]="texto()" (input)="escribir($event)" (keydown.enter)="enter($any($event))"></textarea>
-            <button class="flex size-9 flex-none items-center justify-center rounded-lg bg-marca text-[1.1rem] text-sobre-marca disabled:opacity-40" [disabled]="!texto().trim() || a.pensando()" aria-label="Enviar"><app-icono nombre="enviar" /></button>
+            <button class="flex size-9 flex-none items-center justify-center rounded-lg bg-marca text-lg text-sobre-marca disabled:opacity-40" [disabled]="!texto().trim() || a.pensando()" aria-label="Enviar"><app-icono nombre="enviar" /></button>
           </div>
-          <p class="mt-1.5 px-1 text-[.7rem] text-tenue">Puede equivocarse: revisa las cifras importantes.@if (a.estado(); as e) { @if (e.disponible) { · {{ e.usadas }} de {{ e.limite }} preguntas hoy } }</p>
+          <p class="mt-1.5 px-1 text-xs text-tenue">Puede equivocarse: revisa las cifras importantes.@if (a.estado(); as e) { @if (e.disponible) { · {{ e.usadas }} de {{ e.limite }} preguntas hoy } }</p>
         </form>
       </section>
     }

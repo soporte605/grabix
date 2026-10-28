@@ -14,19 +14,19 @@ const OPCIONES: { valor: Tema; texto: string; icono: string }[] = [
   imports: [Icono],
   host: { class: 'relative inline-flex', '(document:click)': 'fuera($event)', '(keydown.escape)': 'abierto.set(false)' },
   template: `
-    <button type="button" class="flex size-9 flex-none items-center justify-center rounded-lg text-[1.15rem] hover:bg-superficie-2 hover:text-tinta"
+    <button type="button" class="flex size-9 flex-none items-center justify-center rounded-lg text-xl hover:bg-superficie-2 hover:text-tinta"
       [class]="claro() ? 'text-white/80 hover:!bg-white/10 hover:!text-white' : 'text-tenue'"
       (click)="abierto.set(!abierto())" aria-haspopup="menu" [attr.aria-expanded]="abierto()" [attr.aria-label]="'Tema: ' + actual().texto" [title]="'Tema: ' + actual().texto">
       <app-icono [nombre]="actual().icono" />
     </button>
     @if (abierto()) {
       <div role="menu" class="absolute top-full right-0 z-40 mt-1.5 flex w-52 animate-entra flex-col gap-0.5 rounded-xl border border-linea bg-superficie p-1.5 text-tinta shadow-caja">
-        <p class="px-2.5 pt-1 pb-1.5 text-[.7rem] font-bold tracking-[.08em] text-tenue uppercase">Tema</p>
+        <p class="px-2.5 pt-1 pb-1.5 text-xs font-bold tracking-[.08em] text-tenue uppercase">Tema</p>
         @for (o of opciones; track o.valor) {
           <button type="button" role="menuitemradio" [attr.aria-checked]="tema.tema() === o.valor" (click)="elegir(o.valor)"
-            class="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[.9rem] font-medium hover:bg-superficie-2"
+            class="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-base font-medium hover:bg-superficie-2"
             [class.!bg-marca-suave]="tema.tema() === o.valor" [class.!text-marca]="tema.tema() === o.valor">
-            <app-icono class="text-[1.05rem]" [nombre]="o.icono" /><span class="flex-1">{{ o.texto }}</span>
+            <app-icono class="text-lg" [nombre]="o.icono" /><span class="flex-1">{{ o.texto }}</span>
             @if (tema.tema() === o.valor) { <app-icono nombre="ok" /> }
           </button>
         }

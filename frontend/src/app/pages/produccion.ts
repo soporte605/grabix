@@ -35,7 +35,7 @@ const SIGUIENTE: Partial<Record<EstadoVenta, [EstadoVenta, string]>> = {
             <article class="tarjeta flex flex-col gap-1.5 p-3" [class.border-bad]="v.entrega && v.entrega < hoy">
               <div class="fila entre"><b class="num">{{ v.folio }}</b><span class="chico" [class]="v.entrega && v.entrega < hoy ? 'font-semibold text-bad' : ''">Entrega {{ v.entrega ? (v.entrega | fecha) : 'sin fecha' }}</span></div>
               <div>{{ v.cliente?.nombre || v.clienteNombre || 'Mostrador' }}</div>
-              <ul class="list-disc pl-[1.1em] text-[.9rem]">@for (i of v.items; track $index) { <li><b>{{ i.cantidad }}</b> × {{ i.descripcion }}</li> }</ul>
+              <ul class="list-disc pl-[1.1em] text-base">@for (i of v.items; track $index) { <li><b>{{ i.cantidad }}</b> × {{ i.descripcion }}</li> }</ul>
               @if (v.notas) { <p class="chico tenue">{{ v.notas }}</p> }
               <div class="fila">
                 <button class="btn sm pri" (click)="mover(v, siguiente[c]![0])">{{ siguiente[c]![1] }}</button>
