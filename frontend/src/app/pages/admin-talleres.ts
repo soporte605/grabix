@@ -5,6 +5,7 @@ import { AdminService } from '../core/admin.service';
 import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { FechaPipe } from '../core/formato';
+import { AdminMenu } from '../ui/admin-menu';
 import { Esqueleto } from '../ui/esqueleto';
 import { Icono } from '../ui/icono';
 
@@ -21,9 +22,10 @@ export interface TallerAdmin {
 
 @Component({
   selector: 'app-admin-talleres',
-  imports: [RouterLink, FechaPipe, Esqueleto, Icono],
+  imports: [RouterLink, FechaPipe, Esqueleto, Icono, AdminMenu],
   template: `
     <div class="mx-auto w-full max-w-[1100px] py-6 margen-x">
+      <app-admin-menu />
       <div class="encabezado">
         <div class="titulo">
           <span class="icono-modulo"><app-icono nombre="sucursales" /></span>

@@ -3,7 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { In, Repository } from 'typeorm';
-import { AdminBitacora, CorreoLog, EstadoSuscripcion, Rol, Sucursal, SuperAdmin, Taller, Usuario } from '../entities';
+import { AccesosService } from './accesos.service';
+import { AdminBitacora, Bitacora, CorreoLog, EstadoSuscripcion, InicioSesion, Rol, Sucursal, SuperAdmin, Taller, Usuario } from '../entities';
 import { exigirClave } from '../common/clave';
 import { existe } from '../common/util';
 import { CorreoService } from '../correo/correo.service';
@@ -36,12 +37,15 @@ export class AdminService implements OnApplicationBootstrap {
     private jwt: JwtService,
     @InjectRepository(SuperAdmin) private admins: Repository<SuperAdmin>,
     @InjectRepository(AdminBitacora) private bitacora: Repository<AdminBitacora>,
+    @InjectRepository(Bitacora) private bitacoraTaller: Repository<Bitacora>,
+    @InjectRepository(InicioSesion) private inicios: Repository<InicioSesion>,
     @InjectRepository(Taller) private talleres: Repository<Taller>,
     @InjectRepository(Usuario) private usuarios: Repository<Usuario>,
     @InjectRepository(Sucursal) private sucursales: Repository<Sucursal>,
     @InjectRepository(CorreoLog) private correos: Repository<CorreoLog>,
     private correo: CorreoService,
     private tokens: TokensService,
+    private accesos: AccesosService,
   ) {}
 
   async onApplicationBootstrap() {
@@ -60,13 +64,107 @@ export class AdminService implements OnApplicationBootstrap {
     await this.admins.save(this.admins.create({ nombre: 'Elikar', email, passwordHash: await bcrypt.hash(password, 10) }));
   }
 
-  async entrar(dto: AdminLoginDto) {
+  async entrar(dto: AdminLoginDto, ip = '') {
     const email = dto.email.trim().toLowerCase();
     const a = await this.admins.createQueryBuilder('a').addSelect('a.passwordHash').where('a.email = :e', { e: email }).getOne();
-    if (!a || !a.activo || !(await bcrypt.compare(dto.password, a.passwordHash)))
+    const acceso = (motivo: string, exito = false) =>
+      this.accesos.anotar({
+        email,
+        tipo: 'panel',
+        exito,
+        motivo,
+        ip,
+        nombre: a?.nombre ?? '',
+        superAdminId: a?.id ?? null,
+      });
+    if (!a || !(await bcrypt.compare(dto.password, a.passwordHash))) {
+      await acceso('clave');
       throw new UnauthorizedException('Correo o contraseña incorrectos');
+    }
+    if (!a.activo) {
+      await acceso('inactivo');
+      throw new UnauthorizedException('Correo o contraseña incorrectos');
+    }
+    await acceso('ok', true);
     const token = await this.jwt.signAsync({ sub: a.id, tipo: 'superadmin' });
     return { token, admin: { id: a.id, nombre: a.nombre, email: a.email } };
+  }
+
+  private readonly porPagina = 50;
+
+  async listarBitacora(q?: string, origen: 'panel' | 'talleres' = 'panel', pagina = 1) {
+    const texto = q?.trim();
+    const skip = (Math.max(1, pagina) - 1) * this.porPagina;
+    if (origen === 'talleres') {
+      const qb = this.bitacoraTaller.createQueryBuilder('b').orderBy('b.id', 'DESC');
+      if (texto) qb.where('(b.usuarioNombre LIKE :q OR b.accion LIKE :q OR b.entidad LIKE :q)', { q: `%${texto}%` });
+      const [filas, total] = await qb.take(this.porPagina).skip(skip).getManyAndCount();
+      const nombres = await this.nombresTaller(filas.map((f) => f.tallerId));
+      return {
+        total,
+        pagina: Math.max(1, pagina),
+        items: filas.map((f) => ({
+          id: f.id,
+          creadoEn: f.creadoEn,
+          quien: f.usuarioNombre,
+          accion: f.accion,
+          entidad: f.entidad,
+          tallerId: f.tallerId,
+          tallerNombre: nombres.get(f.tallerId) ?? '',
+          detalle: f.detalle,
+        })),
+      };
+    }
+    const qb = this.bitacora.createQueryBuilder('b').orderBy('b.id', 'DESC');
+    if (texto) qb.where('(b.superAdminNombre LIKE :q OR b.accion LIKE :q OR b.entidad LIKE :q)', { q: `%${texto}%` });
+    const [filas, total] = await qb.take(this.porPagina).skip(skip).getManyAndCount();
+    const nombres = await this.nombresTaller(filas.map((f) => f.tallerId).filter((id): id is number => id != null));
+    return {
+      total,
+      pagina: Math.max(1, pagina),
+      items: filas.map((f) => ({
+        id: f.id,
+        creadoEn: f.creadoEn,
+        quien: f.superAdminNombre,
+        accion: f.accion,
+        entidad: f.entidad,
+        tallerId: f.tallerId,
+        tallerNombre: f.tallerId ? (nombres.get(f.tallerId) ?? '') : '',
+        detalle: f.detalle,
+      })),
+    };
+  }
+
+  async listarAccesos(q?: string, pagina = 1) {
+    const texto = q?.trim();
+    const skip = (Math.max(1, pagina) - 1) * this.porPagina;
+    const qb = this.inicios.createQueryBuilder('a').orderBy('a.id', 'DESC');
+    if (texto) qb.where('(a.email LIKE :q OR a.nombre LIKE :q OR a.ip LIKE :q)', { q: `%${texto}%` });
+    const [filas, total] = await qb.take(this.porPagina).skip(skip).getManyAndCount();
+    const nombres = await this.nombresTaller(filas.map((f) => f.tallerId).filter((id): id is number => id != null));
+    return {
+      total,
+      pagina: Math.max(1, pagina),
+      items: filas.map((f) => ({
+        id: f.id,
+        creadoEn: f.creadoEn,
+        email: f.email,
+        nombre: f.nombre,
+        tipo: f.tipo,
+        exito: f.exito,
+        motivo: f.motivo,
+        ip: f.ip,
+        tallerId: f.tallerId,
+        tallerNombre: f.tallerId ? (nombres.get(f.tallerId) ?? '') : '',
+      })),
+    };
+  }
+
+  private async nombresTaller(ids: number[]) {
+    const unicos = [...new Set(ids)];
+    if (!unicos.length) return new Map<number, string>();
+    const filas = await this.talleres.find({ where: { id: In(unicos) }, select: { id: true, nombre: true } });
+    return new Map(filas.map((t) => [t.id, t.nombre]));
   }
 
   yo(a: AdminSesion) {

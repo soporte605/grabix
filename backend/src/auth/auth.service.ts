@@ -8,6 +8,7 @@ import { exigirClave } from '../common/clave';
 import { Sesion } from '../common/sesion';
 import { DIAS_PRUEBA_PUBLICO, hoy, limites, PLANES, sumarDias, suscripcionVigente } from '../common/suscripcion';
 import { EjemplosService } from '../organizacion/ejemplos.service';
+import { AccesosService } from '../admin/accesos.service';
 import { CorreoService } from '../correo/correo.service';
 import { TokensService } from '../correo/tokens.service';
 import { CambiarContrasenaDto, LoginDto, RegistroDto, RestablecerDto } from './auth.dto';
@@ -26,6 +27,7 @@ export class AuthService {
     private ejemplos: EjemplosService,
     private correo: CorreoService,
     private tokens: TokensService,
+    private accesos: AccesosService,
   ) {}
 
   async registro(dto: RegistroDto) {
@@ -58,18 +60,38 @@ export class AuthService {
     return this.respuesta(usuario);
   }
 
-  async login(dto: LoginDto) {
-    const u = await this.usuarios
-      .createQueryBuilder('u')
-      .addSelect('u.passwordHash')
-      .where('u.email = :e', { e: dto.email.trim().toLowerCase() })
-      .getOne();
-    if (!u || !u.activo || !(await bcrypt.compare(dto.password, u.passwordHash)))
+  async login(dto: LoginDto, ip = '') {
+    const email = dto.email.trim().toLowerCase();
+    const u = await this.usuarios.createQueryBuilder('u').addSelect('u.passwordHash').where('u.email = :e', { e: email }).getOne();
+    const acceso = (motivo: string, exito = false) =>
+      this.accesos.anotar({
+        email,
+        tipo: 'taller',
+        exito,
+        motivo,
+        ip,
+        nombre: u?.nombre ?? '',
+        tallerId: u?.tallerId ?? null,
+        usuarioId: u?.id ?? null,
+      });
+    if (!u || !(await bcrypt.compare(dto.password, u.passwordHash))) {
+      await acceso('clave');
       throw new UnauthorizedException('Correo o contraseña incorrectos');
+    }
+    if (!u.activo) {
+      await acceso('inactivo');
+      throw new UnauthorizedException('Correo o contraseña incorrectos');
+    }
     const t = await this.talleres.findOneBy({ id: u.tallerId });
-    if (t?.bloqueado) throw new UnauthorizedException('Esta cuenta está suspendida. Escríbenos para reactivarla.');
-    if (u.rol !== Rol.Dueno && t?.eliminarEn)
+    if (t?.bloqueado) {
+      await acceso('bloqueado');
+      throw new UnauthorizedException('Esta cuenta está suspendida. Escríbenos para reactivarla.');
+    }
+    if (u.rol !== Rol.Dueno && t?.eliminarEn) {
+      await acceso('eliminacion');
       throw new UnauthorizedException('Esta cuenta está en proceso de eliminación. Pide al dueño que la restaure.');
+    }
+    await acceso('ok', true);
     return this.respuesta(u);
   }
 

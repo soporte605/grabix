@@ -1,4 +1,6 @@
-import { Body, Controller, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Query, Req } from '@nestjs/common';
+import type { Request } from 'express';
+import { ipDe } from './accesos.service';
 import { Publico } from '../common/sesion';
 import { Admin, type AdminSesion } from './admin.decorator';
 import { ActivoAdminDto, AdminLoginDto, AdminTallerDto, AdminUsuarioDto, BloqueoDto, CorreoAdminDto, CrearAdminDto, SuscripcionAdminDto } from './admin.dto';
@@ -9,8 +11,18 @@ export class AdminController {
   constructor(private admin: AdminService) {}
 
   @Publico() @Post('entrar') @HttpCode(200)
-  entrar(@Body() dto: AdminLoginDto) {
-    return this.admin.entrar(dto);
+  entrar(@Body() dto: AdminLoginDto, @Req() req: Request) {
+    return this.admin.entrar(dto, ipDe(req));
+  }
+
+  @Get('bitacora')
+  bitacora(@Query('q') q?: string, @Query('origen') origen?: string, @Query('pagina') pagina?: string) {
+    return this.admin.listarBitacora(q, origen === 'talleres' ? 'talleres' : 'panel', Number(pagina) || 1);
+  }
+
+  @Get('accesos')
+  accesos(@Query('q') q?: string, @Query('pagina') pagina?: string) {
+    return this.admin.listarAccesos(q, Number(pagina) || 1);
   }
 
   @Get('yo')

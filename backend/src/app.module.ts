@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AccesosModule } from './admin/accesos.service';
 import { AdminModule } from './admin/admin.module';
 import { AsistenteModule } from './asistente/asistente.controller';
 import { AuthModule } from './auth/auth.module';
@@ -46,6 +47,7 @@ import { OrganizacionModule } from './organizacion/organizacion.module';
     CorreoModule,
     CatalogoModule,
     OrganizacionModule,
+    AccesosModule,
     AuthModule,
     AdminModule,
     DocumentosModule,

@@ -9,6 +9,7 @@ import { FechaPipe } from '../core/formato';
 import { Rol, ROLES } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { validarFormulario } from '../core/validar';
+import { AdminMenu } from '../ui/admin-menu';
 import { Esqueleto } from '../ui/esqueleto';
 import { Icono } from '../ui/icono';
 
@@ -61,9 +62,10 @@ const ESTADOS_CORREO: Record<string, string> = {
 
 @Component({
   selector: 'app-admin-ficha',
-  imports: [FormsModule, RouterLink, DatePipe, FechaPipe, Esqueleto, Icono],
+  imports: [FormsModule, RouterLink, DatePipe, FechaPipe, Esqueleto, Icono, AdminMenu],
   template: `
     <div class="mx-auto w-full max-w-[900px] py-6 margen-x">
+      <app-admin-menu />
       @if (!listo()) { <app-esqueleto tipo="formulario" [filas]="4" /> }
       @else if (taller(); as t) {
         <div class="encabezado">

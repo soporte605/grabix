@@ -531,6 +531,24 @@ export class SuperAdmin {
   @CreateDateColumn() creadoEn: Date;
 }
 
+/** Intento de entrar al panel o a un taller. No guarda la contraseña. */
+@Entity('inicios_sesion')
+export class InicioSesion {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column({ length: 160 }) email: string;
+  /** panel | taller */
+  @Column({ length: 12 }) tipo: string;
+  @Column({ default: false }) exito: boolean;
+  /** clave | inactivo | bloqueado | eliminacion | ok */
+  @Column({ length: 20, default: '' }) motivo: string;
+  @Column({ length: 64, default: '' }) ip: string;
+  @Column({ length: 120, default: '' }) nombre: string;
+  @Column({ type: 'int', nullable: true }) tallerId: number | null;
+  @Column({ type: 'int', nullable: true }) usuarioId: number | null;
+  @Column({ type: 'int', nullable: true }) superAdminId: number | null;
+  @Index() @CreateDateColumn() creadoEn: Date;
+}
+
 /** Acciones del panel. El nombre real del super administrador solo vive aquí. */
 @Entity('admin_bitacora')
 export class AdminBitacora {
@@ -573,5 +591,6 @@ export const ENTIDADES = [
   Folio,
   Bitacora,
   AdminBitacora,
+  InicioSesion,
   AsistenteUso,
 ];

@@ -9,6 +9,8 @@ const GER = roles('dueno', 'admin');
 
 const panel = (): Routes => [
   { path: '', canActivate: [conAdmin], loadComponent: () => import('./pages/admin-talleres').then((m) => m.AdminTalleres), title: 'Talleres · Grabix' },
+  { path: 'bitacora', canActivate: [conAdmin], loadComponent: () => import('./pages/admin-bitacora').then((m) => m.AdminBitacoraPage), title: 'Bitácora · Grabix' },
+  { path: 'accesos', canActivate: [conAdmin], loadComponent: () => import('./pages/admin-accesos').then((m) => m.AdminAccesos), title: 'Accesos · Grabix' },
   { path: 'entrar', canActivate: [sinAdmin], loadComponent: () => import('./pages/admin-entrar').then((m) => m.AdminEntrar), title: 'Entrar · Panel · Grabix' },
   { path: 'talleres/:id', canActivate: [conAdmin], loadComponent: () => import('./pages/admin-ficha').then((m) => m.AdminFicha), title: 'Taller · Grabix' },
 ];

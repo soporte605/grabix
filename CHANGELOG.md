@@ -2,6 +2,12 @@
 
 Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el commit, en la rama `mejoras-interfaz-seguridad` (PR #1). El contexto del proyecto está en [`docs/PROYECTO.md`](docs/PROYECTO.md).
 
+## 2026-10-28 (panel)
+
+### Super administrador
+- Bitácora del panel y de los talleres, y accesos (intentos de entrar al panel y a los talleres, con IP y motivo, sin guardar la contraseña).
+- Cuenta local del panel documentada en el README: `local-panel@grabix.test`. No es la de producción.
+
 ## 2026-10-28 (tarde)
 
 ### WhatsApp y cobro

@@ -93,6 +93,7 @@ scripts/smoke.mjs        prueba de punta a punta de la API
 ## Desarrollo
 
 - Ver el README. `DB_SYNC=true` crea las tablas y columnas nuevas, también en producción por ahora. Pendiente: migrar a migraciones.
+- Panel local del super administrador: http://localhost:8081/admin con `local-panel@grabix.test` / `Mesa4821k`. Esa cuenta no es la de producción.
 - Para registrar algo hace falta `X-Sucursal` en las peticiones.
 - No subir secretos. `.env`, `.env.produccion` y `*.local.env` están en `.gitignore`. En `.gitignore` las carpetas de datos se anclan a la raíz (`/fotos/`, no `fotos/`): una regla sin `/` una vez ocultó `backend/src/fotos` y rompió un despliegue.
 

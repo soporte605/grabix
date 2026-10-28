@@ -78,14 +78,21 @@ Igual que FincaPro y SiloPro:
 
 ## Super administrador
 
-Panel de Elikar, aparte del login de los talleres. No trae correo ni contraseña de fábrica.
+Panel de Elikar, aparte del login de los talleres. En producción no trae correo ni contraseña de fábrica.
 
-- En local: http://localhost:4200/admin (o http://localhost:8080/admin si entras por Docker).
+- En local, con `ng serve`: http://localhost:4200/admin
+- En local, con Docker: http://localhost:8081/admin
 - En producción: https://admin.grabix.elikarsystems.com
 
-El primero se crea al arrancar la API, solo si la tabla `super_admins` está vacía y en `.env` hay `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD`. El nombre queda como Elikar. La contraseña sigue las mismas reglas que el resto de cuentas: mínimo 8 caracteres, con letras y números, que no sea muy común y que no incluya el correo ni la palabra Elikar. Si no las cumple, no se crea y la API sigue. Si ya hay un super administrador, el arranque no cambia su contraseña.
+Cuenta local (solo la base de Docker de esta máquina; no existe en producción):
 
-Desde el panel se ven los talleres, se editan datos y planes, se bloquean cuentas, se reenvían correos y se puede entrar como dueño.
+- Correo: `local-panel@grabix.test`
+- Contraseña: `Mesa4821k`
+- Nombre: Elikar
+
+El primero se crea al arrancar la API, solo si la tabla `super_admins` está vacía y hay `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD`. La contraseña sigue las mismas reglas que el resto de cuentas: mínimo 8 caracteres, con letras y números, que no sea muy común y que no incluya el correo ni la palabra Elikar. Si no las cumple, no se crea y la API sigue. Si ya hay un super administrador, el arranque no cambia su contraseña.
+
+Desde el panel se ven los talleres, se editan datos y planes, se bloquean cuentas, se reenvían correos y se puede entrar como dueño. **Bitácora** muestra lo que se cambió en el panel y en los talleres. **Accesos** guarda cada intento de entrar (panel y talleres): correo, si entró, el motivo, la IP y la hora. No guarda la contraseña. Los intentos anteriores a esta función no aparecen.
 
 ## Asistente con IA
 
