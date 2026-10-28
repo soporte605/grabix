@@ -2,56 +2,70 @@ import { Component, computed, inject, input, output, signal } from '@angular/cor
 import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { ConfirmarService } from '../core/confirmar.service';
-import { DineroPipe, FechaPipe, hoy } from '../core/formato';
-import { EST_VTA, Venta } from '../core/modelos';
+import { DineroPipe, FechaPipe, hoy, sumarDias } from '../core/formato';
+import { Cotizacion, EST_COT, EST_VTA, Venta } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { Hoja } from './hoja';
 import { Icono } from './icono';
 
 /**
- * Orden de trabajo de un pedido en una ventana legible en el teléfono:
- * qué hacer, para quién y para cuándo, con accesos a PDF, impresión y WhatsApp.
- * Producción no ve importes.
+ * Vista previa de una venta, orden de trabajo o cotización, legible en el teléfono,
+ * con accesos a PDF, impresión y WhatsApp. Se dibuja como página porque los navegadores
+ * del celular casi no muestran un PDF dentro de una ventana. Producción no ve importes.
  */
 @Component({
-  selector: 'app-orden-venta',
+  selector: 'app-vista-documento',
   imports: [Hoja, Icono, DineroPipe, FechaPipe],
   template: `
     @let v = venta();
-    <app-hoja [titulo]="'Orden ' + v.folio" ancho="640px" (cerrar)="cerrar.emit()">
-      <span cabeza class="pill" [class]="est[v.estado][1]">{{ est[v.estado][0] }}</span>
+    <app-hoja [titulo]="titulo()" ancho="640px" (cerrar)="cerrar.emit()">
+      <span cabeza class="pill" [class]="estado()[1]">{{ estado()[0] }}</span>
 
       <div class="grid gap-x-6 gap-y-2 sm:grid-cols-2">
         <div><p class="chico tenue">Cliente</p><p class="font-semibold">{{ cliente() }}</p>
           @if (telefono()) { <p class="chico num tenue">{{ telefono() }}</p> }</div>
-        <div><p class="chico tenue">Entrega</p>
-          <p class="font-semibold" [class.text-bad]="atrasada()">{{ v.entrega ? (v.entrega | fecha) : 'Sin fecha' }}@if (atrasada()) { · atrasada }</p>
-          <p class="chico tenue">Pedido el {{ v.fecha | fecha }}</p></div>
+        @if (esVenta()) {
+          <div><p class="chico tenue">Entrega</p>
+            <p class="font-semibold" [class.text-bad]="atrasada()">{{ $any(v).entrega ? ($any(v).entrega | fecha) : 'Sin fecha' }}@if (atrasada()) { · atrasada }</p>
+            <p class="chico tenue">Pedido el {{ v.fecha | fecha }}</p></div>
+        } @else {
+          <div><p class="chico tenue">Válida hasta</p>
+            <p class="font-semibold" [class.text-bad]="vencida()">{{ vence() | fecha }}@if (vencida()) { · vencida }</p>
+            <p class="chico tenue">Hecha el {{ v.fecha | fecha }}</p></div>
+        }
       </div>
 
       <section>
-        <h3 class="mb-1.5 text-base">Qué hay que hacer</h3>
+        <h3 class="mb-1.5 text-base">{{ modo() === 'orden' ? 'Qué hay que hacer' : 'Conceptos' }}</h3>
         <div class="tarjeta lista">
           @for (i of v.items; track $index) {
             <div class="flex items-start gap-3 px-3.5 py-2.5">
               <span class="num grid min-w-9 flex-none place-items-center rounded-lg bg-superficie-2 px-1.5 py-1 font-semibold">{{ i.cantidad }}</span>
               <span class="min-w-0 flex-1 pt-0.5">{{ i.descripcion }}</span>
-              @if (conImportes()) { <span class="num pt-0.5 text-tenue">{{ i.cantidad * i.precio | dinero }}</span> }
+              @if (conImportes()) {
+                <span class="pt-0.5 text-right"><span class="num block">{{ i.cantidad * i.precio | dinero }}</span>
+                  @if (modo() === 'documento' && i.cantidad !== 1) { <span class="num block text-sm text-tenue">{{ i.precio | dinero }} c/u</span> }</span>
+              }
             </div>
           }
         </div>
       </section>
 
       @if (v.notas) {
-        <section class="rounded-xl border border-linea bg-superficie p-3"><p class="chico mb-0.5 font-semibold tenue">Notas del pedido</p><p class="whitespace-pre-line">{{ v.notas }}</p></section>
+        <section class="rounded-xl border border-linea bg-superficie p-3"><p class="chico mb-0.5 font-semibold tenue">Notas</p><p class="whitespace-pre-line">{{ v.notas }}</p></section>
       }
 
       @if (conImportes()) {
         <div class="totales rounded-xl bg-superficie-2 p-3">
-          @if (v.descuento) { <span class="k">Descuento</span><span class="text-right">−{{ v.descuento | dinero }}</span> }
+          @if (v.descuento) {
+            <span class="k">Subtotal</span><span class="text-right">{{ v.subtotal | dinero }}</span>
+            <span class="k">Descuento</span><span class="text-right">−{{ v.descuento | dinero }}</span>
+          }
           <span class="k">Total</span><span class="text-right font-semibold">{{ v.total | dinero }}</span>
-          <span class="k">Pagado</span><span class="text-right">{{ v.pagado | dinero }}</span>
-          <span class="k">Saldo</span><span class="text-right font-semibold" [class.text-bad]="v.saldo > 0">{{ v.saldo | dinero }}</span>
+          @if (esVenta()) {
+            <span class="k">Pagado</span><span class="text-right">{{ $any(v).pagado | dinero }}</span>
+            <span class="k">Saldo</span><span class="text-right font-semibold" [class.text-bad]="$any(v).saldo > 0">{{ $any(v).saldo | dinero }}</span>
+          }
         </div>
       }
 
@@ -66,31 +80,43 @@ import { Icono } from './icono';
     </app-hoja>
   `,
 })
-export class OrdenVenta {
+export class VistaDocumento {
   private api = inject(Api);
   private aviso = inject(AvisoService);
   private confirmar = inject(ConfirmarService);
   private s = inject(SesionService);
-  venta = input.required<Venta>();
+  venta = input.required<Venta | Cotizacion>();
+  tipo = input<'venta' | 'cotizacion'>('venta');
+  /** 'orden' para el taller (qué hacer); 'documento' muestra precios unitarios. */
+  modo = input<'orden' | 'documento'>('documento');
+  /** Muestra "Cancelar pedido" (solo ventas y solo gerencia/encargado). */
+  conCancelar = input(true);
   cerrar = output();
   /** Se canceló el pedido: la lista debe recargarse. */
   cambio = output();
 
-  est = EST_VTA;
+  esVenta = computed(() => this.tipo() === 'venta');
+  titulo = computed(() => `${this.modo() === 'orden' ? 'Orden' : this.esVenta() ? 'Venta' : 'Cotización'} ${this.venta().folio}`);
+  estado = computed(() => (this.esVenta() ? EST_VTA : EST_COT)[this.venta().estado as never] as [string, string]);
+  vence = computed(() => sumarDias(String(this.venta().fecha).slice(0, 10), (this.venta() as Cotizacion).vigenciaDias ?? 15));
+  vencida = computed(() => !this.esVenta() && ['borrador', 'enviada'].includes(this.venta().estado) && this.vence() < hoy());
   ocupado = signal(false);
   conImportes = computed(() => this.s.rol() !== 'produccion');
-  puedeCancelar = computed(() => this.s.verCostos() && this.venta().estado !== 'cancelada' && this.venta().estado !== 'entregada');
+  puedeCancelar = computed(() => this.esVenta() && this.conCancelar() && this.s.verCostos() && !['cancelada', 'entregada'].includes(this.venta().estado));
   cliente = computed(() => this.venta().cliente?.nombre || this.venta().clienteNombre || 'Mostrador');
   telefono = computed(() => this.venta().cliente?.telefono || this.venta().clienteTelefono || '');
-  atrasada = computed(() => !!this.venta().entrega && String(this.venta().entrega).slice(0, 10) < hoy());
+  atrasada = computed(() => {
+    const v = this.venta() as Venta;
+    return !['entregada', 'cancelada'].includes(v.estado) && !!v.entrega && String(v.entrega).slice(0, 10) < hoy();
+  });
 
-  private url() { return `/ventas/${this.venta().id}`; }
+  private url() { return `/${this.esVenta() ? 'ventas' : 'cotizaciones'}/${this.venta().id}`; }
   descargar() { this.api.descargarPdf(`${this.url()}/pdf`, this.venta().folio).catch((e) => this.aviso.error(mensajeError(e))); }
   abrir() { this.api.abrirPdf(`${this.url()}/pdf`).catch((e) => this.aviso.error(mensajeError(e))); }
   whatsapp() { this.api.whatsapp(`${this.url()}/whatsapp`).catch((e) => this.aviso.error(mensajeError(e))); }
 
   async cancelar() {
-    const v = this.venta();
+    const v = this.venta() as Venta;
     const ok = await this.confirmar.preguntar({
       titulo: `¿Cancelar el pedido ${v.folio}?`,
       texto: v.pagado > 0

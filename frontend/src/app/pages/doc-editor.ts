@@ -11,6 +11,7 @@ import { SesionService } from '../core/sesion.service';
 import { Confirmar } from '../ui/confirmar';
 import { Buscador } from '../ui/buscador';
 import { Hoja } from '../ui/hoja';
+import { VistaDocumento } from '../ui/vista-documento';
 import { Icono } from '../ui/icono';
 
 interface Form {
@@ -22,7 +23,7 @@ interface Form {
 
 @Component({
   selector: 'app-doc-editor',
-  imports: [FormsModule, Buscador, DineroPipe, FechaPipe, PctPipe, Icono, Confirmar, Hoja],
+  imports: [FormsModule, Buscador, DineroPipe, FechaPipe, PctPipe, Icono, Confirmar, Hoja, VistaDocumento],
   template: `
     <app-hoja [titulo]="titulo()" ancho="1000px" (cerrar)="cerrar()">
       @if (doc(); as d) {
@@ -150,7 +151,7 @@ interface Form {
 
       <ng-container pie>
         @if (id) { <app-confirmar [pregunta]="esVenta ? '¿Eliminar esta venta?' : '¿Eliminar esta cotización?'" [detalle]="esVenta ? 'El inventario que descontó se devuelve. No se puede deshacer.' : 'No se puede deshacer.'" (confirmado)="eliminar()" /> }
-        <button class="btn" (click)="pdf()" [disabled]="ocupado()"><app-icono nombre="pdf" />PDF</button>
+        <button class="btn" (click)="pdf()" [disabled]="ocupado()"><app-icono nombre="ojo" />Vista previa</button>
         <button class="btn wa" (click)="whatsapp()" [disabled]="ocupado()"><app-icono nombre="wa" />WhatsApp</button>
         @if (esVenta && id) { <button class="btn" (click)="ticket()" [disabled]="ocupado()"><app-icono nombre="imprimir" />Ticket</button> }
         @if (!esVenta && id && f.estado !== 'aceptada') { <button class="btn" (click)="convertir()" [disabled]="ocupado()">Convertir en venta</button> }
@@ -158,6 +159,7 @@ interface Form {
         <button class="btn pri min-w-32 max-sm:flex-1" (click)="guardar(true)" [disabled]="ocupado()">{{ ocupado() ? 'Guardando…' : esVenta && !id ? 'Registrar venta' : 'Guardar' }}</button>
       </ng-container>
     </app-hoja>
+    @if (vista(); as v) { <app-vista-documento [venta]="v" [tipo]="esVenta ? 'venta' : 'cotizacion'" [conCancelar]="false" (cerrar)="vista.set(null)" /> }
   `,
 })
 export class DocEditor implements OnInit {
@@ -340,9 +342,13 @@ export class DocEditor implements OnInit {
     return this.id && !this.sucio ? this.id : this.guardar(false);
   }
 
+  /** Guarda si hace falta y muestra la vista previa con PDF, imprimir y WhatsApp. */
+  vista = signal<Cotizacion | Venta | null>(null);
   async pdf() {
     const id = await this.asegurar();
-    if (id) await this.api.abrirPdf(`${this.base}/${id}/pdf`).catch((e) => this.aviso.error(mensajeError(e)));
+    if (!id) return;
+    try { this.vista.set(await this.api.get<Cotizacion | Venta>(`${this.base}/${id}`)); }
+    catch (e) { this.aviso.error(mensajeError(e)); }
   }
 
   async whatsapp() {

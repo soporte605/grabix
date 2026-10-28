@@ -6,7 +6,7 @@ import { AvisoService, mensajeError } from '../core/aviso.service';
 import { FechaPipe, hoy, sumarDias } from '../core/formato';
 import { EST_VTA, EstadoVenta, Venta } from '../core/modelos';
 import { Icono } from '../ui/icono';
-import { OrdenVenta } from '../ui/orden-venta';
+import { VistaDocumento } from '../ui/vista-documento';
 
 const COLUMNAS: EstadoVenta[] = ['pendiente', 'produccion', 'lista'];
 const SIGUIENTE: Partial<Record<EstadoVenta, [EstadoVenta, string]>> = {
@@ -18,7 +18,7 @@ const SIGUIENTE: Partial<Record<EstadoVenta, [EstadoVenta, string]>> = {
 /** Tablero de pedidos por hacer: pendiente → en producción → listo → entregado. */
 @Component({
   selector: 'app-produccion',
-  imports: [FormsModule, FechaPipe, Icono, Esqueleto, OrdenVenta],
+  imports: [FormsModule, FechaPipe, Icono, Esqueleto, VistaDocumento],
   template: `
     <div class="encabezado"><div class="titulo"><span class="icono-modulo"><app-icono nombre="produccion" /></span><div><h1>Producción</h1><p>Pedidos por hacer, ordenados por fecha de entrega.</p></div></div></div>
     <div class="mb-3 flex flex-col gap-2.5">
@@ -48,7 +48,7 @@ const SIGUIENTE: Partial<Record<EstadoVenta, [EstadoVenta, string]>> = {
       }
     </div>
     }
-    @if (orden(); as v) { <app-orden-venta [venta]="v" (cerrar)="orden.set(null)" (cambio)="cargar()" /> }
+    @if (orden(); as v) { <app-vista-documento [venta]="v" modo="orden" (cerrar)="orden.set(null)" (cambio)="cargar()" /> }
   `,
 })
 export class Produccion implements OnInit {

@@ -27,7 +27,11 @@ export class Hoja implements AfterViewInit {
   private pie = viewChild.required<ElementRef<HTMLElement>>('pie');
   // En captura, para revisar los campos antes que el (click) del botón.
   ngAfterViewInit() { this.pie().nativeElement.addEventListener('click', (e) => this.validar(e), true); }
-  @HostListener('document:keydown.escape') esc() { this.cerrar.emit(); }
+  /** Escape cierra solo la ventana de más arriba, si hay una encima de otra. */
+  @HostListener('document:keydown.escape') esc() {
+    const hojas = document.querySelectorAll('app-hoja');
+    if (hojas[hojas.length - 1] === this.el.nativeElement) this.cerrar.emit();
+  }
 
   /** El botón principal del pie (Guardar, Crear…) primero revisa los campos; si falta algo no llega a guardar. */
   validar(ev: Event) {
