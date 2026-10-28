@@ -215,7 +215,7 @@ const BILLETES = [10, 50, 100, 500, 1000];
     }
 
     @if (verApertura()) { <app-abrir-caja [sugerido]="estadoCaja()?.sugerido ?? 0" [ultimo]="estadoCaja()?.ultimo ?? null" (cerrar)="verApertura.set(false)" (abierta)="verApertura.set(false); cargarTurno(); enfocar()" /> }
-    @if (verMov()) { <app-movimiento-caja (cerrar)="verMov.set(false)" (guardado)="verMov.set(false); cargarTurno()" /> }
+    @if (verMov()) { <app-movimiento-caja (cerrar)="verMov.set(false)" (guardado)="verMov.set(false); cargarTurno()" (cambio)="cargarTurno()" /> }
     @if (verCierre() && turno(); as t) { <app-cerrar-caja [turno]="t" (cerrar)="verCierre.set(false)" (cerrada)="verCierre.set(false); corte.set($event); cargarTurno()" /> }
     @if (corte(); as c) {
       <app-hoja [titulo]="'Corte ' + c.folio" ancho="440px" (cerrar)="corte.set(null)">

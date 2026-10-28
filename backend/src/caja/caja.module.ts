@@ -1,10 +1,10 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, Injectable, Module, NotFoundException, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, HttpCode, Injectable, Module, NotFoundException, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { Type } from 'class-transformer';
-import { IsDateString, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { Between, DataSource, EntityManager, In } from 'typeorm';
 import { BitacoraService } from '../common/bitacora.service';
-import { Roles, Ses, VEN_COSTOS, type Sesion } from '../common/sesion';
+import { GERENCIA, Roles, Ses, VEN_COSTOS, type Sesion } from '../common/sesion';
 import { r2, sucursalDe } from '../common/util';
 import { FoliosService } from '../documentos/folios.service';
 import { DocumentosModule } from '../documentos/documentos.module';
@@ -29,6 +29,10 @@ export class CerrarTurnoDto {
   /** Conteo por denominación (opcional): { "500": 2, "0.5": 4 }. */
   @IsOptional() @IsObject() conteo?: Record<string, number>;
   @IsOptional() @IsString() @MaxLength(1000) notas?: string;
+}
+
+export class EliminarTurnoDto {
+  @IsString() @MinLength(3) @MaxLength(300) motivo: string;
 }
 
 export class TurnosFiltroDto {
@@ -156,6 +160,39 @@ export class CajaService {
     return { items, total };
   }
 
+  /** Borra un movimiento de efectivo capturado por error, solo mientras su turno sigue abierto. */
+  async eliminarMovimiento(s: Sesion, id: number) {
+    const em = this.ds.manager;
+    const m = await em.findOneBy(CajaMovimiento, { id, tallerId: s.tallerId });
+    if (!m) throw new NotFoundException('No encontramos ese movimiento');
+    const t = await em.findOneBy(CajaTurno, { id: m.turnoId, tallerId: s.tallerId });
+    if (!t || t.estado !== EstadoTurno.Abierto) throw new BadRequestException('Ese turno ya se cerró; para corregirlo elimina el corte completo');
+    if (s.rol === Rol.Vendedor && m.usuarioId !== s.usuarioId) throw new ForbiddenException('Solo puedes borrar los movimientos que tú capturaste');
+    await em.delete(CajaMovimiento, { id });
+    await this.bitacora.registrar(s, 'eliminar', 'caja_movimiento', t.id, { folio: t.folio, tipo: m.tipo, monto: m.monto, concepto: m.concepto });
+    return { ok: true };
+  }
+
+  /**
+   * Elimina un corte cerrado (por ejemplo, uno de prueba). Los cobros del turno se conservan:
+   * solo dejan de estar ligados al corte, así que ventas y reportes no cambian.
+   */
+  async eliminarTurno(s: Sesion, id: number, motivo: string) {
+    return this.ds.transaction(async (em) => {
+      const t = await em.findOne(CajaTurno, { where: { id, tallerId: s.tallerId, ...(s.sucursal ? { sucursalId: s.sucursal } : {}) } });
+      if (!t) throw new NotFoundException('Turno no encontrado');
+      if (t.estado === EstadoTurno.Abierto) throw new BadRequestException('Primero cierra la caja; solo se eliminan cortes cerrados');
+      const pagos = await em.count(Pago, { where: { turnoId: t.id } });
+      await em.update(Pago, { turnoId: t.id }, { turnoId: null });
+      await em.delete(CajaMovimiento, { turnoId: t.id });
+      await em.delete(CajaTurno, { id: t.id });
+      await this.bitacora.registrar(s, 'eliminar', 'caja', t.id, {
+        folio: t.folio, motivo: motivo.trim(), fondo: t.fondo, esperado: t.esperado, contado: t.contado, diferencia: t.diferencia, pagos,
+      }, em);
+      return { ok: true };
+    });
+  }
+
   async detalle(s: Sesion, id: number) {
     const em = this.ds.manager;
     const t = await em.findOne(CajaTurno, { where: { id, tallerId: s.tallerId, ...(s.sucursal ? { sucursalId: s.sucursal } : {}) } });
@@ -277,6 +314,16 @@ export class CajaController {
   @Post('caja/turno/cerrar') @Roles(...VENTA) @HttpCode(200)
   cerrar(@Ses() s: Sesion, @Body() dto: CerrarTurnoDto) {
     return this.caja.cerrar(s, dto);
+  }
+
+  @Delete('caja/turno/movimientos/:id') @Roles(...VENTA) @HttpCode(200)
+  eliminarMovimiento(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number) {
+    return this.caja.eliminarMovimiento(s, id);
+  }
+
+  @Post('caja/turnos/:id/eliminar') @Roles(...GERENCIA) @HttpCode(200)
+  eliminarTurno(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number, @Body() dto: EliminarTurnoDto) {
+    return this.caja.eliminarTurno(s, id, dto.motivo);
   }
 
   @Get('caja/turnos') @Roles(...VENTA)
