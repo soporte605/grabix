@@ -54,9 +54,6 @@ const SUBLI: Preset[] = [
             <a routerLink="/registro" class="btn pri min-h-12 px-6 text-[1rem]">Prueba {{ diasPrueba() }} días gratis</a>
             <a href="#simulador" class="btn min-h-12 px-6 text-[1rem]"><app-icono class="text-acento-2" nombre="rayo" />Prueba el cotizador</a>
           </div>
-          <ul class="flex flex-wrap gap-x-5 gap-y-1.5 text-[.88rem] text-tenue max-lg:justify-center">
-            @for (c of confianza; track c) { <li class="flex items-center gap-1.5"><app-icono class="text-acento-2" nombre="ok" />{{ c }}</li> }
-          </ul>
         </div>
         <div class="w-full overflow-hidden rounded-2xl border border-linea bg-fondo shadow-caja" aria-label="Vista de ejemplo del panel de Grabix" role="img">
           <div class="flex items-center gap-1.5 border-b border-linea bg-superficie px-4 py-2.5" aria-hidden="true">
@@ -202,7 +199,6 @@ const SUBLI: Preset[] = [
     <section class="scroll-mt-16 bg-superficie py-14 lg:py-20" id="asistente">
       <div class="mx-auto grid max-w-[1200px] items-center gap-10 margen-x lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14">
         <div class="flex flex-col gap-5">
-          <span class="pill sec flex items-center gap-1.5 self-start"><app-icono nombre="chispa" />Nuevo: asistente con IA</span>
           <h2 class="text-[clamp(1.6rem,3.4vw,2.4rem)] leading-tight tracking-[-.03em]">Pregúntale a tu taller y te responde al momento</h2>
           <p class="text-[1.05rem] text-tenue">Escríbele como le escribirías a tu encargado. El asistente consulta tus ventas, pedidos, inventario y clientes, y te dice cómo hacer cualquier cosa en Grabix, con el enlace directo a la pantalla.</p>
           <ul class="grid gap-3.5">
@@ -384,7 +380,6 @@ export class Landing implements OnInit {
     { i: 'info', t: 'Te guía en el sistema', d: 'Te explica paso a paso cómo hacer algo y te lleva a la pantalla correcta.' },
     { i: 'sucursales', t: 'Por sucursal y por rol', d: 'Cada quien consulta solo su sucursal, y el vendedor nunca ve costos ni ganancias.' },
   ];
-  confianza = ['Sin tarjeta', 'Cancela cuando quieras', 'Funciona en tu celular'];
   antes = [
     'Cada precio se calcula a mano y cada quien cotiza distinto.',
     'Las cotizaciones se pierden entre chats y nadie les da seguimiento.',
