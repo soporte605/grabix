@@ -9,8 +9,10 @@ import { dinero, DineroPipe, FechaPipe, hoy, PctPipe, sumarDias } from '../core/
 import { Cliente, Cotizacion, EST_COT, EST_VTA, Producto, Promocion, Renglon, Venta } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { Confirmar } from '../ui/confirmar';
+import { AltaCliente, AltaProducto, AltaPromocion } from '../ui/alta-rapida';
 import { Buscador } from '../ui/buscador';
 import { Hoja } from '../ui/hoja';
+import { VistaDocumento } from '../ui/vista-documento';
 import { Icono } from '../ui/icono';
 
 interface Form {
@@ -22,7 +24,7 @@ interface Form {
 
 @Component({
   selector: 'app-doc-editor',
-  imports: [FormsModule, Buscador, DineroPipe, FechaPipe, PctPipe, Icono, Confirmar, Hoja],
+  imports: [FormsModule, Buscador, DineroPipe, FechaPipe, PctPipe, Icono, Confirmar, Hoja, VistaDocumento, AltaCliente, AltaProducto, AltaPromocion],
   template: `
     <app-hoja [titulo]="titulo()" ancho="1000px" (cerrar)="cerrar()">
       @if (doc(); as d) {
@@ -34,7 +36,7 @@ interface Form {
         <div class="campos c3">
           <div class="campo todo">
             <label for="d-cli">Cliente</label>
-            <app-buscador idCampo="d-cli" [opciones]="opsClientes()" [conVacio]="true" vacio="Cliente nuevo o de mostrador" placeholder="Buscar por nombre o teléfono…" [(ngModel)]="f.clienteId" (ngModelChange)="tocar()" />
+            <app-buscador idCampo="d-cli" [opciones]="opsClientes()" [conVacio]="true" vacio="Cliente nuevo o de mostrador" placeholder="Buscar por nombre o teléfono…" crear="Nuevo cliente" (nuevo)="altaCliente.set($event)" [(ngModel)]="f.clienteId" (ngModelChange)="tocar()" />
           </div>
           @if (f.clienteId == null) {
             <div class="campo"><label for="d-cn">Nombre</label><input id="d-cn" [(ngModel)]="f.clienteNombre" (ngModelChange)="tocar()"></div>
@@ -60,7 +62,7 @@ interface Form {
         @for (it of f.items; track $index; let i = $index) {
           <div class="grid grid-cols-[minmax(0,1fr)_30px] gap-1.5 rounded-[10px] border border-linea bg-superficie-2 p-2.5">
             <div class="grid grid-cols-6 gap-1.5">
-              <app-buscador class="col-span-6 sm:col-span-3" [opciones]="opsProductos()" [conVacio]="true" vacio="Concepto libre" etiqueta="Artículo" placeholder="Buscar producto o servicio…" [(ngModel)]="it.productoId" (ngModelChange)="elegir(it)" />
+              <app-buscador class="col-span-6 sm:col-span-3" [opciones]="opsProductos()" [conVacio]="true" vacio="Concepto libre" etiqueta="Artículo" placeholder="Buscar producto o servicio…" [crear]="s.verCostos() ? 'Nuevo producto o servicio' : ''" (nuevo)="altaProducto.set({ it, q: $event })" [(ngModel)]="it.productoId" (ngModelChange)="elegir(it)" />
               <input class="entrada col-span-6 p-2 sm:col-span-3" [(ngModel)]="it.descripcion" (ngModelChange)="tocar()" placeholder="Descripción" aria-label="Descripción">
               <input class="entrada col-span-2 p-2" type="number" inputmode="decimal" [(ngModel)]="it.cantidad" (ngModelChange)="tocar()" placeholder="Cant." aria-label="Cantidad">
               <input class="entrada col-span-2 p-2" type="number" inputmode="decimal" [(ngModel)]="it.precio" (ngModelChange)="tocar()" placeholder="Precio c/u" aria-label="Precio unitario">
@@ -76,7 +78,7 @@ interface Form {
       <section class="caja">
         <h3>Descuento</h3>
         <div class="campos c3">
-          <div class="campo"><label for="d-pr">Promoción</label>
+          <div class="campo"><div class="flex items-baseline justify-between gap-2"><label for="d-pr">Promoción</label>@if (s.verCostos()) { <button type="button" class="chico font-semibold text-marca" (click)="altaPromo.set(true)">+ Nueva</button> }</div>
             <select id="d-pr" [(ngModel)]="f.promocionId" (ngModelChange)="aplicarPromo()">
               <option [ngValue]="null">Ninguna</option>
               @for (p of promos(); track p.id) { <option [ngValue]="p.id">{{ p.nombre }}</option> }
@@ -150,7 +152,7 @@ interface Form {
 
       <ng-container pie>
         @if (id) { <app-confirmar [pregunta]="esVenta ? '¿Eliminar esta venta?' : '¿Eliminar esta cotización?'" [detalle]="esVenta ? 'El inventario que descontó se devuelve. No se puede deshacer.' : 'No se puede deshacer.'" (confirmado)="eliminar()" /> }
-        <button class="btn" (click)="pdf()" [disabled]="ocupado()"><app-icono nombre="pdf" />PDF</button>
+        <button class="btn" (click)="pdf()" [disabled]="ocupado()"><app-icono nombre="ojo" />Vista previa</button>
         <button class="btn wa" (click)="whatsapp()" [disabled]="ocupado()"><app-icono nombre="wa" />WhatsApp</button>
         @if (esVenta && id) { <button class="btn" (click)="ticket()" [disabled]="ocupado()"><app-icono nombre="imprimir" />Ticket</button> }
         @if (!esVenta && id && f.estado !== 'aceptada') { <button class="btn" (click)="convertir()" [disabled]="ocupado()">Convertir en venta</button> }
@@ -158,6 +160,10 @@ interface Form {
         <button class="btn pri min-w-32 max-sm:flex-1" (click)="guardar(true)" [disabled]="ocupado()">{{ ocupado() ? 'Guardando…' : esVenta && !id ? 'Registrar venta' : 'Guardar' }}</button>
       </ng-container>
     </app-hoja>
+    @if (vista(); as v) { <app-vista-documento [venta]="v" [tipo]="esVenta ? 'venta' : 'cotizacion'" [conCancelar]="false" (cerrar)="vista.set(null)" /> }
+    @if (altaCliente() !== null) { <app-alta-cliente [inicial]="altaCliente()!" (cerrar)="altaCliente.set(null)" (creado)="clienteCreado($event)" /> }
+    @if (altaProducto(); as a) { <app-alta-producto [inicial]="a.q" [categorias]="categorias()" (cerrar)="altaProducto.set(null)" (creado)="productoCreado(a.it, $event)" /> }
+    @if (altaPromo()) { <app-alta-promocion (cerrar)="altaPromo.set(false)" (creado)="promoCreada($event)" /> }
   `,
 })
 export class DocEditor implements OnInit {
@@ -285,6 +291,30 @@ export class DocEditor implements OnInit {
     if (p) { it.descripcion = p.nombre.replace(/ \(ejemplo\)$/, ''); it.precio = p.precio; }
     this.tocar();
   }
+  /* Altas rápidas sin salir del documento. */
+  altaCliente = signal<string | null>(null);
+  altaProducto = signal<{ it: Renglon; q: string } | null>(null);
+  altaPromo = signal(false);
+  categorias = computed(() => [...new Set(this.productos().map((p) => p.categoria).filter(Boolean))].sort());
+  clienteCreado(c: Cliente) {
+    this.clientes.update((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    this.f.clienteId = c.id;
+    this.altaCliente.set(null);
+    this.tocar();
+  }
+  async productoCreado(it: Renglon, p: Producto) {
+    // Se recarga la lista para traer el costo calculado del nuevo artículo.
+    this.productos.set(await this.api.get<Producto[]>('/productos').catch(() => [...this.productos(), p]));
+    it.productoId = p.id;
+    this.altaProducto.set(null);
+    this.elegir(it);
+  }
+  promoCreada(p: Promocion) {
+    this.promosTodas.update((l) => [...l, p]);
+    this.f.promocionId = p.id;
+    this.altaPromo.set(false);
+    this.aplicarPromo();
+  }
   aplicarPromo() {
     const p = this.promosTodas().find((x) => x.id === this.f.promocionId);
     if (p) { this.f.descuentoTipo = p.tipo; this.f.descuentoValor = p.valor; }
@@ -340,9 +370,13 @@ export class DocEditor implements OnInit {
     return this.id && !this.sucio ? this.id : this.guardar(false);
   }
 
+  /** Guarda si hace falta y muestra la vista previa con PDF, imprimir y WhatsApp. */
+  vista = signal<Cotizacion | Venta | null>(null);
   async pdf() {
     const id = await this.asegurar();
-    if (id) await this.api.abrirPdf(`${this.base}/${id}/pdf`).catch((e) => this.aviso.error(mensajeError(e)));
+    if (!id) return;
+    try { this.vista.set(await this.api.get<Cotizacion | Venta>(`${this.base}/${id}`)); }
+    catch (e) { this.aviso.error(mensajeError(e)); }
   }
 
   async whatsapp() {

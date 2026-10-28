@@ -6,7 +6,8 @@ import { validarFormulario } from '../core/validar';
   selector: 'app-hoja',
   host: { class: 'fixed inset-0 z-50 flex items-end justify-center md:items-center md:p-6' },
   template: `
-    <div class="absolute inset-0 bg-[rgba(8,20,30,.45)]" (click)="cerrar.emit()"></div>
+    <!-- Tocar fuera no cierra: así no se pierde lo capturado por un toque accidental. -->
+    <div class="absolute inset-0 bg-[rgba(8,20,30,.45)]"></div>
     <section [style.max-width]="ancho()" class="relative flex max-h-[94%] w-full flex-col overflow-hidden rounded-t-2xl bg-fondo shadow-caja motion-safe:animate-sube md:max-h-full md:rounded-2xl"
       role="dialog" aria-modal="true" [attr.aria-label]="titulo()">
       <header class="flex items-center justify-between gap-2.5 border-b border-linea bg-superficie px-4 pt-3.5 pb-3">
@@ -27,7 +28,11 @@ export class Hoja implements AfterViewInit {
   private pie = viewChild.required<ElementRef<HTMLElement>>('pie');
   // En captura, para revisar los campos antes que el (click) del botón.
   ngAfterViewInit() { this.pie().nativeElement.addEventListener('click', (e) => this.validar(e), true); }
-  @HostListener('document:keydown.escape') esc() { this.cerrar.emit(); }
+  /** Escape cierra solo la ventana de más arriba, si hay una encima de otra. */
+  @HostListener('document:keydown.escape') esc() {
+    const hojas = document.querySelectorAll('app-hoja');
+    if (hojas[hojas.length - 1] === this.el.nativeElement) this.cerrar.emit();
+  }
 
   /** El botón principal del pie (Guardar, Crear…) primero revisa los campos; si falta algo no llega a guardar. */
   validar(ev: Event) {

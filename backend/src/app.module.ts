@@ -12,6 +12,8 @@ import { AuthGuard } from './common/auth.guard';
 import { BitacoraModule } from './common/bitacora.service';
 import { CostosInterceptor } from './common/costos.interceptor';
 import { CajaModule } from './caja/caja.module';
+import { ProduccionModule } from './produccion/produccion.module';
+import { FotosModule } from './fotos/fotos.module';
 import { CuentaModule } from './cuenta/cuenta.module';
 import { DocumentosModule } from './documentos/documentos.module';
 import { ENTIDADES, Sucursal, SuperAdmin, Taller, Usuario } from './entities';
@@ -50,6 +52,8 @@ import { OrganizacionModule } from './organizacion/organizacion.module';
     AsistenteModule,
     CuentaModule,
     CajaModule,
+    ProduccionModule,
+    FotosModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },

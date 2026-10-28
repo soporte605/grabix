@@ -45,7 +45,7 @@ const ESTILO = {
 
     @if (confirmar.actual(); as p) {
       <div class="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-6">
-        <div class="absolute inset-0 bg-[rgba(8,20,30,.5)]" (click)="p.responder(false)"></div>
+        <div class="absolute inset-0 bg-[rgba(8,20,30,.5)]"></div>
         <section class="relative w-full max-w-[420px] rounded-t-2xl bg-superficie p-5 pb-[calc(20px+env(safe-area-inset-bottom,0px))] shadow-caja motion-safe:animate-sube sm:rounded-2xl sm:pb-5"
           role="alertdialog" aria-modal="true" aria-labelledby="conf-t" aria-describedby="conf-d">
           <div class="flex gap-3.5">

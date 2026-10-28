@@ -8,6 +8,8 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   // Detrás de Nginx: la IP real del visitante viene en X-Forwarded-For.
   app.set('trust proxy', Number(process.env.TRUST_PROXY ?? 1));
+  // Las fotos de trabajos llegan en base64 dentro del JSON.
+  app.useBodyParser('json', { limit: '8mb' });
   app.setGlobalPrefix('api');
   app.enableCors({ origin: process.env.CORS_ORIGIN?.split(',') ?? true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, transformOptions: { enableImplicitConversion: false }, exceptionFactory: errorValidacion }));

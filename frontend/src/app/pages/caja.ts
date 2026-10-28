@@ -11,6 +11,7 @@ import { Buscador } from '../ui/buscador';
 import { Hoja } from '../ui/hoja';
 import { Icono } from '../ui/icono';
 import { VentaHechaVentana } from '../ui/venta-hecha';
+import { AltaCliente } from '../ui/alta-rapida';
 import { AbrirCaja, CerrarCaja, imprimirCorte, MovimientoCaja } from '../ui/turno-caja';
 
 interface Linea { productoId: number | null; descripcion: string; precio: number; cantidad: number }
@@ -25,7 +26,7 @@ const BILLETES = [10, 50, 100, 500, 1000];
  */
 @Component({
   selector: 'app-caja',
-  imports: [FormsModule, NgTemplateOutlet, DineroPipe, Icono, Hoja, Buscador, VentaHechaVentana, AbrirCaja, MovimientoCaja, CerrarCaja],
+  imports: [FormsModule, NgTemplateOutlet, DineroPipe, Icono, Hoja, Buscador, VentaHechaVentana, AbrirCaja, MovimientoCaja, CerrarCaja, AltaCliente],
   host: { '(document:keydown)': 'atajo($event)', '(document:fullscreenchange)': 'alSalirDePantallaCompleta()' },
   template: `
     <div class="flex flex-col bg-fondo" [class]="grande() ? 'fixed inset-0 z-40 p-3 lg:p-4' : 'h-[calc(100dvh-170px)] min-h-[560px] lg:h-[calc(100dvh-110px)]'">
@@ -111,7 +112,7 @@ const BILLETES = [10, 50, 100, 500, 1000];
 
     <ng-template #carrito>
       <div class="flex items-center gap-2 border-b border-linea p-3">
-        <app-buscador class="flex-1" [opciones]="opsClientes()" [conVacio]="true" vacio="Público en general" placeholder="Buscar cliente…" etiqueta="Cliente" [(ngModel)]="clienteId" (ngModelChange)="guardarLocal()" />
+        <app-buscador class="flex-1" [opciones]="opsClientes()" [conVacio]="true" vacio="Público en general" placeholder="Buscar cliente…" etiqueta="Cliente" crear="Nuevo cliente" (nuevo)="altaCliente.set($event)" [(ngModel)]="clienteId" (ngModelChange)="guardarLocal()" />
         @if (lineas().length) { <button class="btn sm" (click)="vaciar()" title="Vaciar carrito">Vaciar</button> }
       </div>
       <div class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-3">
@@ -215,7 +216,7 @@ const BILLETES = [10, 50, 100, 500, 1000];
     }
 
     @if (verApertura()) { <app-abrir-caja [sugerido]="estadoCaja()?.sugerido ?? 0" [ultimo]="estadoCaja()?.ultimo ?? null" (cerrar)="verApertura.set(false)" (abierta)="verApertura.set(false); cargarTurno(); enfocar()" /> }
-    @if (verMov()) { <app-movimiento-caja (cerrar)="verMov.set(false)" (guardado)="verMov.set(false); cargarTurno()" /> }
+    @if (verMov()) { <app-movimiento-caja (cerrar)="verMov.set(false)" (guardado)="verMov.set(false); cargarTurno()" (cambio)="cargarTurno()" /> }
     @if (verCierre() && turno(); as t) { <app-cerrar-caja [turno]="t" (cerrar)="verCierre.set(false)" (cerrada)="verCierre.set(false); corte.set($event); cargarTurno()" /> }
     @if (corte(); as c) {
       <app-hoja [titulo]="'Corte ' + c.folio" ancho="440px" (cerrar)="corte.set(null)">
@@ -234,6 +235,7 @@ const BILLETES = [10, 50, 100, 500, 1000];
     @if (hecha(); as h) {
       <app-venta-hecha [datos]="h" (cerrar)="hecha.set(null); enfocar()" (nueva)="hecha.set(null); enfocar()" />
     }
+    @if (altaCliente() !== null) { <app-alta-cliente [inicial]="altaCliente()!" (cerrar)="altaCliente.set(null)" (creado)="clienteCreado($event)" /> }
   `,
 })
 export class Caja implements OnInit, OnDestroy {
@@ -246,6 +248,13 @@ export class Caja implements OnInit, OnDestroy {
   metodos = METODOS;
   productos = signal<Producto[]>([]);
   clientes = signal<Cliente[]>([]);
+  altaCliente = signal<string | null>(null);
+  clienteCreado(c: Cliente) {
+    this.clientes.update((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    this.clienteId = c.id;
+    this.altaCliente.set(null);
+    this.guardarLocal();
+  }
   lineas = signal<Linea[]>([]);
   clienteId: number | null = null;
   q = signal('');

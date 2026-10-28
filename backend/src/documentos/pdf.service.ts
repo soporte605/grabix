@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
-import { Cotizacion, Venta } from '../entities';
+import { Cotizacion, Sucursal, Venta } from '../entities';
 import { sumarDias } from '../common/suscripcion';
 import { DocumentosService } from './documentos.service';
 
@@ -11,6 +11,25 @@ const GRIS = '#5a6a74';
 const LINEA = '#d6dee2';
 /** Colores de marca; se reemplazan al definir la identidad visual. */
 const ACENTO = process.env.PDF_COLOR_ACENTO ?? '#002150';
+
+/** CLABE en bloques (banco, plaza, cuenta, verificador) y tarjeta de 4 en 4, más fáciles de dictar y copiar. */
+export const fmtClabe = (c: string) => (c.length === 18 ? `${c.slice(0, 3)} ${c.slice(3, 6)} ${c.slice(6, 17)} ${c.slice(17)}` : c);
+export const fmtTarjeta = (t: string) => t.replace(/(\d{4})(?=\d)/g, '$1 ');
+
+/** Datos para transferencia de la sucursal, en el orden en que se muestran. */
+export function datosTransferencia(suc?: Pick<Sucursal, 'banco' | 'titular' | 'clabe' | 'cuenta' | 'tarjeta'> | null): [string, string][] {
+  if (!suc) return [];
+  return ([
+    ['Banco', suc.banco],
+    ['Titular', suc.titular],
+    ['CLABE', suc.clabe ? fmtClabe(suc.clabe) : ''],
+    ['Cuenta', suc.cuenta],
+    ['Tarjeta', suc.tarjeta ? fmtTarjeta(suc.tarjeta) : ''],
+  ] as [string, string][]).filter(([, v]) => v);
+}
+
+/** Anticipo que pide la sucursal para empezar el trabajo. */
+export const anticipoDe = (total: number, pct?: number | null) => (pct && pct > 0 ? Math.round(total * pct) / 100 : 0);
 
 export const fmtFecha = (f?: string | null) => (f ? String(f).slice(0, 10).split('-').reverse().join('/') : '');
 
@@ -125,9 +144,14 @@ export class PdfService {
     doc.font('Helvetica-Bold').fontSize(11).fillColor(TINTA).text('Total', TX, ty + 2, { width: TW - 120 });
     doc.font('Helvetica-Bold').fontSize(15).fillColor(ACENTO).text(m(d.total), TX + TW - 140, ty, { width: 140, align: 'right' });
     ty += 28;
+    const pct = sucursal?.anticipoPct ?? 0;
+    const anticipo = anticipoDe(d.total, pct);
     if (v) {
       fila('Pagado', m(v.pagado));
       fila(saldo > 0 ? 'Saldo pendiente' : 'Saldo', m(saldo), true);
+      if (anticipo && v.pagado < anticipo && v.estado !== 'cancelada') fila('Falta para iniciar', m(anticipo - v.pagado), false, `Anticipo del ${pct}%`);
+    } else if (anticipo) {
+      fila('Anticipo para iniciar', m(anticipo), true, `${pct}% del total`);
     }
 
     /* Pagos, condiciones y notas (izquierda). */
@@ -143,16 +167,43 @@ export class PdfService {
       }
       iy += 10;
     }
-    if (!esVenta) {
+    const condiciones = [
+      esVenta ? '' : `Precios válidos hasta el ${vence}. Para confirmar tu pedido responde este mensaje o llámanos.`,
+      sucursal?.condiciones?.trim() ?? '',
+    ].filter(Boolean);
+    if (condiciones.length) {
       bloque('Condiciones');
-      doc.font('Helvetica').fontSize(8.5).fillColor(GRIS).text(
-        `Precios válidos hasta el ${vence}. Para confirmar tu pedido responde este mensaje o llámanos.`, L, iy, { width: IW, lineGap: 2 });
+      doc.font('Helvetica').fontSize(8.5).fillColor(GRIS).text(condiciones.join('\n'), L, iy, { width: IW, lineGap: 2 });
       iy = doc.y + 12;
     }
     if (d.notas) {
       bloque('Notas');
       doc.font('Helvetica').fontSize(8.5).fillColor(TINTA).text(d.notas, L, iy, { width: IW, lineGap: 2 });
       iy = doc.y + 12;
+    }
+
+    /* Datos para transferencia: recuadro a todo lo ancho, solo si hay algo por pagar. */
+    const banco = datosTransferencia(sucursal);
+    const porPagar = esVenta ? saldo > 0 && v!.estado !== 'cancelada' : d.total > 0;
+    if (banco.length && porPagar) {
+      const ind = sucursal?.indicacionesPago?.trim() ?? '';
+      const porFila = 3, colW = (AN - 32) / porFila;
+      const filas = Math.ceil(banco.length / porFila);
+      doc.font('Helvetica').fontSize(8.5);
+      const altoInd = ind ? doc.heightOfString(ind, { width: AN - 32, lineGap: 2 }) + 8 : 0;
+      const alto = 30 + filas * 30 + altoInd + 6;
+      let by = Math.max(iy, ty) + 8;
+      if (by + alto > H - 74) { doc.addPage(); doc.rect(0, 0, W, 4).fill(ACENTO); by = 54; }
+      doc.roundedRect(L, by, AN, alto, 6).fillAndStroke('#f4f7fa', LINEA);
+      doc.rect(L, by + 6, 3, alto - 12).fill(ACENTO);
+      etiqueta('Datos para transferencia o depósito', L + 16, by + 12);
+      banco.forEach(([k, val], n) => {
+        const cx = L + 16 + (n % porFila) * colW, cy = by + 28 + Math.floor(n / porFila) * 30;
+        doc.font('Helvetica').fontSize(7.5).fillColor(GRIS).text(k, cx, cy, { width: colW - 10 });
+        doc.font(k === 'CLABE' || k === 'Tarjeta' || k === 'Cuenta' ? 'Courier-Bold' : 'Helvetica-Bold').fontSize(k === 'CLABE' ? 10 : 9.5).fillColor(TINTA)
+          .text(val, cx, cy + 10, { width: colW - 10, lineBreak: false, ellipsis: true });
+      });
+      if (ind) doc.font('Helvetica').fontSize(8.5).fillColor(GRIS).text(ind, L + 16, by + 28 + filas * 30 + 2, { width: AN - 32, lineGap: 2 });
     }
 
     /* Pie en cada página. */
@@ -177,24 +228,40 @@ export class PdfService {
   }
 
   /** Texto listo para WhatsApp, con liga al PDF. */
-  whatsapp({ tipo, d, taller, cliente }: Datos, urlPdf: string) {
+  whatsapp({ tipo, d, taller, sucursal, cliente }: Datos, urlPdf: string) {
     const m = (n: number) => this.money(n, taller.moneda);
     const nombre = cliente?.nombre || d.clienteNombre;
     const lineas = d.items.map((i) => `• ${+i.cantidad.toFixed(4)} × ${i.descripcion}: ${m(i.cantidad * i.precio)}`).join('\n');
     let t = `Hola${nombre ? ' ' + nombre : ''},\n`;
-    t += tipo === 'venta' ? `Confirmamos tu pedido *${d.folio}* en ${taller.nombre}:\n\n` : `Te comparto la cotización *${d.folio}* de ${taller.nombre}:\n\n`;
-    t += lineas + '\n\n';
+    t += tipo === 'venta' ? `Confirmamos tu pedido *${d.folio}* en ${taller.nombre}:\n` : `Te comparto la cotización *${d.folio}* de ${taller.nombre}:\n`;
+    t += lineas + '\n';
     if (d.descuento) t += `Subtotal: ${m(d.subtotal)}\nDescuento: -${m(d.descuento)}\n`;
     t += `*Total: ${m(d.total)}*\n`;
     if (tipo === 'venta') {
       const v = d as Venta;
-      if (v.pagado) t += `Pagado: ${m(v.pagado)}\n`;
-      t += `Saldo: ${m(Math.max(0, v.total - v.pagado))}\n`;
+      const resta = Math.max(0, v.total - v.pagado);
+      // Liquidada: basta con decirlo; el saldo solo se menciona si se debe algo.
+      if (!resta) t += `*Pagado en su totalidad*\n`;
+      else {
+        if (v.pagado) t += `Pagado: ${m(v.pagado)}\n`;
+        t += `Saldo: ${m(resta)}\n`;
+      }
       if (v.entrega) t += `Entrega: ${fmtFecha(v.entrega)}\n`;
     } else {
       t += `Vigencia: hasta el ${fmtFecha(sumarDias(String(d.fecha).slice(0, 10), (d as Cotizacion).vigenciaDias))}\n`;
     }
-    t += `\nPDF: ${urlPdf}\n\n¡Gracias por tu preferencia!`;
+    const v = tipo === 'venta' ? (d as Venta) : null;
+    const anticipo = anticipoDe(d.total, sucursal?.anticipoPct);
+    if (anticipo && (!v || (v.pagado < anticipo && v.estado !== 'cancelada')))
+      t += `${v ? 'Falta para iniciar' : 'Anticipo para iniciar'} (${sucursal!.anticipoPct}%): ${m(v ? anticipo - v.pagado : anticipo)}\n`;
+    const banco = datosTransferencia(sucursal);
+    const porPagar = v ? v.total - v.pagado > 0 && v.estado !== 'cancelada' : d.total > 0;
+    if (banco.length && porPagar) {
+      t += `*Datos para transferencia*\n${banco.map(([k, val]) => `${k}: ${val}`).join('\n')}\n`;
+      if (sucursal?.indicacionesPago?.trim()) t += `${sucursal.indicacionesPago.trim()}\n`;
+    }
+    // Sin renglones vacíos: en WhatsApp se ven como huecos.
+    t += `${tipo === 'venta' ? 'Ver nota' : 'Ver cotización'}: ${urlPdf}\n¡Gracias por tu preferencia!`;
     let tel = (cliente?.telefono || d.clienteTelefono || '').replace(/\D/g, '');
     if (tel.length === 10) tel = (taller.lada || '') + tel;
     return { telefono: tel, texto: t, url: `https://wa.me/${tel}?text=${encodeURIComponent(t)}` };

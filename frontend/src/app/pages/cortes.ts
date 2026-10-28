@@ -1,7 +1,8 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
+import { validarFormulario } from '../core/validar';
 import { DineroPipe } from '../core/formato';
 import { CajaTurno, DetalleTurno, Usuario } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
@@ -46,6 +47,7 @@ import { imprimirCorte } from '../ui/turno-caja';
             <span class="acciones">
               <button type="button" class="ico" title="Ver detalle" aria-label="Ver {{ t.folio }}" (click)="ver(t)"><app-icono nombre="ojo" /></button>
               @if (t.estado === 'cerrado') { <button type="button" class="ico max-sm:hidden" title="Imprimir corte" aria-label="Imprimir {{ t.folio }}" (click)="imprimir(t)"><app-icono nombre="imprimir" /></button> }
+              @if (t.estado === 'cerrado' && s.gerencia()) { <button type="button" class="ico max-sm:hidden" title="Eliminar corte" aria-label="Eliminar {{ t.folio }}" (click)="ver(t, true)"><app-icono nombre="basura" /></button> }
             </span>
           </div>
         } @empty { <div class="vacio"><b>Sin turnos</b>{{ rango.desde || usuarioId ? 'Prueba con otras fechas o cajero.' : 'Abre la caja desde Caja para empezar tu primer turno.' }}</div> }
@@ -103,9 +105,22 @@ import { imprimirCorte } from '../ui/turno-caja';
         @if (d.notasApertura || d.notasCierre) {
           <p class="chico tenue">@if (d.notasApertura) { Apertura: {{ d.notasApertura }}. } @if (d.notasCierre) { Cierre: {{ d.notasCierre }} }</p>
         }
+        @if (borrando()) {
+          <section #zonaBorrar class="rounded-xl border border-bad bg-bad-suave p-3">
+            <h3 class="mb-1 text-base text-bad">Eliminar el corte {{ d.folio }}</h3>
+            <p class="chico mb-2">Se borran el turno y sus entradas y salidas. Las ventas y cobros no se tocan: solo dejan de estar ligados a este corte, así que tus reportes siguen igual. No se puede deshacer y queda anotado en la bitácora.</p>
+            <div class="campo"><label for="ec-m">Motivo</label><textarea id="ec-m" name="motivo" rows="2" required minlength="3" maxlength="300" [(ngModel)]="motivo" placeholder="Ej. Corte de prueba"></textarea></div>
+          </section>
+        }
         <ng-container pie>
-          @if (d.estado === 'cerrado') { <button class="btn" (click)="imprimirDetalle(d)"><app-icono nombre="imprimir" />Imprimir corte</button> }
-          <span class="flex-1"></span><button class="btn pri" (click)="detalle.set(null)">Listo</button>
+          @if (borrando()) {
+            <button class="btn" (click)="borrando.set(false)" [disabled]="ocupado()">Cancelar</button><span class="flex-1"></span>
+            <button class="btn peligro armado" (click)="eliminar(d)" [disabled]="ocupado()">{{ ocupado() ? 'Eliminando…' : 'Eliminar corte' }}</button>
+          } @else {
+            @if (d.estado === 'cerrado') { <button class="btn" (click)="imprimirDetalle(d)"><app-icono nombre="imprimir" />Imprimir</button> }
+            @if (d.estado === 'cerrado' && s.gerencia()) { <button class="btn peligro" (click)="pedirBorrar()"><app-icono nombre="basura" />Eliminar</button> }
+            <span class="flex-1"></span><button class="btn pri" (click)="detalle.set(null)">Listo</button>
+          }
         </ng-container>
       </app-hoja>
     }
@@ -123,6 +138,10 @@ export class Cortes implements OnInit {
   usuarioId: number | null = null;
   opsUsuarios = signal<{ valor: number; texto: string }[]>([]);
   detalle = signal<DetalleTurno | null>(null);
+  borrando = signal(false);
+  ocupado = signal(false);
+  motivo = '';
+  private zonaBorrar = viewChild<ElementRef<HTMLElement>>('zonaBorrar');
 
   async ngOnInit() {
     await this.cargar();
@@ -145,9 +164,35 @@ export class Cortes implements OnInit {
     this.listo.set(true);
   }
 
-  async ver(t: CajaTurno) {
-    try { this.detalle.set(await this.api.get<DetalleTurno>(`/caja/turnos/${t.id}`)); }
-    catch (e) { this.aviso.error(mensajeError(e)); }
+  async ver(t: CajaTurno, borrar = false) {
+    try {
+      this.detalle.set(await this.api.get<DetalleTurno>(`/caja/turnos/${t.id}`));
+      this.motivo = '';
+      this.borrando.set(false);
+      if (borrar) this.pedirBorrar();
+    } catch (e) { this.aviso.error(mensajeError(e)); }
+  }
+  /** Muestra la sección de borrado y la lleva a la vista (queda al final de la ventana). */
+  pedirBorrar() {
+    this.borrando.set(true);
+    setTimeout(() => {
+      const z = this.zonaBorrar()?.nativeElement;
+      z?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      z?.querySelector('textarea')?.focus({ preventScroll: true });
+    });
+  }
+  async eliminar(d: DetalleTurno) {
+    const zona = this.zonaBorrar()?.nativeElement;
+    if (this.ocupado() || (zona && !validarFormulario(zona))) return;
+    this.ocupado.set(true);
+    try {
+      await this.api.post(`/caja/turnos/${d.id}/eliminar`, { motivo: this.motivo.trim() });
+      this.aviso.ok(`Corte ${d.folio} eliminado`);
+      this.detalle.set(null);
+      this.borrando.set(false);
+      await this.cargar();
+    } catch (e) { this.aviso.error(mensajeError(e)); }
+    finally { this.ocupado.set(false); }
   }
   async imprimir(t: CajaTurno) {
     try { imprimirCorte(await this.api.get<DetalleTurno>(`/caja/turnos/${t.id}`), this.s); }

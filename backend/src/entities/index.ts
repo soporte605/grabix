@@ -56,6 +56,24 @@ export enum EstadoVenta {
   Cancelada = 'cancelada',
 }
 
+/** Etapa de un pedido dentro del taller; afina el estado de la venta (pendiente, en producción, lista). */
+export enum EtapaTaller {
+  Diseno = 'diseno',
+  Aprobacion = 'aprobacion',
+  Cola = 'cola',
+  Maquina = 'maquina',
+  Acabado = 'acabado',
+  Lista = 'lista',
+}
+
+export enum TipoMaquina {
+  Laser = 'laser',
+  Sublimacion = 'sublimacion',
+  Plancha = 'plancha',
+  Manual = 'manual',
+  Otra = 'otra',
+}
+
 @Entity('talleres')
 export class Taller {
   @PrimaryGeneratedColumn() id: number;
@@ -90,6 +108,17 @@ export class Sucursal {
   @Column({ length: 255, default: '' }) direccion: string;
   @Column({ length: 40, default: '' }) telefono: string;
   @Column({ default: true }) activa: boolean;
+  /** Datos para transferencia que salen en el PDF y el WhatsApp de esta sucursal. */
+  @Column({ length: 80, default: '' }) banco: string;
+  @Column({ length: 120, default: '' }) titular: string;
+  @Column({ length: 20, default: '' }) clabe: string;
+  @Column({ length: 30, default: '' }) cuenta: string;
+  @Column({ length: 25, default: '' }) tarjeta: string;
+  @Column({ type: 'text', nullable: true }) indicacionesPago: string | null;
+  /** Porcentaje de anticipo para empezar un trabajo (0 = no se pide). */
+  @Column({ type: 'int', default: 0 }) anticipoPct: number;
+  /** Condiciones de venta de la sucursal (anticipo, tiempos, garantía); van en cotizaciones y notas. */
+  @Column({ type: 'text', nullable: true }) condiciones: string | null;
 }
 
 @Entity('usuarios')
@@ -289,6 +318,12 @@ export class Venta extends DocumentoVenta {
   @Column({ type: 'int', nullable: true }) cotizacionId: number | null;
   @Column({ default: false }) stockAplicado: boolean;
   @Index({ unique: true }) @Column({ length: 40 }) tokenPublico: string;
+  /** Producción: etapa en el taller (null = la de su estado), máquina, responsable y prioridad. */
+  @Column({ type: 'enum', enum: EtapaTaller, nullable: true }) etapa: EtapaTaller | null;
+  @Column({ type: 'int', nullable: true }) maquinaId: number | null;
+  @Column({ type: 'int', nullable: true }) responsableId: number | null;
+  @Column({ default: false }) urgente: boolean;
+  @Column({ type: 'datetime', nullable: true }) etapaEn: Date | null;
   @OneToMany(() => VentaItem, (i) => i.venta, { cascade: true, eager: true })
   items: Relation<VentaItem[]>;
   @OneToMany(() => Pago, (p) => p.venta, { cascade: true, eager: true })
@@ -298,9 +333,21 @@ export class Venta extends DocumentoVenta {
 @Entity('venta_items')
 export class VentaItem extends Renglon {
   @Column() ventaId: number;
+  /** Piezas terminadas en el taller (avance por renglón). */
+  @Column(qty) hechos: number;
   @ManyToOne(() => Venta, (v) => v.items, { onDelete: 'CASCADE', orphanedRowAction: 'delete' })
   @JoinColumn({ name: 'ventaId' })
   venta: Relation<Venta>;
+}
+
+@Entity('maquinas')
+export class Maquina {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Column({ length: 80 }) nombre: string;
+  @Column({ type: 'enum', enum: TipoMaquina, default: TipoMaquina.Laser }) tipo: TipoMaquina;
+  @Column({ default: true }) activa: boolean;
+  @CreateDateColumn() creadoEn: Date;
 }
 
 @Entity('pagos')
@@ -451,6 +498,26 @@ export class CajaMovimiento {
   @CreateDateColumn() creadoEn: Date;
 }
 
+/** Foto de un trabajo terminado: evidencia del pedido y galería del producto. El archivo vive en FOTOS_DIR. */
+@Entity('fotos')
+export class Foto {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Index() @Column() ventaId: number;
+  @Column({ length: 60 }) archivo: string;
+  @Column({ length: 60 }) miniatura: string;
+  @Column({ type: 'int', default: 0 }) ancho: number;
+  @Column({ type: 'int', default: 0 }) alto: number;
+  @Column({ type: 'int', default: 0 }) bytes: number;
+  @Column({ type: 'varchar', length: 200, nullable: true }) nota: string | null;
+  @Column() usuarioId: number;
+  @Column({ length: 120 }) usuarioNombre: string;
+  @CreateDateColumn() creadoEn: Date;
+  @ManyToOne(() => Venta, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'ventaId' })
+  venta: Relation<Venta>;
+}
+
 /** Cuenta del panel de Elikar. No pertenece a ningún taller. */
 @Entity('super_admins')
 export class SuperAdmin {
@@ -479,6 +546,8 @@ export class AdminBitacora {
 }
 
 export const ENTIDADES = [
+  Foto,
+  Maquina,
   CajaTurno,
   CajaMovimiento,
   CotizadorUso,

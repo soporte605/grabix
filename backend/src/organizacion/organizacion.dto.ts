@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Matches, MaxLength, Min, MinLength } from 'class-validator';
 import { ClaveSegura } from '../common/clave';
 import { Rol } from '../entities';
 
@@ -20,6 +20,14 @@ export class SucursalDto {
   @IsOptional() @IsString() @MaxLength(255) direccion?: string;
   @IsOptional() @IsString() @MaxLength(40) telefono?: string;
   @IsOptional() @IsBoolean() activa?: boolean;
+  @IsOptional() @IsString() @MaxLength(80) banco?: string;
+  @IsOptional() @IsString() @MaxLength(120) titular?: string;
+  @IsOptional() @Matches(/^(\d{18})?$/, { message: 'La CLABE debe tener 18 dígitos' }) clabe?: string;
+  @IsOptional() @Matches(/^[\d-]{0,30}$/, { message: 'El número de cuenta solo lleva dígitos' }) cuenta?: string;
+  @IsOptional() @Matches(/^(\d{15,19})?$/, { message: 'La tarjeta debe tener 16 dígitos' }) tarjeta?: string;
+  @IsOptional() @IsString() @MaxLength(500) indicacionesPago?: string;
+  @IsOptional() @IsInt() @Min(0) @Max(100) anticipoPct?: number;
+  @IsOptional() @IsString() @MaxLength(1000) condiciones?: string;
 }
 
 export class UsuarioDto {

@@ -3,7 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { DineroPipe } from '../core/formato';
-import { CajaTurno, DetalleTurno } from '../core/modelos';
+import { ConfirmarService } from '../core/confirmar.service';
+import { CajaMovimiento, CajaTurno, DetalleTurno } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { corteHtml, imprimirTicket } from '../core/ticket';
 import { Hoja } from './hoja';
@@ -57,7 +58,7 @@ export class AbrirCaja implements OnInit {
 /** Entrada o salida de efectivo durante el turno (retiro, gasto, cambio que traen…). */
 @Component({
   selector: 'app-movimiento-caja',
-  imports: [FormsModule, Hoja],
+  imports: [FormsModule, Hoja, Icono, DineroPipe],
   template: `
     <app-hoja titulo="Entrada o salida de efectivo" ancho="460px" (cerrar)="cerrar.emit()">
       <div class="grid grid-cols-2 gap-2">
@@ -67,6 +68,20 @@ export class AbrirCaja implements OnInit {
       <p class="chico tenue">{{ tipo() === 'salida' ? 'Efectivo que sale del cajón: pago a proveedor, gasto, retiro parcial.' : 'Efectivo que entra sin ser venta: cambio que traen, reposición de fondo.' }}</p>
       <div class="campo"><label for="mc-m">Monto</label><input id="mc-m" name="monto" required class="num text-xl" type="number" inputmode="decimal" min="0.01" [(ngModel)]="monto"></div>
       <div class="campo"><label for="mc-c">Concepto</label><input id="mc-c" name="concepto" required [(ngModel)]="concepto" maxlength="200" [placeholder]="tipo() === 'salida' ? 'Ej. Pago de garrafón' : 'Ej. Cambio del banco'" (keydown.enter)="guardar()"></div>
+      @if (movimientos().length) {
+        <section><h3 class="mb-1.5 text-base">Movimientos de este turno</h3>
+          <div class="tarjeta lista">
+            @for (m of movimientos(); track m.id) {
+              <div class="flex items-center gap-3 px-3.5 py-2">
+                <div class="min-w-0 flex-1"><p class="truncate">{{ m.concepto }}</p><p class="chico tenue">{{ m.usuarioNombre }} · {{ hora(m.creadoEn) }}</p></div>
+                <span class="num font-semibold" [class]="m.tipo === 'salida' ? 'text-bad' : 'text-ok'">{{ m.tipo === 'salida' ? '−' : '+' }}{{ m.monto | dinero }}</span>
+                <button type="button" class="ico" title="Eliminar" [attr.aria-label]="'Eliminar ' + m.concepto" (click)="eliminar(m)" [disabled]="ocupado()"><app-icono nombre="basura" /></button>
+              </div>
+            }
+          </div>
+          <p class="chico mt-1 tenue">Si capturaste uno por error, elimínalo aquí mientras la caja siga abierta.</p>
+        </section>
+      }
       <ng-container pie>
         <button class="btn" (click)="cerrar.emit()">Cancelar</button><span class="flex-1"></span>
         <button class="btn pri" (click)="guardar()" [disabled]="ocupado() || !valido()">Registrar {{ tipo() }}</button>
@@ -74,11 +89,15 @@ export class AbrirCaja implements OnInit {
     </app-hoja>
   `,
 })
-export class MovimientoCaja {
+export class MovimientoCaja implements OnInit {
   private api = inject(Api);
   private aviso = inject(AvisoService);
+  private confirmar = inject(ConfirmarService);
   cerrar = output();
   guardado = output();
+  /** Se eliminó un movimiento: la caja debe recalcular sus totales. */
+  cambio = output();
+  movimientos = signal<CajaMovimiento[]>([]);
   tipo = signal<'entrada' | 'salida'>('salida');
   monto: number | null = null;
   concepto = '';
@@ -94,6 +113,23 @@ export class MovimientoCaja {
     } catch (e) { this.aviso.error(mensajeError(e)); }
     finally { this.ocupado.set(false); }
   }
+  async ngOnInit() {
+    const r = await this.api.get<{ movimientos?: CajaMovimiento[] }>('/caja/turno').catch(() => null);
+    this.movimientos.set(r?.movimientos ?? []);
+  }
+  async eliminar(m: CajaMovimiento) {
+    const ok = await this.confirmar.preguntar({ titulo: `¿Eliminar la ${m.tipo} "${m.concepto}"?`, texto: 'Se quita del turno y el efectivo esperado se recalcula. Queda anotado en la bitácora.', accion: 'Eliminar', peligro: true });
+    if (!ok) return;
+    this.ocupado.set(true);
+    try {
+      await this.api.del(`/caja/turno/movimientos/${m.id}`);
+      this.movimientos.update((l) => l.filter((x) => x.id !== m.id));
+      this.aviso.ok('Movimiento eliminado');
+      this.cambio.emit();
+    } catch (e) { this.aviso.error(mensajeError(e)); }
+    finally { this.ocupado.set(false); }
+  }
+  hora(d: string) { return new Date(d).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }); }
 }
 
 /** Corte de caja: cobros del turno, efectivo esperado contra contado, lo que se deja y el retiro. */

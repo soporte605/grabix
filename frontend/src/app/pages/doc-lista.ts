@@ -9,6 +9,7 @@ import { DineroPipe, FechaPipe } from '../core/formato';
 import { Cotizacion, EST_COT, EST_VTA, Venta } from '../core/modelos';
 import { FiltroFechas, Rango } from '../ui/filtro-fechas';
 import { Icono } from '../ui/icono';
+import { VistaDocumento } from '../ui/vista-documento';
 import { Paginador } from '../ui/paginador';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { ConfirmarService } from '../core/confirmar.service';
@@ -17,7 +18,7 @@ import { SesionService } from '../core/sesion.service';
 /** Lista de cotizaciones o de ventas (según la ruta). */
 @Component({
   selector: 'app-doc-lista',
-  imports: [FormsModule, VentaHechaVentana, FiltroFechas, RouterLink, RouterOutlet, DineroPipe, FechaPipe, Icono, Esqueleto, Paginador],
+  imports: [FormsModule, VentaHechaVentana, FiltroFechas, RouterLink, RouterOutlet, DineroPipe, FechaPipe, Icono, Esqueleto, Paginador, VistaDocumento],
   template: `
     <div class="encabezado">
       <div class="titulo"><span class="icono-modulo"><app-icono [nombre]="esVenta ? 'ventas' : 'cotizaciones'" /></span><div>
@@ -49,7 +50,7 @@ import { SesionService } from '../core/sesion.service';
           </a>
           <span class="acciones">
             <a class="ico max-sm:hidden" [routerLink]="[d.id]" title="Editar" aria-label="Editar {{ d.folio }}"><app-icono nombre="editar" /></a>
-            <button type="button" class="ico max-sm:hidden" title="Descargar PDF" aria-label="Descargar PDF de {{ d.folio }}" (click)="pdf(d)"><app-icono nombre="descargar" /></button>
+            <button type="button" class="ico" title="Vista previa" aria-label="Ver {{ d.folio }}" (click)="ver(d)"><app-icono nombre="ojo" /></button>
             @if (puedeEliminar()) {
               <button type="button" class="ico peligro" title="Eliminar" aria-label="Eliminar {{ d.folio }}" (click)="eliminar(d)"><app-icono nombre="basura" /></button>
             }
@@ -69,6 +70,7 @@ import { SesionService } from '../core/sesion.service';
     @if (esVenta && pos.hecha(); as h) {
       <app-venta-hecha [datos]="h" (cerrar)="pos.hecha.set(null)" (nueva)="pos.hecha.set(null); router.navigate(['/app/ventas/nueva'])" />
     }
+    @if (vista(); as v) { <app-vista-documento [venta]="v" [tipo]="esVenta ? 'venta' : 'cotizacion'" (cerrar)="vista.set(null)" (cambio)="cargar()" /> }
   `,
 })
 export class DocLista implements OnInit {
@@ -110,9 +112,10 @@ export class DocLista implements OnInit {
     this.resumen.set(r.resumen ?? null);
     this.cargando.set(false);
   }
-  pdf(d: Cotizacion | Venta) {
-    const base = this.esVenta ? 'ventas' : 'cotizaciones';
-    this.api.descargarPdf(`/${base}/${d.id}/pdf`, `${d.folio}.pdf`).catch((e) => this.aviso.error(mensajeError(e)));
+  vista = signal<Cotizacion | Venta | null>(null);
+  async ver(d: Cotizacion | Venta) {
+    try { this.vista.set(await this.api.get<Cotizacion | Venta>(`/${this.esVenta ? 'ventas' : 'cotizaciones'}/${d.id}`)); }
+    catch (e) { this.aviso.error(mensajeError(e)); }
   }
   async eliminar(d: Cotizacion | Venta) {
     const ok = await this.confirmar.preguntar({

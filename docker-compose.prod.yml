@@ -41,6 +41,7 @@ services:
       CORS_ORIGIN: https://${DOMINIO},https://app.${DOMINIO},https://admin.grabix.elikarsystems.com
       # Caddy -> Nginx -> API: la IP real del visitante está dos saltos atrás.
       TRUST_PROXY: 2
+      FOTOS_DIR: /app/fotos
       PAGOS_MODO: ${PAGOS_MODO:-demo}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       MAIL_FROM: ${MAIL_FROM:-Grabix <no-responder@${DOMINIO}>}
@@ -53,6 +54,9 @@ services:
       ASISTENTE_MODELO: ${ASISTENTE_MODELO:-claude-opus-5-5}
       ASISTENTE_LIMITE_DIARIO: ${ASISTENTE_LIMITE_DIARIO:-}
       COTIZADOR_LIMITE: ${COTIZADOR_LIMITE:-3}
+    # Fotos de trabajos terminados (respáldalas junto con ./respaldos).
+    volumes:
+      - ./fotos:/app/fotos
 
   web:
     build: ./frontend
