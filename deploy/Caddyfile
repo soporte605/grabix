@@ -22,3 +22,9 @@ app.{$DOMINIO} {
 
 	reverse_proxy web:80
 }
+
+# Super administrador: host fijo (no depende de DOMINIO). La app Angular redirige la raíz.
+admin.grabix.elikarsystems.com {
+	encode zstd gzip
+	reverse_proxy web:80
+}

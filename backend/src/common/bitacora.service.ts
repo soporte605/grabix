@@ -9,16 +9,19 @@ export class BitacoraService {
   constructor(@InjectRepository(Bitacora) private repo: Repository<Bitacora>) {}
 
   registrar(s: Sesion, accion: string, entidad: string, entidadId: number | null, detalle?: unknown, em?: EntityManager) {
-    const r = (em ? em.getRepository(Bitacora) : this.repo).create({
+    const soporteId = s.soporteId;
+    const base = detalle !== null && typeof detalle === 'object' && !Array.isArray(detalle) ? (detalle as Record<string, unknown>) : {};
+    const repo = em ? em.getRepository(Bitacora) : this.repo;
+    const r = repo.create({
       tallerId: s.tallerId,
-      usuarioId: s.usuarioId,
-      usuarioNombre: s.nombre,
+      usuarioId: soporteId != null ? null : s.usuarioId,
+      usuarioNombre: soporteId != null ? 'Soporte Grabix' : s.nombre,
       accion,
       entidad,
       entidadId,
-      detalle: detalle ?? null,
+      detalle: soporteId != null ? { ...base, soporteId } : (detalle ?? null),
     });
-    return (em ? em.getRepository(Bitacora) : this.repo).save(r);
+    return repo.save(r);
   }
 }
 

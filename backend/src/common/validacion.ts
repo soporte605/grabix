@@ -18,6 +18,7 @@ const NOMBRES: Record<string, [string, 'o' | 'a']> = {
   fin: ['La fecha de fin', 'a'], mensaje: ['El mensaje', 'o'], fondo: ['El fondo inicial', 'o'], concepto: ['El concepto', 'o'],
   contado: ['El efectivo contado', 'o'], dejado: ['Lo que se deja en caja', 'o'], desde: ['La fecha inicial', 'a'], hasta: ['La fecha final', 'a'],
   texto: ['El mensaje', 'o'], mensajes: ['La conversación', 'a'], componentes: ['Los componentes', 'o'], conteo: ['El conteo', 'o'],
+  bloqueado: ['El bloqueo', 'o'], dias: ['Los días', 'o'], renovar: ['La renovación', 'a'], cancelarEliminacion: ['Cancelar la eliminación', 'a'],
 };
 
 const vacio = (v: unknown) => v === undefined || v === null || (typeof v === 'string' && !v.trim());

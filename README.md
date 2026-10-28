@@ -76,6 +76,17 @@ Igual que FincaPro y SiloPro:
 - Con la suscripción vencida se puede consultar, pero no registrar (HTTP 402).
 - `PAGOS_MODO=demo` activa planes sin cobrar. **Pendiente:** conectar Stripe o Mercado Pago (webhook que llame a la activación).
 
+## Super administrador
+
+Panel de Elikar, aparte del login de los talleres. No trae correo ni contraseña de fábrica.
+
+- En local: http://localhost:4200/admin (o http://localhost:8080/admin si entras por Docker).
+- En producción: https://admin.grabix.elikarsystems.com
+
+El primero se crea al arrancar la API, solo si la tabla `super_admins` está vacía y en `.env` hay `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD`. El nombre queda como Elikar. La contraseña sigue las mismas reglas que el resto de cuentas: mínimo 8 caracteres, con letras y números, que no sea muy común y que no incluya el correo ni la palabra Elikar. Si no las cumple, no se crea y la API sigue. Si ya hay un super administrador, el arranque no cambia su contraseña.
+
+Desde el panel se ven los talleres, se editan datos y planes, se bloquean cuentas, se reenvían correos y se puede entrar como dueño.
+
 ## Asistente con IA
 
 Botón **Asistente** en la barra superior del sistema. Usa Claude (Anthropic) y responde con los datos del taller:

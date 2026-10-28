@@ -77,6 +77,8 @@ export class Taller {
   @Column({ type: 'date', nullable: true }) pagadoHasta: string | null;
   /** Eliminación solicitada por el dueño: ese día se borran todos los datos del taller. Mientras, la cuenta queda bloqueada. */
   @Column({ type: 'date', nullable: true }) eliminarEn: string | null;
+  /** Suspensión manual desde el panel. El equipo no puede entrar ni seguir con una sesión abierta; el acceso de soporte sí. */
+  @Column({ default: false }) bloqueado: boolean;
   @CreateDateColumn() creadoEn: Date;
 }
 
@@ -449,6 +451,33 @@ export class CajaMovimiento {
   @CreateDateColumn() creadoEn: Date;
 }
 
+/** Cuenta del panel de Elikar. No pertenece a ningún taller. */
+@Entity('super_admins')
+export class SuperAdmin {
+  @PrimaryGeneratedColumn() id: number;
+  @Column({ length: 120 }) nombre: string;
+  @Index({ unique: true }) @Column({ length: 160 }) email: string;
+  @Column({ length: 100, select: false }) passwordHash: string;
+  @Column({ default: true }) activo: boolean;
+  /** Las sesiones emitidas antes de esta fecha dejan de valer. */
+  @Column({ type: 'datetime', precision: 3, nullable: true }) claveCambiadaEn: Date | null;
+  @CreateDateColumn() creadoEn: Date;
+}
+
+/** Acciones del panel. El nombre real del super administrador solo vive aquí. */
+@Entity('admin_bitacora')
+export class AdminBitacora {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() superAdminId: number;
+  @Column({ length: 120 }) superAdminNombre: string;
+  @Column({ type: 'int', nullable: true }) tallerId: number | null;
+  @Column({ length: 40 }) accion: string;
+  @Column({ length: 40 }) entidad: string;
+  @Column({ type: 'int', nullable: true }) entidadId: number | null;
+  @Column({ type: 'json', nullable: true }) detalle: unknown;
+  @Index() @CreateDateColumn() creadoEn: Date;
+}
+
 export const ENTIDADES = [
   CajaTurno,
   CajaMovimiento,
@@ -456,6 +485,7 @@ export const ENTIDADES = [
   Taller,
   Sucursal,
   Usuario,
+  SuperAdmin,
   TokenCuenta,
   CorreoLog,
   Producto,
@@ -473,5 +503,6 @@ export const ENTIDADES = [
   CompraItem,
   Folio,
   Bitacora,
+  AdminBitacora,
   AsistenteUso,
 ];

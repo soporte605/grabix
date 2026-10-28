@@ -42,8 +42,16 @@ function leer() {
   selector: 'app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, Icono, Logo, SelectorTema, Asistente, Bienvenida, FechaPipe],
   template: `
-    <div class="grid min-h-full transition-[grid-template-columns] duration-200" [class]="corto() ? 'lg:grid-cols-[72px_1fr]' : 'lg:grid-cols-[248px_1fr]'">
-      <aside class="sticky top-0 hidden h-screen flex-col gap-1 overflow-x-hidden overflow-y-auto border-r border-linea bg-superficie px-3 py-5 lg:flex">
+    <div class="flex min-h-full flex-col">
+    @if (modoSoporte()) {
+      <div class="sticky top-0 z-[60] flex flex-wrap items-center justify-between gap-2 bg-[#002150] px-4 py-2.5 text-sm text-white">
+        <span>Estás dentro como soporte. Los cambios quedan a nombre de Soporte Grabix.</span>
+        <button class="btn sm" (click)="volver()" [disabled]="volviendo()">{{ volviendo() ? 'Volviendo…' : 'Volver al panel' }}</button>
+      </div>
+    }
+    <div class="grid min-h-0 flex-1 transition-[grid-template-columns] duration-200" [class]="corto() ? 'lg:grid-cols-[72px_1fr]' : 'lg:grid-cols-[248px_1fr]'">
+      <aside class="sticky hidden flex-col gap-1 overflow-x-hidden overflow-y-auto border-r border-linea bg-superficie px-3 py-5 lg:flex"
+        [style.top]="modoSoporte() ? '3rem' : '0'" [style.height]="modoSoporte() ? 'calc(100dvh - 3rem)' : '100dvh'">
         <div class="flex items-center gap-1 pb-[18px]" [class.flex-col]="corto()">
           <a class="flex min-w-0 flex-1 items-center gap-2.5 px-2 text-tinta no-underline" [class.!px-0]="corto()" routerLink="/app" [title]="corto() ? 'Grabix · ' + (s.taller()?.nombre ?? '') : ''">
             <app-logo [tamano]="32" [texto]="false" />
@@ -60,11 +68,13 @@ function leer() {
               [title]="corto() ? m.texto : ''" [attr.aria-label]="corto() ? m.texto : null"><app-icono class="text-lg" [nombre]="m.icono" />@if (!corto()) { <span class="truncate">{{ m.texto }}</span> }</a>
           }
         </nav>
-        <button [class]="ITEM + ' mt-auto !text-tenue hover:bg-superficie-2' + (corto() ? CORTO : '')" (click)="s.salir()" [title]="corto() ? 'Salir' : ''" [attr.aria-label]="corto() ? 'Salir' : null"><app-icono class="text-lg" nombre="salir" />@if (!corto()) { Salir }</button>
+        @if (modoSoporte()) { <span class="mt-auto"></span> } @else {
+          <button [class]="ITEM + ' mt-auto !text-tenue hover:bg-superficie-2' + (corto() ? CORTO : '')" (click)="s.salir()" [title]="corto() ? 'Salir' : ''" [attr.aria-label]="corto() ? 'Salir' : null"><app-icono class="text-lg" nombre="salir" />@if (!corto()) { Salir }</button>
+        }
       </aside>
 
       <div class="min-w-0">
-        <div class="sticky top-0 z-20 flex items-center justify-between gap-2.5 border-b border-linea bg-superficie py-2.5 margen-x">
+        <div class="sticky z-20 flex items-center justify-between gap-2.5 border-b border-linea bg-superficie py-2.5 margen-x" [style.top]="modoSoporte() ? '3rem' : '0'">
           <div class="fila">
             @if (s.multiSucursal()) {
               <label class="sr" for="suc">Sucursal</label>
@@ -88,19 +98,19 @@ function leer() {
             <app-selector-tema />
           </div>
         </div>
-        @if (s.perfil()?.usuario?.emailVerificado === false) {
+        @if (!modoSoporte() && s.perfil()?.usuario?.emailVerificado === false) {
           <div [class]="BANNER + ' items-center bg-marca-suave'">
             <span>Confirma tu correo <b>{{ s.perfil()!.usuario.email }}</b> con el enlace que te enviamos.</span>
             <button class="font-bold text-marca underline" (click)="reenviar()" [disabled]="reenviando()">{{ reenviando() ? 'Enviando…' : 'Reenviar enlace' }}</button>
           </div>
         }
-        @if (aviso(); as a) {
+        @if (!modoSoporte() && aviso(); as a) {
           <div [class]="BANNER + (a.vigente ? ' bg-acento-suave' : ' bg-bad-suave text-bad')">
             {{ a.texto }}
             @if (s.rol() === 'dueno') { <a routerLink="ajustes">Ver planes</a> }
           </div>
         }
-        <main class="w-full max-w-[1400px] pt-[18px] pb-[100px] margen-x lg:px-6 lg:pt-6 lg:pb-12">@if (!s.taller()?.eliminarEn) { <router-outlet /> }</main>
+        <main class="w-full max-w-[1400px] pt-[18px] pb-[100px] margen-x lg:px-6 lg:pt-6 lg:pb-12">@if (!s.taller()?.eliminarEn || modoSoporte()) { <router-outlet /> }</main>
       </div>
 
       <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-linea bg-superficie pt-1.5 pr-[max(6px,env(safe-area-inset-right,0px))] pb-[calc(6px+env(safe-area-inset-bottom,0px))] pl-[max(6px,env(safe-area-inset-left,0px))] lg:hidden">
@@ -111,7 +121,7 @@ function leer() {
       </nav>
       <app-asistente />
       @if (bienvenida()) { <app-bienvenida [modulos]="menu()" (cerrar)="vista.set(true)" /> }
-      @if (s.taller()?.eliminarEn; as fecha) {
+      @if (!modoSoporte() && s.taller()?.eliminarEn; as fecha) {
         <div class="fixed inset-0 z-[70] grid place-items-center bg-fondo p-4">
           <div class="tarjeta flex w-full max-w-[520px] flex-col gap-3 p-6">
             <span class="grid size-11 place-items-center rounded-xl bg-bad-suave text-bad"><app-icono class="text-xl" nombre="alerta" /></span>
@@ -129,10 +139,11 @@ function leer() {
         <div class="fixed inset-0 z-25 flex items-end bg-[rgba(8,20,30,.3)] px-3 pb-[calc(72px+env(safe-area-inset-bottom,0px))]" (click)="mas.set(false)">
           <div class="tarjeta grid w-full grid-cols-2 gap-0.5 p-2 shadow-caja">
             @for (m of resto(); track m.ruta) { <a [routerLink]="m.ruta" [class]="ITEM"><app-icono [nombre]="m.icono" />{{ m.texto }}</a> }
-            <button [class]="ITEM" (click)="s.salir()"><app-icono nombre="salir" />Salir</button>
+            @if (!modoSoporte()) { <button [class]="ITEM" (click)="s.salir()"><app-icono nombre="salir" />Salir</button> }
           </div>
         </div>
       }
+    </div>
     </div>
   `,
 })
@@ -148,9 +159,24 @@ export class Shell {
   private api = inject(Api);
   private router = inject(Router);
   mas = signal(false);
+  volviendo = signal(false);
+  modoSoporte = computed(() => !!this.s.perfil()?.soporte || !!this.s.idSoporte());
+  async volver() {
+    if (this.volviendo()) return;
+    const id = this.s.idSoporte();
+    this.volviendo.set(true);
+    try {
+      if (id) await this.api.post(`/admin/talleres/${id}/salir`);
+      this.s.restaurarTrasSoporte();
+    } catch (e) {
+      this.avisos.error(mensajeError(e));
+    } finally {
+      this.volviendo.set(false);
+    }
+  }
   /** Bienvenida la primera vez que entra cada usuario. */
   vista = signal(false);
-  bienvenida = computed(() => !this.vista() && this.s.perfil()?.usuario.recorridoVisto === false && !this.s.taller()?.eliminarEn);
+  bienvenida = computed(() => !this.modoSoporte() && !this.vista() && this.s.perfil()?.usuario.recorridoVisto === false && !this.s.taller()?.eliminarEn);
   restaurando = signal(false);
   async restaurar() {
     this.restaurando.set(true);

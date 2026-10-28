@@ -15,7 +15,7 @@ export interface Suscripcion {
   plan: string; estado: string; vigente: boolean; vence: string | null; diasRestantes: number | null;
   limites: { sucursales: number; usuarios: number }; planes: Plan[];
 }
-export interface Perfil { usuario: Usuario; taller: Taller; sucursales: Sucursal[]; suscripcion: Suscripcion }
+export interface Perfil { usuario: Usuario; taller: Taller; sucursales: Sucursal[]; suscripcion: Suscripcion; soporte?: { id: number } }
 
 export interface Componente { insumoId: number; cantidad: number }
 export interface Producto {

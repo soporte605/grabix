@@ -35,8 +35,10 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_SYNC: ${DB_SYNC:-true}
       JWT_SECRET: ${JWT_SECRET:?Falta JWT_SECRET}
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-}
       PUBLIC_URL: https://app.${DOMINIO:?Falta DOMINIO}
-      CORS_ORIGIN: https://${DOMINIO},https://app.${DOMINIO}
+      CORS_ORIGIN: https://${DOMINIO},https://app.${DOMINIO},https://admin.grabix.elikarsystems.com
       # Caddy -> Nginx -> API: la IP real del visitante está dos saltos atrás.
       TRUST_PROXY: 2
       PAGOS_MODO: ${PAGOS_MODO:-demo}

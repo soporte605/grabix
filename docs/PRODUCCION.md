@@ -5,7 +5,9 @@ Resultado:
 - **https://DOMINIO**: landing con el cotizador.
 - **https://app.DOMINIO**: el sistema. Ahí van entrar, registro y `/app`.
 
-Los dos usan HTTPS automático con Let's Encrypt, gracias a Caddy.
+El super administrador se publica en el host fijo **https://admin.grabix.elikarsystems.com** (no sale de `DOMINIO`). En la opción B, certbot también lleva `-d admin.grabix.elikarsystems.com`. `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD` solo crean el primero si la tabla está vacía.
+
+Landing, sistema y el host de super administrador usan HTTPS automático con Let's Encrypt, gracias a Caddy.
 
 ## 1. Servidor
 
@@ -36,6 +38,8 @@ Si GoDaddy creó antes un registro **A @** con "Parked" o un **CNAME www** que a
 
 Comprueba con `nslookup app.DOMINIO`. La IP tarda de minutos a un par de horas en propagarse.
 
+El panel de super administrador no usa este dominio. En el DNS de **elikarsystems.com** crea un registro **A** con nombre `admin.grabix` y la misma IP del VPS.
+
 ## 3. Código y configuración
 
 ```bash
@@ -52,6 +56,7 @@ Llena estos valores:
 - `JWT_SECRET`: generar con `openssl rand -base64 48`.
 - `RESEND_API_KEY` y `MAIL_FROM`: para que lleguen los correos de activación y recuperación (ver paso 5).
 - `ANTHROPIC_API_KEY`: para el asistente con IA.
+- `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD`: el primer acceso al panel https://admin.grabix.elikarsystems.com. No hay contraseña por defecto. Solo se crea si la tabla `super_admins` está vacía. Mínimo 8 caracteres, con letras y números, que no sea muy común y que no incluya el correo ni la palabra Elikar. El nombre de esa cuenta queda como Elikar. Si ya existe un super administrador, estas variables no cambian su contraseña.
 
 ## 4. Levantar
 
@@ -69,7 +74,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.produccion up -d --bui
 sed 's/grabix.com.mx/TU-DOMINIO/g' deploy/nginx-grabix.conf > /etc/nginx/sites-available/grabix
 ln -s /etc/nginx/sites-available/grabix /etc/nginx/sites-enabled/grabix
 nginx -t && systemctl reload nginx
-certbot --nginx -d TU-DOMINIO -d www.TU-DOMINIO -d app.TU-DOMINIO
+certbot --nginx -d TU-DOMINIO -d www.TU-DOMINIO -d app.TU-DOMINIO -d admin.grabix.elikarsystems.com
 ```
 
 Cuando el DNS ya apunta al servidor, ya hay HTTPS. Revisa:
@@ -77,6 +82,7 @@ Cuando el DNS ya apunta al servidor, ya hay HTTPS. Revisa:
 - `https://DOMINIO`: la landing.
 - `https://app.DOMINIO`: debe mandarte a entrar.
 - `https://app.DOMINIO/api/publico/salud`: debe responder `{"ok":true}`.
+- `https://admin.grabix.elikarsystems.com`: el acceso del super administrador.
 
 ## 5. Correo (Resend)
 

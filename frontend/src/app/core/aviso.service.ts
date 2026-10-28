@@ -45,8 +45,9 @@ export class AvisoService {
 
 /** Mensaje legible a partir de un error HTTP de la API. */
 export function mensajeError(e: unknown): string {
-  const err = e as { status?: number; error?: { message?: string | string[]; campos?: Record<string, string> } };
+  const err = e as { status?: number; error?: { message?: string | string[]; campos?: Record<string, string> } | string };
   if (err?.status === 0) return 'No hay conexión con el servidor';
+  if (typeof err?.error === 'string') return err.error || 'Algo salió mal, intenta de nuevo';
   // Si el servidor dice qué campos rechazó, también se marcan en el formulario abierto.
   if (err?.error?.campos) marcarErroresServidor(err.error.campos);
   const m = err?.error?.message;

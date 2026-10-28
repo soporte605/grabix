@@ -66,7 +66,9 @@ export class AuthService {
       .getOne();
     if (!u || !u.activo || !(await bcrypt.compare(dto.password, u.passwordHash)))
       throw new UnauthorizedException('Correo o contraseña incorrectos');
-    if (u.rol !== Rol.Dueno && (await this.talleres.findOneBy({ id: u.tallerId }))?.eliminarEn)
+    const t = await this.talleres.findOneBy({ id: u.tallerId });
+    if (t?.bloqueado) throw new UnauthorizedException('Esta cuenta está suspendida. Escríbenos para reactivarla.');
+    if (u.rol !== Rol.Dueno && t?.eliminarEn)
       throw new UnauthorizedException('Esta cuenta está en proceso de eliminación. Pide al dueño que la restaure.');
     return this.respuesta(u);
   }
@@ -151,7 +153,8 @@ export class AuthService {
   }
 
   async yo(s: Sesion) {
-    return this.perfil(s.usuarioId);
+    const perfil = await this.perfil(s.usuarioId);
+    return s.soporteId ? { ...perfil, soporte: { id: s.soporteId } } : perfil;
   }
 
   private async perfil(usuarioId: number) {
