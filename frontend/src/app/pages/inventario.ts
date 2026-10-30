@@ -91,10 +91,10 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
             }
           </div>
         }
-        @if (e.tipo === 'producto') {
+        @if (e.tipo !== 'insumo') {
           <div class="caja">
-            <h3>¿De qué está hecho?</h3>
-            <p class="tenue chico">Si lo armas con insumos (una taza sublimada = 1 taza blanca + 1 hoja de papel), agrégalos. Al venderlo se descuentan del inventario.</p>
+            <h3>{{ e.tipo === 'servicio' ? '¿Qué insumos lleva?' : '¿De qué está hecho?' }}</h3>
+            <p class="tenue chico">{{ e.tipo === 'servicio' ? 'Si el servicio usa insumos de tu inventario (una libreta para grabar, una caja de regalo), agrégalos. Si el cliente trae la pieza, déjalo vacío.' : 'Si lo armas con insumos (una taza sublimada = 1 taza blanca + 1 hoja de papel), agrégalos.' }} Al venderlo se descuentan del inventario.</p>
             @for (c of e.componentes; track $index; let i = $index) {
               <div class="fila">
                 <app-buscador class="flex-1" [opciones]="opsInsumos()" vacio="Elige insumo" etiqueta="Insumo" [(ngModel)]="c.insumoId" (ngModelChange)="calc()" />
@@ -197,7 +197,7 @@ export class Inventario implements OnInit {
   opsInsumos = computed(() => this.insumos().map((p) => ({ valor: p.id, texto: p.nombre })));
   opsConStock = computed(() => this.conStock().map((p) => ({ valor: p.id, texto: p.nombre, detalle: `${p.existencia} en existencia` })));
   destinos = computed(() => (this.s.perfil()?.sucursales ?? []).filter((x) => x.id !== this.s.sucursal()));
-  tieneReceta = computed(() => { this.rev(); const e = this.e(); return !!e && e.tipo === 'producto' && e.componentes.some((c) => c.insumoId); });
+  tieneReceta = computed(() => { this.rev(); const e = this.e(); return !!e && e.tipo !== 'insumo' && e.componentes.some((c) => c.insumoId); });
   costo = computed(() => {
     this.rev();
     const e = this.e();
@@ -255,7 +255,7 @@ export class Inventario implements OnInit {
     const body = {
       nombre: e.nombre.trim(), tipo: e.tipo, categoria: e.categoria, unidad: e.unidad, costo: Number(e.costo) || 0, precio: Number(e.precio) || 0,
       minutos: Number(e.minutos) || 0, extra: Number(e.extra) || 0,
-      componentes: e.tipo === 'producto' ? e.componentes.filter((c) => c.insumoId).map((c) => ({ insumoId: c.insumoId, cantidad: Number(c.cantidad) || 0 })) : [],
+      componentes: e.tipo !== 'insumo' ? e.componentes.filter((c) => c.insumoId).map((c) => ({ insumoId: c.insumoId, cantidad: Number(c.cantidad) || 0 })) : [],
       ...(e.id ? {} : { stockInicial: Number(e.stockInicial) || 0, minimo: Number(e.minimo) || 0 }),
     };
     try {

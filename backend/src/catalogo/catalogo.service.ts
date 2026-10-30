@@ -44,7 +44,7 @@ export class CatalogoService {
       let p: Producto;
       if (id) p = existe(cat.get(id), 'Artículo');
       else p = em.create(Producto, { tallerId: s.tallerId });
-      const comps = dto.tipo === TipoProducto.Producto ? (dto.componentes ?? []).filter((c) => c.cantidad > 0) : [];
+      const comps = dto.tipo !== TipoProducto.Insumo ? (dto.componentes ?? []).filter((c) => c.cantidad > 0) : [];
       for (const c of comps) {
         const i = cat.get(c.insumoId);
         if (!i || i.id === id) throw new BadRequestException('Uno de los insumos de la receta no existe');

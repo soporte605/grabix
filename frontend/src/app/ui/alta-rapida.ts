@@ -166,7 +166,7 @@ export class AltaProducto implements OnInit {
       const p = await this.api.post<Producto>('/productos', {
         nombre: this.nombre.trim(), tipo: this.tipo(), precio: Number(this.precio) || 0, costo: Number(this.costo) || 0,
         categoria: this.categoria.trim(), unidad: this.unidad.trim() || 'pza',
-        ...(this.sug() ? { minutos: this.sug()!.minutos, extra: this.sug()!.extra, componentes: this.tipo() === 'producto' ? this.sug()!.componentes : [] } : {}),
+        ...(this.sug() ? { minutos: this.sug()!.minutos, extra: this.sug()!.extra, componentes: this.sug()!.componentes } : {}),
       });
       this.aviso.ok(this.tipo() === 'servicio' ? 'Servicio guardado' : 'Producto guardado');
       this.creado.emit(p);

@@ -26,7 +26,7 @@ export class CostosService {
     const m = new Map<number, number>();
     const add = (id: number, q: number, d: number) => {
       const p = cat.get(id);
-      if (!p || p.tipo === TipoProducto.Servicio) return;
+      if (!p || (p.tipo === TipoProducto.Servicio && !p.componentes?.length)) return;
       if (p.componentes?.length && d < 4) p.componentes.forEach((k) => add(k.insumoId, q * k.cantidad, d + 1));
       else m.set(id, (m.get(id) ?? 0) + q);
     };
