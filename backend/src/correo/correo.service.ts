@@ -100,18 +100,18 @@ export class CorreoService {
       ? `<p style="margin:18px 0 0;padding:12px 14px;background:${MARCA.lienzo};border-radius:8px;font-size:13px;line-height:1.5;color:${MARCA.tenue}">${esc(o.nota)}</p>`
       : '';
     return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(o.titulo)}</title></head>
-<body style="margin:0;padding:0;background:${MARCA.lienzo};font-family:Inter,Arial,Helvetica,sans-serif">
+<body style="margin:0;padding:0;background:${MARCA.lienzo};font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(o.previa)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${MARCA.lienzo}"><tr><td align="center" style="padding:28px 12px">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
-    <tr><td style="padding:0 4px 14px;font-family:Montserrat,Arial,sans-serif;font-size:22px;font-weight:800;color:${MARCA.primario}">
-      <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:${MARCA.acento};margin-right:8px;vertical-align:-1px"></span>Grabix</td></tr>
+    <tr><td style="padding:0 4px 14px;font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:22px;font-weight:800;color:${MARCA.primario}">
+      <img src="${this.url('/icono-192.png')}" width="32" height="32" alt="" style="display:inline-block;width:32px;height:32px;border-radius:8px;margin-right:10px;vertical-align:middle;border:0">Grabix</td></tr>
     <tr><td style="background:#ffffff;border:1px solid ${MARCA.borde};border-radius:12px;overflow:hidden">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
         <tr><td style="height:5px;background:${MARCA.acento};font-size:0;line-height:0">&nbsp;</td></tr>
         <tr><td style="padding:28px 30px 30px">
           <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${MARCA.acentoTexto}">${esc(o.etiqueta)}</p>
-          <h1 style="margin:0 0 16px;font-family:Montserrat,Arial,sans-serif;font-size:22px;line-height:1.3;color:${MARCA.tinta}">${esc(o.titulo)}</h1>
+          <h1 style="margin:0 0 16px;font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:22px;line-height:1.3;color:${MARCA.tinta}">${esc(o.titulo)}</h1>
           ${ps}${btn}${nota}
         </td></tr>
       </table>

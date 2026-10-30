@@ -1,13 +1,21 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Api } from '../core/api.service';
+import { AsistenteService } from '../core/asistente.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
-import { DineroPipe, FechaPipe, hoy, PctPipe, sumarDias } from '../core/formato';
+import { ConfirmarService } from '../core/confirmar.service';
+import { PosService } from '../core/pos.service';
+import { dinero, DineroPipe, FechaPipe, hoy, PctPipe, sumarDias } from '../core/formato';
 import { Cliente, Cotizacion, EST_COT, EST_VTA, Producto, Promocion, Renglon, Venta } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { Confirmar } from '../ui/confirmar';
+import { AltaCliente, AltaProducto, AltaPromocion } from '../ui/alta-rapida';
+import { Buscador } from '../ui/buscador';
+import { Hoja } from '../ui/hoja';
+import { VistaDocumento } from '../ui/vista-documento';
 import { Icono } from '../ui/icono';
+import { ImagenesCotizacion } from '../ui/imagenes-cotizacion';
 
 interface Form {
   clienteId: number | null; clienteNombre: string; clienteTelefono: string; guardarCliente: boolean;
@@ -18,27 +26,19 @@ interface Form {
 
 @Component({
   selector: 'app-doc-editor',
-  imports: [FormsModule, RouterLink, DineroPipe, FechaPipe, PctPipe, Icono, Confirmar],
+  imports: [FormsModule, Buscador, DineroPipe, FechaPipe, PctPipe, Icono, Confirmar, Hoja, VistaDocumento, AltaCliente, AltaProducto, AltaPromocion, ImagenesCotizacion],
   template: `
-    <div class="encabezado">
-      <div>
-        <a [routerLink]="id ? '..' : '..'" class="chico no-underline">← {{ esVenta ? 'Ventas' : 'Cotizaciones' }}</a>
-        <h1>{{ titulo() }}</h1>
-        @if (doc(); as d) { <p>Creada el {{ d.fecha | fecha }} @if (esVenta && $any(d).cotizacionId) { · desde una cotización }</p> }
-      </div>
-      @if (doc()) { <span class="pill" [class]="mapa[f.estado][1]">{{ mapa[f.estado][0] }}</span> }
-    </div>
-
-    <div class="rejilla max-w-[860px] pb-20">
+    <app-hoja [titulo]="titulo()" ancho="1000px" (cerrar)="cerrar()">
+      @if (doc(); as d) {
+        <ng-container cabeza><span class="pill" [class]="mapa[f.estado][1]">{{ mapa[f.estado][0] }}</span>
+        <span class="chico tenue">Creada el {{ d.fecha | fecha }} @if (esVenta && $any(d).cotizacionId) { · desde una cotización }</span></ng-container>
+      }
       <section class="caja">
         <h3>Cliente</h3>
         <div class="campos c3">
           <div class="campo todo">
             <label for="d-cli">Cliente</label>
-            <select id="d-cli" [(ngModel)]="f.clienteId" (ngModelChange)="tocar()">
-              <option [ngValue]="null">— Cliente nuevo o de mostrador —</option>
-              @for (c of clientes(); track c.id) { <option [ngValue]="c.id">{{ c.nombre }}</option> }
-            </select>
+            <app-buscador idCampo="d-cli" [opciones]="opsClientes()" [conVacio]="true" vacio="Cliente nuevo o de mostrador" placeholder="Buscar por nombre o teléfono…" crear="Nuevo cliente" (nuevo)="altaCliente.set($event)" [(ngModel)]="f.clienteId" (ngModelChange)="tocar()" />
           </div>
           @if (f.clienteId == null) {
             <div class="campo"><label for="d-cn">Nombre</label><input id="d-cn" [(ngModel)]="f.clienteNombre" (ngModelChange)="tocar()"></div>
@@ -47,11 +47,11 @@ interface Form {
           }
         </div>
         <div class="campos c3">
-          <div class="campo"><label for="d-f">Fecha</label><input id="d-f" type="date" [(ngModel)]="f.fecha" (ngModelChange)="tocar()"></div>
+          <div class="campo"><label for="d-f">Fecha</label><input id="d-f" name="fecha" type="date" [(ngModel)]="f.fecha" (ngModelChange)="tocar()"></div>
           @if (esVenta) {
-            <div class="campo"><label for="d-e">Fecha de entrega</label><input id="d-e" type="date" [(ngModel)]="f.entrega" (ngModelChange)="tocar()"></div>
+            <div class="campo"><label for="d-e">Fecha de entrega</label><input id="d-e" name="entrega" type="date" [(ngModel)]="f.entrega" (ngModelChange)="tocar()"></div>
           } @else {
-            <div class="campo"><label for="d-v">Vigencia (días)</label><input id="d-v" type="number" [(ngModel)]="f.vigenciaDias" (ngModelChange)="tocar()"></div>
+            <div class="campo"><label for="d-v">Vigencia (días)</label><input id="d-v" name="vigenciaDias" min="1" max="365" type="number" [(ngModel)]="f.vigenciaDias" (ngModelChange)="tocar()"></div>
           }
           <div class="campo"><label for="d-es">Estado</label>
             <select id="d-es" [(ngModel)]="f.estado" (ngModelChange)="tocar()">@for (k of estados; track k) { <option [value]="k">{{ mapa[k][0] }}</option> }</select>
@@ -61,22 +61,33 @@ interface Form {
 
       <section class="caja">
         <h3>Conceptos</h3>
+        @if (cambiados().length) {
+          <div class="flex flex-wrap items-center gap-2 rounded-xl bg-warn-suave px-3.5 py-2.5 text-sm">
+            <p class="flex-1">{{ cambiados().length === 1 ? 'Un concepto tiene' : cambiados().length + ' conceptos tienen' }} otro precio en tu catálogo:
+              @for (c of cambiados(); track $index; let ult = $last) { <b>{{ c.it.descripcion }}</b> ({{ c.it.precio | dinero }} → {{ c.precio | dinero }}){{ ult ? '.' : ', ' }} }</p>
+            <button type="button" class="btn sm" (click)="usarPreciosActuales()">Usar precios actuales</button>
+          </div>
+        }
         @for (it of f.items; track $index; let i = $index) {
           <div class="grid grid-cols-[minmax(0,1fr)_30px] gap-1.5 rounded-[10px] border border-linea bg-superficie-2 p-2.5">
             <div class="grid grid-cols-6 gap-1.5">
-              <select class="entrada col-span-6 p-2 sm:col-span-3" [(ngModel)]="it.productoId" (ngModelChange)="elegir(it)" aria-label="Artículo">
-                <option [ngValue]="null">Concepto libre</option>
-                @for (g of grupos(); track g.t) {
-                  <optgroup [label]="g.t">@for (p of g.ps; track p.id) { <option [ngValue]="p.id">{{ p.nombre }}</option> }</optgroup>
-                }
-              </select>
+              <app-buscador class="col-span-6 sm:col-span-3" [opciones]="opsProductos()" [conVacio]="true" vacio="Concepto libre" etiqueta="Artículo" placeholder="Buscar producto o servicio…" [crear]="s.verCostos() ? 'Nuevo producto o servicio' : ''" (nuevo)="altaProducto.set({ it, q: $event })" [(ngModel)]="it.productoId" (ngModelChange)="elegir(it)" />
               <input class="entrada col-span-6 p-2 sm:col-span-3" [(ngModel)]="it.descripcion" (ngModelChange)="tocar()" placeholder="Descripción" aria-label="Descripción">
               <input class="entrada col-span-2 p-2" type="number" inputmode="decimal" [(ngModel)]="it.cantidad" (ngModelChange)="tocar()" placeholder="Cant." aria-label="Cantidad">
-              <input class="entrada col-span-2 p-2" type="number" inputmode="decimal" [(ngModel)]="it.precio" (ngModelChange)="tocar()" placeholder="Precio c/u" aria-label="Precio unitario">
-              <span class="num col-span-2 flex flex-col self-center text-right text-[.9rem]">{{ (it.cantidad || 0) * (it.precio || 0) | dinero }}
-                @if (s.verCostos() && it.productoId) { <small class="text-[.72rem] text-tenue">costo {{ costoDe(it) | dinero }}</small> }</span>
+              <div class="col-span-2 flex gap-1">
+                <input class="entrada min-w-0 flex-1 p-2" type="number" inputmode="decimal" [(ngModel)]="it.precio" (ngModelChange)="tocar()" placeholder="Precio c/u" aria-label="Precio unitario">
+                @if (!it.productoId && s.verCostos() && ia.estado()?.disponible) {
+                  <button type="button" class="ico shrink-0" [disabled]="pensandoEn() === it" title="Sugerir precio con IA" aria-label="Sugerir precio con IA" (click)="sugerirPrecio(it)"><app-icono nombre="chispa" /></button>
+                }
+              </div>
+              <span class="num col-span-2 flex flex-col self-center text-right text-base">{{ (it.cantidad || 0) * (it.precio || 0) | dinero }}
+                @if (s.verCostos() && it.productoId) { <small class="text-xs text-tenue">costo {{ costoDe(it) | dinero }}</small> }</span>
+              @if (!it.productoId && notasIA().get(it); as n) {
+                <div class="col-span-6 flex items-start gap-1.5 text-sm text-tenue"><app-icono nombre="chispa" class="mt-0.5 shrink-0 text-marca" /><p class="flex-1">{{ n.texto }}</p>
+                  <button type="button" class="btn sm shrink-0" (click)="limpiarSugerencia(it)">Limpiar</button></div>
+              }
             </div>
-            <button class="text-[1.4rem] text-bad" (click)="quitar(i)" aria-label="Quitar concepto">×</button>
+            <button class="text-2xl text-bad" (click)="quitar(i)" aria-label="Quitar concepto">×</button>
           </div>
         }
         <div><button class="btn sm" (click)="agregar()"><app-icono nombre="mas1" />Agregar concepto</button></div>
@@ -85,7 +96,7 @@ interface Form {
       <section class="caja">
         <h3>Descuento</h3>
         <div class="campos c3">
-          <div class="campo"><label for="d-pr">Promoción</label>
+          <div class="campo"><div class="flex items-baseline justify-between gap-2"><label for="d-pr">Promoción</label>@if (s.verCostos()) { <button type="button" class="chico font-semibold text-marca" (click)="altaPromo.set(true)">+ Nueva</button> }</div>
             <select id="d-pr" [(ngModel)]="f.promocionId" (ngModelChange)="aplicarPromo()">
               <option [ngValue]="null">Ninguna</option>
               @for (p of promos(); track p.id) { <option [ngValue]="p.id">{{ p.nombre }}</option> }
@@ -94,21 +105,13 @@ interface Form {
           <div class="campo"><label for="d-dt">Tipo</label>
             <select id="d-dt" [(ngModel)]="f.descuentoTipo" (ngModelChange)="tocar()"><option value="pct">Porcentaje</option><option value="monto">Cantidad</option></select>
           </div>
-          <div class="campo"><label for="d-dv">Descuento</label><input id="d-dv" type="number" inputmode="decimal" [(ngModel)]="f.descuentoValor" (ngModelChange)="tocar()"></div>
+          <div class="campo"><label for="d-dv">Descuento</label><input id="d-dv" name="descuentoValor" min="0" type="number" inputmode="decimal" [(ngModel)]="f.descuentoValor" (ngModelChange)="tocar()"></div>
         </div>
       </section>
 
-      @if (esVenta && !id) {
-        <section class="caja">
-          <h3>Anticipo</h3>
-          <div class="campos">
-            <div class="campo"><label for="d-an">Monto recibido</label><input id="d-an" type="number" inputmode="decimal" [(ngModel)]="f.anticipo"></div>
-            <div class="campo"><label for="d-me">Forma de pago</label><select id="d-me" [(ngModel)]="f.metodo">@for (m of metodos; track m) { <option>{{ m }}</option> }</select></div>
-          </div>
-        </section>
-      }
-
       <div class="campo"><label for="d-no">Notas {{ esVenta ? 'del pedido' : '(aparecen en el PDF)' }}</label><textarea id="d-no" [(ngModel)]="f.notas" (ngModelChange)="tocar()"></textarea></div>
+
+      @if (!esVenta) { <app-imagenes-cotizacion [cotizacionId]="id" [asegurar]="asegurarFn" /> }
 
       <section class="caja">
         <div class="totales">
@@ -126,6 +129,31 @@ interface Form {
         </div>
       </section>
 
+      @if (esVenta && !id) {
+        <section class="caja">
+          <div class="fila entre"><h3>Cobro</h3>
+            <div class="chips" role="group" aria-label="Cuánto paga">
+              <button class="chip" [class.on]="f.anticipo > 0 && f.anticipo === r2(t().total)" (click)="abonar(1)">Paga todo</button>
+              <button class="chip" [class.on]="f.anticipo > 0 && f.anticipo === r2(t().total / 2)" (click)="abonar(.5)">Anticipo 50%</button>
+              <button class="chip" [class.on]="!f.anticipo" (click)="abonar(0)">Sin pago</button>
+            </div>
+          </div>
+          <div class="campos c3">
+            <div class="campo"><label for="d-me">Forma de pago</label><select id="d-me" [(ngModel)]="f.metodo" (ngModelChange)="tocar()">@for (m of metodos; track m) { <option>{{ m }}</option> }</select></div>
+            <div class="campo"><label for="d-an">Abona ahora</label><input id="d-an" name="anticipo" min="0" type="number" inputmode="decimal" [(ngModel)]="f.anticipo" (ngModelChange)="tocar()"></div>
+            @if (f.metodo === 'Efectivo') {
+              <div class="campo"><label for="d-pc">Paga con (efectivo)</label><input id="d-pc" min="0" type="number" inputmode="decimal" placeholder="Opcional" [(ngModel)]="pagaCon" (ngModelChange)="tocar()"></div>
+            }
+          </div>
+          @if (cobro().cambio > 0 || cobro().falta > 0) {
+            <div class="flex flex-wrap gap-2.5">
+              @if (cobro().cambio > 0) { <p class="rounded-xl bg-ok-suave px-3.5 py-2 text-ok">Cambio <b class="num text-xl">{{ cobro().cambio | dinero }}</b></p> }
+              @if (cobro().falta > 0) { <p class="rounded-xl bg-warn-suave px-3.5 py-2 text-warn">Le faltan <b class="num">{{ cobro().falta | dinero }}</b> para cubrir lo que abona</p> }
+            </div>
+          }
+        </section>
+      }
+
       @if (venta(); as v) {
         <section class="caja">
           <h3>Pagos</h3>
@@ -141,16 +169,21 @@ interface Form {
           }
         </section>
       }
-    </div>
 
-    <div class="sticky bottom-[calc(64px+env(safe-area-inset-bottom,0px))] z-5 mt-3 flex max-w-[860px] flex-wrap gap-2 rounded-xl border border-linea bg-superficie p-2.5 shadow-caja lg:bottom-3">
-      @if (id) { <app-confirmar (confirmado)="eliminar()" /> }
-      <button class="btn" (click)="pdf()" [disabled]="ocupado()"><app-icono nombre="pdf" />PDF</button>
-      <button class="btn wa" (click)="whatsapp()" [disabled]="ocupado()"><app-icono nombre="wa" />WhatsApp</button>
-      @if (!esVenta && id && f.estado !== 'aceptada') { <button class="btn" (click)="convertir()" [disabled]="ocupado()">Convertir en venta</button> }
-      <span class="flex-1"></span>
-      <button class="btn pri" (click)="guardar(true)" [disabled]="ocupado()">{{ ocupado() ? 'Guardando…' : 'Guardar' }}</button>
-    </div>
+      <ng-container pie>
+        @if (id) { <app-confirmar [pregunta]="esVenta ? '¿Eliminar esta venta?' : '¿Eliminar esta cotización?'" [detalle]="esVenta ? 'El inventario que descontó se devuelve. No se puede deshacer.' : 'No se puede deshacer.'" (confirmado)="eliminar()" /> }
+        <button class="btn" (click)="pdf()" [disabled]="ocupado()"><app-icono nombre="ojo" />Vista previa</button>
+        <button class="btn wa" (click)="whatsapp()" [disabled]="ocupado()"><app-icono nombre="wa" />WhatsApp</button>
+        @if (esVenta && id) { <button class="btn" (click)="ticket()" [disabled]="ocupado()"><app-icono nombre="imprimir" />Ticket</button> }
+        @if (!esVenta && id && f.estado !== 'aceptada') { <button class="btn" (click)="convertir()" [disabled]="ocupado()">Convertir en venta</button> }
+        <span class="flex-1"></span>
+        <button class="btn pri min-w-32 max-sm:flex-1" (click)="guardar(true)" [disabled]="ocupado()">{{ ocupado() ? 'Guardando…' : esVenta && !id ? 'Registrar venta' : 'Guardar' }}</button>
+      </ng-container>
+    </app-hoja>
+    @if (vista(); as v) { <app-vista-documento [venta]="v" [tipo]="esVenta ? 'venta' : 'cotizacion'" [conCancelar]="false" (cerrar)="vista.set(null)" /> }
+    @if (altaCliente() !== null) { <app-alta-cliente [inicial]="altaCliente()!" (cerrar)="altaCliente.set(null)" (creado)="clienteCreado($event)" /> }
+    @if (altaProducto(); as a) { <app-alta-producto [inicial]="a.q" [categorias]="categorias()" (cerrar)="altaProducto.set(null)" (creado)="productoCreado(a.it, $event)" /> }
+    @if (altaPromo()) { <app-alta-promocion (cerrar)="altaPromo.set(false)" (creado)="promoCreada($event)" /> }
   `,
 })
 export class DocEditor implements OnInit {
@@ -159,6 +192,14 @@ export class DocEditor implements OnInit {
   private aviso = inject(AvisoService);
   private router = inject(Router);
   private ruta = inject(ActivatedRoute);
+  private confirmar = inject(ConfirmarService);
+  private pos = inject(PosService);
+  ia = inject(AsistenteService);
+  /** Renglón libre para el que la IA está calculando precio. */
+  pensandoEn = signal<Renglon | null>(null);
+  /** Explicación de la IA por renglón; solo se ve en el editor, no sale en el PDF. */
+  notasIA = signal(new Map<Renglon, { texto: string; precioAntes: number }>());
+  private lista = this.ruta.snapshot.data['tipo'] === 'ventas' ? '/app/ventas' : '/app/cotizaciones';
   esVenta = this.ruta.snapshot.data['tipo'] === 'ventas';
   base = this.esVenta ? '/ventas' : '/cotizaciones';
   id = Number(this.ruta.snapshot.paramMap.get('id')) || null;
@@ -176,6 +217,14 @@ export class DocEditor implements OnInit {
   sucio = false;
   pago: number | null = null;
   metodoPago = 'Efectivo';
+  pagaCon: number | null = null;
+  r2 = (n: number) => Math.round(n * 100) / 100;
+  cobro = computed(() => {
+    this.cambios();
+    const abona = Number(this.f.anticipo) || 0, con = Number(this.pagaCon) || 0;
+    if (this.f.metodo !== 'Efectivo' || !con) return { cambio: 0, falta: 0 };
+    return { cambio: this.r2(Math.max(0, con - abona)), falta: this.r2(Math.max(0, abona - con)) };
+  });
 
   f: Form = {
     clienteId: null, clienteNombre: '', clienteTelefono: '', guardarCliente: true,
@@ -194,6 +243,11 @@ export class DocEditor implements OnInit {
     const g = (tipo: string, t: string) => ({ t, ps: ps.filter((p) => p.tipo === tipo) });
     return [g('producto', 'Productos'), g('servicio', 'Servicios'), g('insumo', 'Insumos')].filter((x) => x.ps.length);
   });
+  opsClientes = computed(() => this.clientes().map((c) => ({ valor: c.id, texto: c.nombre, detalle: c.telefono || undefined })));
+  opsProductos = computed(() => {
+    const m = this.s.moneda();
+    return this.grupos().flatMap((g) => g.ps.map((p) => ({ valor: p.id, texto: p.nombre, grupo: g.t, detalle: dinero(p.precio, m) })));
+  });
   promos = computed(() => {
     const h = hoy();
     return this.promosTodas().filter((p) => (p.activa && (!p.inicio || p.inicio <= h) && (!p.fin || p.fin >= h)) || p.id === this.f.promocionId);
@@ -208,6 +262,7 @@ export class DocEditor implements OnInit {
   });
 
   async ngOnInit() {
+    if (this.s.verCostos() && !this.ia.estado()) this.ia.cargarEstado();
     const [cl, pr, po] = await Promise.all([
       this.api.get<Cliente[]>('/clientes'),
       this.api.get<Producto[]>('/productos'),
@@ -217,6 +272,17 @@ export class DocEditor implements OnInit {
     this.productos.set(pr);
     this.promosTodas.set(po);
     if (this.id) await this.cargar();
+    // Si el modal ya está abierto y llega otra venta por enlace (asistente, inicio), carga la nueva.
+    this.ruta.paramMap.subscribe((m) => {
+      const id = Number(m.get('id')) || null;
+      if (id && id !== this.id) { this.id = id; this.cargar(); }
+    });
+  }
+
+  /** Cierra el modal y vuelve a la lista. Si hay cambios sin guardar, pregunta antes. */
+  async cerrar() {
+    if (this.sucio && !(await this.confirmar.preguntar({ titulo: '¿Salir sin guardar?', texto: 'Tienes cambios que no se han guardado.', accion: 'Salir sin guardar', peligro: true }))) return;
+    this.router.navigate([this.lista]);
   }
 
   private async cargar() {
@@ -232,14 +298,88 @@ export class DocEditor implements OnInit {
     this.cambios.update((x) => x + 1);
   }
 
+  abonar(p: number) { this.f.anticipo = this.r2(this.t().total * p); this.tocar(); }
+
+  /** Abre el ticket de esta venta (guarda antes si hay cambios). */
+  async ticket() {
+    const id = await this.asegurar();
+    if (!id) return;
+    this.pos.hecha.set({ id, nueva: false });
+    this.router.navigate([this.lista]);
+  }
+
+  /** Precio sugerido por la IA para un concepto libre, con los insumos y la tarifa del taller. */
+  async sugerirPrecio(it: Renglon) {
+    if (this.pensandoEn()) return;
+    if ((it.descripcion ?? '').trim().length < 3) { this.aviso.error('Escribe primero la descripción del concepto'); return; }
+    this.pensandoEn.set(it);
+    try {
+      const g = await this.ia.sugerirProducto(it.descripcion);
+      const precioAntes = this.notasIA().get(it)?.precioAntes ?? it.precio;
+      it.precio = g.precio;
+      this.tocar();
+      const rango = g.precioMax ? ` En el mercado: ${dinero(g.precioMin, this.s.moneda())} a ${dinero(g.precioMax, this.s.moneda())}.` : '';
+      this.notasIA.update((m) => new Map(m).set(it, { texto: `${g.nota}${rango} Costo estimado: ${dinero(g.costoTotal, this.s.moneda())} por pieza.`, precioAntes }));
+    } catch (e) { this.aviso.error(mensajeError(e)); }
+    finally { this.pensandoEn.set(null); }
+  }
+
+  /** Quita la nota de la IA y regresa el precio que tenía el renglón. */
+  limpiarSugerencia(it: Renglon) {
+    const n = this.notasIA().get(it);
+    if (!n) return;
+    it.precio = n.precioAntes;
+    this.notasIA.update((m) => { const x = new Map(m); x.delete(it); return x; });
+    this.tocar();
+  }
+
   tocar() { this.sucio = true; this.cambios.update((x) => x + 1); }
   costoDe(i: Renglon) { return this.productos().find((p) => p.id === i.productoId)?.costoUnitario ?? i.costo ?? 0; }
   agregar() { this.f.items.push({ productoId: null, descripcion: '', cantidad: 1, precio: 0 }); this.tocar(); }
   quitar(i: number) { this.f.items.splice(i, 1); this.tocar(); }
+  /** En cotizaciones sin enviar: renglones del catálogo cuyo precio cambió desde que se cotizaron. */
+  cambiados = computed(() => {
+    this.cambios();
+    if (this.esVenta || (this.id && this.f.estado !== 'borrador')) return [];
+    return this.f.items
+      .map((it) => ({ it, precio: this.productos().find((p) => p.id === it.productoId)?.precio }))
+      .filter((x): x is { it: Renglon; precio: number } => x.precio != null && Number(x.it.precio) !== x.precio);
+  });
+
+  usarPreciosActuales() {
+    for (const c of this.cambiados()) c.it.precio = c.precio;
+    this.tocar();
+    this.aviso.info('Precios actualizados. Guarda la cotización para que el PDF y el enlace los muestren.');
+  }
+
   elegir(it: Renglon) {
     const p = this.productos().find((x) => x.id === it.productoId);
     if (p) { it.descripcion = p.nombre.replace(/ \(ejemplo\)$/, ''); it.precio = p.precio; }
     this.tocar();
+  }
+  /* Altas rápidas sin salir del documento. */
+  altaCliente = signal<string | null>(null);
+  altaProducto = signal<{ it: Renglon; q: string } | null>(null);
+  altaPromo = signal(false);
+  categorias = computed(() => [...new Set(this.productos().map((p) => p.categoria).filter(Boolean))].sort());
+  clienteCreado(c: Cliente) {
+    this.clientes.update((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    this.f.clienteId = c.id;
+    this.altaCliente.set(null);
+    this.tocar();
+  }
+  async productoCreado(it: Renglon, p: Producto) {
+    // Se recarga la lista para traer el costo calculado del nuevo artículo.
+    this.productos.set(await this.api.get<Producto[]>('/productos').catch(() => [...this.productos(), p]));
+    it.productoId = p.id;
+    this.altaProducto.set(null);
+    this.elegir(it);
+  }
+  promoCreada(p: Promocion) {
+    this.promosTodas.update((l) => [...l, p]);
+    this.f.promocionId = p.id;
+    this.altaPromo.set(false);
+    this.aplicarPromo();
   }
   aplicarPromo() {
     const p = this.promosTodas().find((x) => x.id === this.f.promocionId);
@@ -271,11 +411,16 @@ export class DocEditor implements OnInit {
       } else body['vigenciaDias'] = Number(this.f.vigenciaDias) || 15;
       const r = this.id ? await this.api.put<{ id: number }>(`${this.base}/${this.id}`, body) : await this.api.post<{ id: number }>(this.base, body);
       this.sucio = false;
-      this.aviso.ok(this.esVenta ? 'Venta guardada' : 'Cotización guardada');
-      if (salir) this.router.navigate([this.esVenta ? '/app/ventas' : '/app/cotizaciones']);
+      if (!(salir && this.esVenta && !this.id)) this.aviso.ok(this.esVenta ? 'Venta guardada' : 'Cotización guardada');
+      if (salir && this.esVenta && !this.id) {
+        // Venta nueva: se cierra el editor y se muestra la ventana de venta realizada con el ticket.
+        const c = this.cobro();
+        this.pos.hecha.set({ id: r.id, nueva: true, recibido: c.cambio > 0 ? Number(this.pagaCon) : undefined, cambio: c.cambio || undefined });
+        this.router.navigate([this.lista]);
+      } else if (salir) this.router.navigate([this.lista]);
       else if (!this.id) {
         this.id = r.id;
-        this.router.navigate([this.esVenta ? '/app/ventas' : '/app/cotizaciones', r.id], { replaceUrl: true });
+        this.router.navigate([this.lista, r.id], { replaceUrl: true });
         await this.cargar();
       }
       return r.id;
@@ -287,13 +432,18 @@ export class DocEditor implements OnInit {
     }
   }
 
+  asegurarFn = () => this.asegurar();
   private async asegurar() {
     return this.id && !this.sucio ? this.id : this.guardar(false);
   }
 
+  /** Guarda si hace falta y muestra la vista previa con PDF, imprimir y WhatsApp. */
+  vista = signal<Cotizacion | Venta | null>(null);
   async pdf() {
     const id = await this.asegurar();
-    if (id) await this.api.abrirPdf(`${this.base}/${id}/pdf`).catch((e) => this.aviso.error(mensajeError(e)));
+    if (!id) return;
+    try { this.vista.set(await this.api.get<Cotizacion | Venta>(`${this.base}/${id}`)); }
+    catch (e) { this.aviso.error(mensajeError(e)); }
   }
 
   async whatsapp() {
@@ -334,7 +484,7 @@ export class DocEditor implements OnInit {
     try {
       await this.api.del(`${this.base}/${this.id}`);
       this.aviso.ok('Eliminado');
-      this.router.navigate([this.esVenta ? '/app/ventas' : '/app/cotizaciones']);
+      this.router.navigate([this.lista]);
     } catch (e) {
       this.aviso.error(mensajeError(e));
     }

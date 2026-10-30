@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import {
-  ArrayMinSize, IsArray, IsDateString, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, ValidateNested,
+  ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, ValidateNested,
 } from 'class-validator';
 import { EstadoCotizacion, EstadoVenta } from '../entities';
 
@@ -40,6 +40,10 @@ export class VentaDto extends DocumentoDto {
   @IsOptional() @IsDateString() entrega?: string | null;
   /** Solo al crear: anticipo recibido. */
   @IsOptional() @ValidateNested() @Type(() => PagoDto) anticipo?: PagoDto;
+  /** Solo al crear: pago combinado (por ejemplo, parte en efectivo y parte con tarjeta). */
+  @IsOptional() @IsArray() @ArrayMaxSize(4) @ValidateNested({ each: true }) @Type(() => PagoDto) pagos?: PagoDto[];
+  /** 'caja' exige un turno de caja abierto en la sucursal. */
+  @IsOptional() @IsIn(['caja']) origen?: 'caja';
 }
 
 export class EstadoVentaDto {
@@ -64,6 +68,10 @@ export class CompraDto {
 export class FiltroDto {
   @IsOptional() @IsString() q?: string;
   @IsOptional() @IsString() estado?: string;
+  @IsOptional() @Type(() => Number) @IsInt() clienteId?: number;
   @IsOptional() @IsDateString() desde?: string;
   @IsOptional() @IsDateString() hasta?: string;
+  /** Con `pagina` la respuesta es { items, total, resumen } en lugar de la lista completa. */
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) pagina?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(5) @Max(100) por?: number;
 }

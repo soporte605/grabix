@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { mensajeError } from '../core/aviso.service';
 import { SesionService } from '../core/sesion.service';
+import { evaluarClave } from '../core/clave';
+import { CampoClave } from '../ui/campo-clave';
 import { MarcoAcceso } from '../ui/marco-acceso';
 
 /** Abre el enlace de confirmación que llega por correo al registrarse. */
@@ -102,7 +104,7 @@ export class OlvideContrasena implements OnInit {
 /** Crear contraseña desde un enlace de recuperación o de invitación. Al terminar deja la sesión iniciada. */
 @Component({
   selector: 'app-restablecer',
-  imports: [FormsModule, RouterLink, MarcoAcceso],
+  imports: [FormsModule, RouterLink, MarcoAcceso, CampoClave],
   template: `
     <app-marco-acceso>
       <form class="contents" (ngSubmit)="guardar()">
@@ -115,9 +117,8 @@ export class OlvideContrasena implements OnInit {
             <p class="tenue">Para la cuenta <b>{{ d.email }}</b>.</p>
           }
           <input type="email" name="usuario" [value]="d.email" autocomplete="username" hidden>
-          <div class="campo"><label for="r-p">Contraseña nueva</label><input id="r-p" name="pass" type="password" [(ngModel)]="password" required minlength="8" autocomplete="new-password"></div>
-          <div class="campo"><label for="r-p2">Repite la contraseña</label><input id="r-p2" name="pass2" type="password" [(ngModel)]="password2" required autocomplete="new-password"></div>
-          <p class="tenue chico">Mínimo 8 caracteres.</p>
+          <app-campo-clave entrada="r-p" etiqueta="Contraseña nueva" [(valor)]="password" [medidor]="true" [personales]="[d.email, d.nombre]" />
+          <app-campo-clave entrada="r-p2" etiqueta="Repite la contraseña" [(valor)]="password2" />
           @if (error()) { <p class="error">{{ error() }}</p> }
           <button class="btn pri" [disabled]="cargando()">{{ cargando() ? 'Guardando…' : d.tipo === 'invitacion' ? 'Crear contraseña y entrar' : 'Guardar y entrar' }}</button>
         } @else if (invalido()) {
@@ -157,7 +158,8 @@ export class Restablecer implements OnInit {
 
   async guardar() {
     this.error.set('');
-    if (this.password.length < 8) return this.error.set('La contraseña debe tener al menos 8 caracteres');
+    const d = this.datos();
+    if (!evaluarClave(this.password, [d?.email, d?.nombre]).valida) return this.error.set('Tu contraseña aún no es segura: revisa los puntos debajo del campo.');
     if (this.password !== this.password2) return this.error.set('Las contraseñas no coinciden');
     this.cargando.set(true);
     try {

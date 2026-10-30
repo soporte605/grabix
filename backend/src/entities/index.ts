@@ -56,6 +56,24 @@ export enum EstadoVenta {
   Cancelada = 'cancelada',
 }
 
+/** Etapa de un pedido dentro del taller; afina el estado de la venta (pendiente, en producción, lista). */
+export enum EtapaTaller {
+  Diseno = 'diseno',
+  Aprobacion = 'aprobacion',
+  Cola = 'cola',
+  Maquina = 'maquina',
+  Acabado = 'acabado',
+  Lista = 'lista',
+}
+
+export enum TipoMaquina {
+  Laser = 'laser',
+  Sublimacion = 'sublimacion',
+  Plancha = 'plancha',
+  Manual = 'manual',
+  Otra = 'otra',
+}
+
 @Entity('talleres')
 export class Taller {
   @PrimaryGeneratedColumn() id: number;
@@ -75,6 +93,10 @@ export class Taller {
   estadoSuscripcion: EstadoSuscripcion;
   @Column({ type: 'date', nullable: true }) pruebaHasta: string | null;
   @Column({ type: 'date', nullable: true }) pagadoHasta: string | null;
+  /** Eliminación solicitada por el dueño: ese día se borran todos los datos del taller. Mientras, la cuenta queda bloqueada. */
+  @Column({ type: 'date', nullable: true }) eliminarEn: string | null;
+  /** Suspensión manual desde el panel. El equipo no puede entrar ni seguir con una sesión abierta; el acceso de soporte sí. */
+  @Column({ default: false }) bloqueado: boolean;
   @CreateDateColumn() creadoEn: Date;
 }
 
@@ -86,6 +108,19 @@ export class Sucursal {
   @Column({ length: 255, default: '' }) direccion: string;
   @Column({ length: 40, default: '' }) telefono: string;
   @Column({ default: true }) activa: boolean;
+  /** Datos para transferencia que salen en el PDF y el WhatsApp de esta sucursal. */
+  @Column({ length: 80, default: '' }) banco: string;
+  @Column({ length: 120, default: '' }) titular: string;
+  @Column({ length: 20, default: '' }) clabe: string;
+  @Column({ length: 30, default: '' }) cuenta: string;
+  @Column({ length: 25, default: '' }) tarjeta: string;
+  @Column({ type: 'text', nullable: true }) indicacionesPago: string | null;
+  /** Porcentaje de anticipo para empezar un trabajo (0 = no se pide). */
+  @Column({ type: 'int', default: 0 }) anticipoPct: number;
+  /** Condiciones de venta de la sucursal (anticipo, tiempos, garantía); van en cotizaciones y notas. */
+  @Column({ type: 'text', nullable: true }) condiciones: string | null;
+  /** Logo (PNG o JPEG en FOTOS_DIR/tallerId) para el PDF, el enlace del cliente y la vista previa en WhatsApp. */
+  @Column({ type: 'varchar', length: 60, nullable: true }) logo: string | null;
 }
 
 @Entity('usuarios')
@@ -103,6 +138,8 @@ export class Usuario {
   @Column({ default: false }) emailVerificado: boolean;
   /** Las sesiones emitidas antes de esta fecha dejan de valer (cambio o restablecimiento de contraseña). */
   @Column({ type: 'datetime', precision: 3, nullable: true }) claveCambiadaEn: Date | null;
+  /** Ya vio (o se saltó) la bienvenida con el recorrido guiado. */
+  @Column({ default: false }) recorridoVisto: boolean;
   @CreateDateColumn() creadoEn: Date;
 }
 
@@ -283,6 +320,12 @@ export class Venta extends DocumentoVenta {
   @Column({ type: 'int', nullable: true }) cotizacionId: number | null;
   @Column({ default: false }) stockAplicado: boolean;
   @Index({ unique: true }) @Column({ length: 40 }) tokenPublico: string;
+  /** Producción: etapa en el taller (null = la de su estado), máquina, responsable y prioridad. */
+  @Column({ type: 'enum', enum: EtapaTaller, nullable: true }) etapa: EtapaTaller | null;
+  @Column({ type: 'int', nullable: true }) maquinaId: number | null;
+  @Column({ type: 'int', nullable: true }) responsableId: number | null;
+  @Column({ default: false }) urgente: boolean;
+  @Column({ type: 'datetime', nullable: true }) etapaEn: Date | null;
   @OneToMany(() => VentaItem, (i) => i.venta, { cascade: true, eager: true })
   items: Relation<VentaItem[]>;
   @OneToMany(() => Pago, (p) => p.venta, { cascade: true, eager: true })
@@ -292,9 +335,21 @@ export class Venta extends DocumentoVenta {
 @Entity('venta_items')
 export class VentaItem extends Renglon {
   @Column() ventaId: number;
+  /** Piezas terminadas en el taller (avance por renglón). */
+  @Column(qty) hechos: number;
   @ManyToOne(() => Venta, (v) => v.items, { onDelete: 'CASCADE', orphanedRowAction: 'delete' })
   @JoinColumn({ name: 'ventaId' })
   venta: Relation<Venta>;
+}
+
+@Entity('maquinas')
+export class Maquina {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Column({ length: 80 }) nombre: string;
+  @Column({ type: 'enum', enum: TipoMaquina, default: TipoMaquina.Laser }) tipo: TipoMaquina;
+  @Column({ default: true }) activa: boolean;
+  @CreateDateColumn() creadoEn: Date;
 }
 
 @Entity('pagos')
@@ -308,6 +363,9 @@ export class Pago {
   @Column(money) monto: number;
   @Column({ length: 30, default: 'Efectivo' }) metodo: string;
   @Column({ type: 'int', nullable: true }) usuarioId: number | null;
+  /** Turno de caja abierto cuando se cobró (para el corte). */
+  @Index() @Column({ type: 'int', nullable: true }) turnoId: number | null;
+  @CreateDateColumn() creadoEn: Date;
 }
 
 @Entity('compras')
@@ -363,10 +421,251 @@ export class Bitacora {
   @Index() @CreateDateColumn() creadoEn: Date;
 }
 
+/** Uso diario del asistente con IA por taller (para respetar el límite del plan y ver el gasto). */
+@Entity('asistente_uso')
+@Unique(['tallerId', 'fecha'])
+export class AsistenteUso {
+  @PrimaryGeneratedColumn() id: number;
+  @Column() tallerId: number;
+  @Column({ type: 'date' }) fecha: string;
+  @Column({ type: 'int', default: 0 }) preguntas: number;
+  @Column({ type: 'int', default: 0 }) tokensEntrada: number;
+  @Column({ type: 'int', default: 0 }) tokensSalida: number;
+}
+
+/** Usos del cotizador público por visitante y día. La IP se guarda cifrada (hash), nunca en claro. */
+@Entity('cotizador_uso')
+@Unique(['visitante', 'fecha'])
+export class CotizadorUso {
+  @PrimaryGeneratedColumn() id: number;
+  @Column({ length: 64 }) visitante: string;
+  @Column({ type: 'date' }) fecha: string;
+  @Column({ type: 'int', default: 0 }) usos: number;
+}
+
+export enum EstadoTurno {
+  Abierto = 'abierto',
+  Cerrado = 'cerrado',
+}
+
+/** Resumen guardado al cerrar: no cambia aunque después se editen ventas. */
+export interface ResumenTurno {
+  porMetodo: Record<string, number>;
+  cobrado: number;
+  ventas: number;
+  entradas: number;
+  salidas: number;
+  esperado: number;
+}
+
+/** Turno de caja: de la apertura (fondo) al corte (efectivo contado y lo que se deja). Uno abierto por sucursal. */
+@Entity('caja_turnos')
+export class CajaTurno {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Index() @Column() sucursalId: number;
+  @Column({ length: 20 }) folio: string;
+  @Column({ type: 'enum', enum: EstadoTurno, default: EstadoTurno.Abierto }) estado: EstadoTurno;
+  @Column() abrioId: number;
+  @Column({ length: 120 }) abrioNombre: string;
+  @CreateDateColumn() abiertoEn: Date;
+  @Column(money) fondo: number;
+  @Column({ type: 'text', nullable: true }) notasApertura: string | null;
+  @Column({ type: 'int', nullable: true }) cerroId: number | null;
+  @Column({ length: 120, default: '' }) cerroNombre: string;
+  @Column({ type: 'datetime', nullable: true }) cerradoEn: Date | null;
+  /** Efectivo esperado, contado y diferencia (contado − esperado: + sobra, − falta). */
+  @Column(money) esperado: number;
+  @Column(money) contado: number;
+  @Column(money) diferencia: number;
+  /** Lo que se queda en el cajón para el siguiente turno; el resto es retiro. */
+  @Column(money) dejado: number;
+  @Column(money) retiro: number;
+  @Column({ type: 'json', nullable: true }) conteo: Record<string, number> | null;
+  @Column({ type: 'json', nullable: true }) resumen: ResumenTurno | null;
+  @Column({ type: 'text', nullable: true }) notasCierre: string | null;
+}
+
+@Entity('caja_movimientos')
+export class CajaMovimiento {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Index() @Column() turnoId: number;
+  /** entrada | salida */
+  @Column({ length: 10 }) tipo: string;
+  @Column(money) monto: number;
+  @Column({ length: 200 }) concepto: string;
+  @Column() usuarioId: number;
+  @Column({ length: 120 }) usuarioNombre: string;
+  @CreateDateColumn() creadoEn: Date;
+}
+
+/** Foto de un trabajo terminado: evidencia del pedido y galería del producto. El archivo vive en FOTOS_DIR. */
+@Entity('fotos')
+export class Foto {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Index() @Column() ventaId: number;
+  @Column({ length: 60 }) archivo: string;
+  @Column({ length: 60 }) miniatura: string;
+  @Column({ type: 'int', default: 0 }) ancho: number;
+  @Column({ type: 'int', default: 0 }) alto: number;
+  @Column({ type: 'int', default: 0 }) bytes: number;
+  @Column({ type: 'varchar', length: 200, nullable: true }) nota: string | null;
+  @Column() usuarioId: number;
+  @Column({ length: 120 }) usuarioNombre: string;
+  @CreateDateColumn() creadoEn: Date;
+  @ManyToOne(() => Venta, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'ventaId' })
+  venta: Relation<Venta>;
+}
+
+/** Cuenta del panel de Elikar. No pertenece a ningún taller. */
+@Entity('super_admins')
+export class SuperAdmin {
+  @PrimaryGeneratedColumn() id: number;
+  @Column({ length: 120 }) nombre: string;
+  @Index({ unique: true }) @Column({ length: 160 }) email: string;
+  @Column({ length: 100, select: false }) passwordHash: string;
+  @Column({ default: true }) activo: boolean;
+  /** Las sesiones emitidas antes de esta fecha dejan de valer. */
+  @Column({ type: 'datetime', precision: 3, nullable: true }) claveCambiadaEn: Date | null;
+  @CreateDateColumn() creadoEn: Date;
+}
+
+/** Intento de entrar al panel o a un taller. No guarda la contraseña. */
+@Entity('inicios_sesion')
+export class InicioSesion {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column({ length: 160 }) email: string;
+  /** panel | taller */
+  @Column({ length: 12 }) tipo: string;
+  @Column({ default: false }) exito: boolean;
+  /** clave | inactivo | bloqueado | eliminacion | ok */
+  @Column({ length: 20, default: '' }) motivo: string;
+  @Column({ length: 64, default: '' }) ip: string;
+  @Column({ length: 120, default: '' }) nombre: string;
+  @Column({ type: 'int', nullable: true }) tallerId: number | null;
+  @Column({ type: 'int', nullable: true }) usuarioId: number | null;
+  @Column({ type: 'int', nullable: true }) superAdminId: number | null;
+  @Index() @CreateDateColumn() creadoEn: Date;
+}
+
+/** Acciones del panel. El nombre real del super administrador solo vive aquí. */
+@Entity('admin_bitacora')
+export class AdminBitacora {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() superAdminId: number;
+  @Column({ length: 120 }) superAdminNombre: string;
+  @Column({ type: 'int', nullable: true }) tallerId: number | null;
+  @Column({ length: 40 }) accion: string;
+  @Column({ length: 40 }) entidad: string;
+  @Column({ type: 'int', nullable: true }) entidadId: number | null;
+  @Column({ type: 'json', nullable: true }) detalle: unknown;
+  @Index() @CreateDateColumn() creadoEn: Date;
+}
+
+/** Prueba de diseño que el cliente aprueba por el enlace del pedido o por WhatsApp. */
+export enum EstadoDiseno {
+  Pendiente = 'pendiente',
+  Aprobado = 'aprobado',
+  Cambios = 'cambios',
+  Reemplazado = 'reemplazado',
+}
+
+@Entity('disenos')
+export class Diseno {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Index() @Column() ventaId: number;
+  @Column({ type: 'int', default: 1 }) version: number;
+  @Column({ length: 60 }) archivo: string;
+  @Column({ length: 60 }) miniatura: string;
+  /** JPEG para la vista previa del enlace dentro de WhatsApp. */
+  @Column({ length: 60 }) vista: string;
+  @Column({ type: 'int', default: 0 }) ancho: number;
+  @Column({ type: 'int', default: 0 }) alto: number;
+  /** Lo que el cliente debe revisar: tamaño, posición, material, colores. */
+  @Column({ type: 'varchar', length: 500, nullable: true }) nota: string | null;
+  @Column({ type: 'enum', enum: EstadoDiseno, default: EstadoDiseno.Pendiente }) estado: EstadoDiseno;
+  /** Cambios que pidió el cliente, o una nota de la aprobación. */
+  @Column({ type: 'text', nullable: true }) respuesta: string | null;
+  /** Nombre que escribió el cliente o de quien registró la aprobación. */
+  @Column({ type: 'varchar', length: 120, nullable: true }) respondidoPor: string | null;
+  /** enlace | whatsapp | mostrador */
+  @Column({ type: 'varchar', length: 20, nullable: true }) via: string | null;
+  @Column({ type: 'datetime', nullable: true }) respondidoEn: Date | null;
+  @Column() usuarioId: number;
+  @Column({ length: 120 }) usuarioNombre: string;
+  @CreateDateColumn() creadoEn: Date;
+  @ManyToOne(() => Venta, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'ventaId' })
+  venta: Relation<Venta>;
+}
+
+export enum EstadoComprobante {
+  Pendiente = 'pendiente',
+  Aplicado = 'aplicado',
+  Descartado = 'descartado',
+}
+
+/** Comprobante de transferencia que el cliente sube desde el enlace del pedido. */
+@Entity('comprobantes')
+export class Comprobante {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Index() @Column() ventaId: number;
+  @Column({ length: 60 }) archivo: string;
+  @Column({ length: 60 }) miniatura: string;
+  @Column({ type: 'int', default: 0 }) ancho: number;
+  @Column({ type: 'int', default: 0 }) alto: number;
+  /** Lo que el cliente dice que pagó (0 = no lo escribió). */
+  @Column(money) monto: number;
+  @Column({ type: 'varchar', length: 200, nullable: true }) nota: string | null;
+  @Column({ type: 'enum', enum: EstadoComprobante, default: EstadoComprobante.Pendiente }) estado: EstadoComprobante;
+  @Column({ type: 'int', nullable: true }) pagoId: number | null;
+  @Column({ type: 'varchar', length: 120, nullable: true }) revisadoPor: string | null;
+  @Column({ type: 'datetime', nullable: true }) revisadoEn: Date | null;
+  @CreateDateColumn() creadoEn: Date;
+  @ManyToOne(() => Venta, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'ventaId' })
+  venta: Relation<Venta>;
+}
+
+/** Imagen que acompaña una cotización (diseño propuesto, boceto o foto de un trabajo parecido). */
+@Entity('cotizacion_imagenes')
+export class ImagenCotizacion {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Index() @Column() cotizacionId: number;
+  @Column({ length: 60 }) archivo: string;
+  @Column({ length: 60 }) miniatura: string;
+  /** JPEG para el PDF y la vista previa del enlace en WhatsApp. */
+  @Column({ length: 60 }) vista: string;
+  @Column({ type: 'int', default: 0 }) ancho: number;
+  @Column({ type: 'int', default: 0 }) alto: number;
+  @Column({ type: 'varchar', length: 200, nullable: true }) nota: string | null;
+  @Column() usuarioId: number;
+  @Column({ length: 120 }) usuarioNombre: string;
+  @CreateDateColumn() creadoEn: Date;
+  @ManyToOne(() => Cotizacion, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'cotizacionId' })
+  cotizacion: Relation<Cotizacion>;
+}
+
 export const ENTIDADES = [
+  ImagenCotizacion,
+  Diseno,
+  Comprobante,
+  Foto,
+  Maquina,
+  CajaTurno,
+  CajaMovimiento,
+  CotizadorUso,
   Taller,
   Sucursal,
   Usuario,
+  SuperAdmin,
   TokenCuenta,
   CorreoLog,
   Producto,
@@ -384,4 +683,7 @@ export const ENTIDADES = [
   CompraItem,
   Folio,
   Bitacora,
+  AdminBitacora,
+  InicioSesion,
+  AsistenteUso,
 ];

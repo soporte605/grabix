@@ -19,6 +19,9 @@ import {
   TipoProducto,
   Venta,
   VentaItem,
+  CajaTurno,
+  EstadoTurno,
+  ImagenCotizacion,
 } from '../entities';
 import { BitacoraService } from '../common/bitacora.service';
 import { Sesion } from '../common/sesion';
@@ -86,17 +89,12 @@ export class DocumentosService {
     return s.sucursal ? { sucursalId: s.sucursal } : {};
   }
 
-  private async listar<T extends Doc>(em: EntityManager, ent: new () => T, s: Sesion, f: FiltroDto) {
-    const qb = em
-      .createQueryBuilder(ent, 'd')
-      .leftJoinAndSelect('d.cliente', 'c')
-      .leftJoinAndSelect('d.items', 'i')
-      .where('d.tallerId = :t', { t: s.tallerId })
-      .orderBy('d.fecha', 'DESC')
-      .addOrderBy('d.id', 'DESC')
-      .take(300);
+  /** Filtros comunes de cotizaciones y ventas (alias d, cliente c). */
+  private filtrar<T extends Doc>(em: EntityManager, ent: new () => T, s: Sesion, f: FiltroDto) {
+    const qb = em.createQueryBuilder(ent, 'd').leftJoin('d.cliente', 'c').where('d.tallerId = :t', { t: s.tallerId });
     if (s.sucursal) qb.andWhere('d.sucursalId = :s', { s: s.sucursal });
     if (f.estado) qb.andWhere('d.estado IN (:...e)', { e: f.estado.split(',') });
+    if (f.clienteId) qb.andWhere('d.clienteId = :cl', { cl: f.clienteId });
     if (f.desde) qb.andWhere('d.fecha >= :desde', { desde: f.desde });
     if (f.hasta) qb.andWhere('d.fecha <= :hasta', { hasta: f.hasta });
     if (f.q)
@@ -105,7 +103,25 @@ export class DocumentosService {
           w.where('d.folio LIKE :q', { q: `%${f.q}%` }).orWhere('c.nombre LIKE :q').orWhere('d.clienteNombre LIKE :q'),
         ),
       );
-    return qb.getMany();
+    return qb;
+  }
+
+  private async listar<T extends Doc>(em: EntityManager, ent: new () => T, s: Sesion, f: FiltroDto) {
+    const qb = this.filtrar(em, ent, s, f).addSelect('c').leftJoinAndSelect('d.items', 'i').orderBy('d.fecha', 'DESC').addOrderBy('d.id', 'DESC');
+    if (!f.pagina) return qb.take(300).getMany();
+    const por = f.por ?? 20;
+    const [items, total] = await qb.skip((f.pagina - 1) * por).take(por).getManyAndCount();
+    return { items, total };
+  }
+
+  /** Suma de total y saldo de lo filtrado (sin canceladas), para el pie de la lista paginada. */
+  private async resumen<T extends Doc>(em: EntityManager, ent: new () => T, s: Sesion, f: FiltroDto, conSaldo: boolean) {
+    const r = await this.filtrar(em, ent, s, f)
+      .select('COALESCE(SUM(d.total), 0)', 'total')
+      .addSelect(conSaldo ? 'COALESCE(SUM(GREATEST(d.total - d.pagado, 0)), 0)' : '0', 'saldo')
+      .andWhere("d.estado <> 'cancelada'")
+      .getRawOne<{ total: string; saldo: string }>();
+    return { total: r2(Number(r?.total ?? 0)), saldo: r2(Number(r?.saldo ?? 0)) };
   }
 
   private async uno<T extends Doc>(em: EntityManager, ent: new () => T, s: Sesion, id: number, lock = false) {
@@ -191,8 +207,10 @@ export class DocumentosService {
   /* ---------- ventas ---------- */
 
   async ventas(s: Sesion, f: FiltroDto) {
-    const vs = await this.listar(this.ds.manager, Venta, s, f);
-    return vs.map((v) => ({ ...v, saldo: r2(Math.max(0, v.total - v.pagado)) }));
+    const r = await this.listar(this.ds.manager, Venta, s, f);
+    const conSaldo = (vs: Venta[]) => vs.map((v) => ({ ...v, saldo: r2(Math.max(0, v.total - v.pagado)) }));
+    if (Array.isArray(r)) return conSaldo(r);
+    return { items: conSaldo(r.items), total: r.total, resumen: await this.resumen(this.ds.manager, Venta, s, f, true) };
   }
 
   async venta(s: Sesion, id: number) {
@@ -217,15 +235,25 @@ export class DocumentosService {
       pagos: [],
       pagado: 0,
     });
+    const turnoId = await this.turnoAbierto(em, s.tallerId, v.sucursalId);
+    if (dto.origen === 'caja' && !turnoId) throw new BadRequestException('La caja está cerrada. Ábrela para empezar a cobrar.');
     await this.llenar(em, s, v, dto, () => em.create(VentaItem));
-    if (dto.anticipo?.monto) {
-      v.pagos.push(em.create(Pago, { fecha: dto.anticipo.fecha ?? hoy(), monto: dto.anticipo.monto, metodo: dto.anticipo.metodo ?? 'Efectivo', usuarioId: s.usuarioId }));
-      v.pagado = r2(dto.anticipo.monto);
-    }
+    const pagos = [...(dto.anticipo?.monto ? [dto.anticipo] : []), ...(dto.pagos ?? []).filter((p) => p.monto > 0)];
+    const suma = r2(pagos.reduce((a, p) => a + p.monto, 0));
+    if (suma > v.total + 0.009) throw new BadRequestException('Los pagos suman más que el total de la venta');
+    for (const p of pagos)
+      v.pagos.push(em.create(Pago, { fecha: p.fecha ?? hoy(), monto: r2(p.monto), metodo: p.metodo ?? 'Efectivo', usuarioId: s.usuarioId, turnoId }));
+    v.pagado = suma;
     await this.aplicarStock(em, s, v);
     const r = await em.save(v);
     await this.bitacora.registrar(s, 'crear', 'venta', r.id, { folio: r.folio, total: r.total }, em);
     return r;
+  }
+
+  /** Turno de caja abierto en la sucursal: los cobros quedan ligados a él para el corte. */
+  private async turnoAbierto(em: EntityManager, tallerId: number, sucursalId: number) {
+    const t = await em.findOne(CajaTurno, { where: { tallerId, sucursalId, estado: EstadoTurno.Abierto }, select: { id: true } });
+    return t?.id ?? null;
   }
 
   async editarVenta(s: Sesion, id: number, dto: VentaDto) {
@@ -262,12 +290,13 @@ export class DocumentosService {
     return this.ds.transaction(async (em) => {
       const v = await this.uno(em, Venta, s, id, true);
       if (v.estado === EstadoVenta.Cancelada) throw new BadRequestException('La venta está cancelada');
-      const p = em.create(Pago, { ventaId: v.id, fecha: dto.fecha ?? hoy(), monto: dto.monto, metodo: dto.metodo ?? 'Efectivo', usuarioId: s.usuarioId });
+      const turnoId = await this.turnoAbierto(em, s.tallerId, v.sucursalId);
+      const p = em.create(Pago, { ventaId: v.id, fecha: dto.fecha ?? hoy(), monto: dto.monto, metodo: dto.metodo ?? 'Efectivo', usuarioId: s.usuarioId, turnoId });
       await em.save(p);
       v.pagado = r2(v.pagado + dto.monto);
       await em.update(Venta, { id: v.id }, { pagado: v.pagado });
       await this.bitacora.registrar(s, 'pago', 'venta', id, { folio: v.folio, monto: dto.monto, metodo: p.metodo }, em);
-      return { pagado: v.pagado, saldo: r2(Math.max(0, v.total - v.pagado)) };
+      return { pagado: v.pagado, saldo: r2(Math.max(0, v.total - v.pagado)), pagoId: p.id };
     });
   }
 
@@ -298,12 +327,21 @@ export class DocumentosService {
 
   /* ---------- compras ---------- */
 
-  compras(s: Sesion) {
-    return this.ds.manager.find(Compra, {
-      where: { tallerId: s.tallerId, ...this.filtroSucursal(s) },
-      order: { fecha: 'DESC', id: 'DESC' },
-      take: 300,
-    });
+  compras(s: Sesion, f: FiltroDto = {}) {
+    const qb = this.ds.manager
+      .createQueryBuilder(Compra, 'c')
+      .leftJoinAndSelect('c.items', 'i')
+      .where('c.tallerId = :t', { t: s.tallerId })
+      .orderBy('c.fecha', 'DESC')
+      .addOrderBy('c.id', 'DESC');
+    if (!f.pagina) qb.take(300);
+    if (s.sucursal) qb.andWhere('c.sucursalId = :s', { s: s.sucursal });
+    if (f.desde) qb.andWhere('c.fecha >= :desde', { desde: f.desde });
+    if (f.hasta) qb.andWhere('c.fecha <= :hasta', { hasta: f.hasta });
+    if (f.q) qb.andWhere(new Brackets((w) => w.where('c.folio LIKE :q', { q: `%${f.q}%` }).orWhere('c.proveedor LIKE :q')));
+    if (!f.pagina) return qb.getMany();
+    const por = f.por ?? 20;
+    return qb.skip((f.pagina - 1) * por).take(por).getManyAndCount().then(([items, total]) => ({ items, total }));
   }
 
   /** Registra la compra: suma existencias y recalcula el costo promedio ponderado. */
@@ -369,7 +407,9 @@ export class DocumentosService {
     const sucursal = await em.findOneBy(Sucursal, { id: d.sucursalId });
     const cliente = d.clienteId ? await em.findOneBy(Cliente, { id: d.clienteId }) : null;
     const promocion = d.promocionId ? await em.findOneBy(Promocion, { id: d.promocionId }) : null;
-    return { tipo, d, taller, sucursal, cliente, promocion };
+    // Imágenes de referencia: solo la cotización las lleva en el PDF.
+    const imagenes = tipo === 'cotizacion' ? await em.find(ImagenCotizacion, { where: { tallerId: d.tallerId, cotizacionId: d.id }, order: { id: 'ASC' } }) : [];
+    return { tipo, d, taller, sucursal, cliente, promocion, imagenes };
   }
 
   async porToken(tk: string) {
@@ -435,6 +475,15 @@ export class DocumentosService {
       .andWhere('p.fecha BETWEEN :d AND :h', { d: desde, h: hasta })
       .getRawOne<{ total: string | null }>();
 
+    // Comparativo contra el periodo anterior del mismo largo, y el día de hoy.
+    const dias = Math.round((Date.parse(hasta) - Date.parse(desde)) / 864e5) + 1;
+    const antHasta = sumarDias(desde, -1), antDesde = sumarDias(desde, -dias);
+    const anterior = activas(await em.find(Venta, { where: { ...base, fecha: Between(antDesde, antHasta) } }));
+    const h = hoy();
+    const deHoy = activas(await em.find(Venta, { where: { ...base, fecha: h } }));
+    const atrasados = abiertas.filter((v) => v.estado !== EstadoVenta.Entregada && v.entrega && String(v.entrega) < h).length;
+    const clientesNuevos = await em.count(Cliente, { where: { tallerId: s.tallerId, creadoEn: Between(new Date(desde + 'T00:00:00'), new Date(hasta + 'T23:59:59')) } });
+
     const ex = await em.find(Existencia, { where: { tallerId: s.tallerId, ...suc } });
     const prods = await em.find(Producto, { where: { tallerId: s.tallerId, activo: true } });
     const bajos = prods
@@ -457,7 +506,15 @@ export class DocumentosService {
       cobrado: r2(Number(cobrado?.total ?? 0)),
       porCobrar,
       compras: r2(compras.reduce((a, c) => a + c.total, 0)),
-      cotizaciones: { total: cots.length, aceptadas: cots.filter((c) => c.estado === EstadoCotizacion.Aceptada).length },
+      cotizaciones: {
+        total: cots.length,
+        aceptadas: cots.filter((c) => c.estado === EstadoCotizacion.Aceptada).length,
+        abiertas: cots.filter((c) => c.estado === EstadoCotizacion.Borrador || c.estado === EstadoCotizacion.Enviada).length,
+      },
+      ventasAnterior: r2(anterior.reduce((a, v) => a + v.total, 0)),
+      hoy: { ventas: r2(deHoy.reduce((a, v) => a + v.total, 0)), pedidos: deHoy.length },
+      atrasados,
+      clientesNuevos,
       serie,
       top: [...top.values()]
         .map((x) => ({ ...x, ventas: r2(x.ventas), ganancia: r2(x.ganancia) }))

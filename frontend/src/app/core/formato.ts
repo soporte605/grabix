@@ -14,8 +14,11 @@ export const sumarDias = (f: string, n: number) => {
   return d.toISOString().slice(0, 10);
 };
 export const fecha = (f?: string | null) => (f ? String(f).slice(0, 10).split('-').reverse().join('/') : '');
-export const dinero = (n: number | null | undefined, moneda = '$') =>
-  moneda + (Number(n) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const dinero = (n: number | null | undefined, moneda = '$') => {
+  const v = Number(n) || 0;
+  // El signo va antes del símbolo: -$50.00, no $-50.00.
+  return (v < 0 ? '-' : '') + moneda + Math.abs(v).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 export const pct = (n: number | null | undefined) => (n == null || !isFinite(n) ? '—' : `${Math.round(n * 100)}%`);
 
 @Pipe({ name: 'dinero' })
