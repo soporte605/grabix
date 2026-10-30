@@ -4,6 +4,10 @@ Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el co
 
 ## 2026-10-30
 
+### Precios del catálogo en cotizaciones en borrador
+- Si cambias el precio de un producto o servicio, al abrir una cotización en **Borrador** aparece un aviso con los conceptos que tienen otro precio en el catálogo y el botón **Usar precios actuales**. No se cambia solo, para respetar precios negociados a mano. Las cotizaciones enviadas, aceptadas o rechazadas y las ventas no cambian.
+- El costo y la ganancia ya se recalculaban con el catálogo al guardar.
+
 ### IA para insumos y artículos ya creados
 - En Inventario, "Sugerir con IA" respeta el tipo elegido. Para un insumo propone la unidad y el costo de compra típico (sin minutos ni extras ni receta).
 - El botón también aparece al editar un artículo existente; "Limpiar" deja los datos como estaban.
