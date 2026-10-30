@@ -19,10 +19,11 @@ const cuando = (f: string) => new Date(f).toLocaleString('es-MX', { day: 'numeri
   selector: 'app-diseno-pedido',
   imports: [FormsModule, Icono, VisorFotos],
   template: `
+    @if (!cerrado() || disenos().length) {
     <section>
       <div class="mb-1.5 flex items-center justify-between gap-2">
-        <h3 class="text-base">Diseño para aprobar</h3>
-        @if (cargado() && !nuevo()) {
+        <h3 class="text-base">{{ cerrado() ? 'Diseño' : 'Diseño para aprobar' }}</h3>
+        @if (cargado() && !nuevo() && !cerrado()) {
           <button type="button" class="btn sm" (click)="elegir.click()"><app-icono nombre="nueva" />{{ ultimo() ? 'Nueva versión' : 'Subir diseño' }}</button>
         }
         <input #elegir type="file" accept="image/*" class="hidden" (change)="preparar($event)" aria-label="Elegir diseño">
@@ -54,7 +55,9 @@ const cuando = (f: string) => new Date(f).toLocaleString('es-MX', { day: 'numeri
             <p class="chico rounded-lg bg-bad-suave p-2.5"><b>{{ d.respondidoPor }} pidió cambios</b> el {{ cuando(d.respondidoEn!) }}: <span class="whitespace-pre-line">“{{ d.respuesta }}”</span></p>
           }
 
-          @if (marcando()) {
+          @if (cerrado()) {
+            <button type="button" class="btn self-start" (click)="copiar()">Copiar enlace</button>
+          } @else if (marcando()) {
             <div class="flex flex-col gap-2 rounded-lg border border-linea p-2.5">
               <p class="chico font-semibold">¿Cómo te lo aprobó?</p>
               <input class="entrada" maxlength="500" [(ngModel)]="notaAprobacion" placeholder="Nota opcional, p. ej. contestó “sí, así está bien”" aria-label="Nota de la aprobación">
@@ -86,12 +89,13 @@ const cuando = (f: string) => new Date(f).toLocaleString('es-MX', { day: 'numeri
             </div>
           </details>
         }
-      } @else if (cargado()) {
+      } @else if (cargado() && !cerrado()) {
         <button type="button" class="w-full rounded-xl border border-dashed border-linea p-4 text-center tenue" (click)="elegir.click()">
           Sube la imagen del diseño (JPG, PNG o SVG) y mándala por WhatsApp. El cliente lo ve en el chat y lo aprueba con un toque o contestando “sí”.
         </button>
       }
     </section>
+    }
     @if (verIndice() !== null) {
       <app-visor-fotos [fotos]="visor()" [indice]="verIndice()!" (indiceChange)="verIndice.set($event)" (cerrar)="verIndice.set(null)" />
     }
@@ -106,6 +110,8 @@ export class DisenoPedidoSeccion {
   ventaId = input.required<number>();
   folio = input('');
   telefono = input('');
+  /** Pedido entregado o cancelado: solo se consulta lo que hubo. */
+  cerrado = input(false);
   /** Cambió el diseño o su aprobación: la etapa del pedido pudo moverse. */
   cambio = output();
 
