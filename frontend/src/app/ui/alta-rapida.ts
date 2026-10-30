@@ -80,7 +80,7 @@ export class AltaCliente implements OnInit {
       @if (s.verCostos() && ia.estado()?.disponible) {
         @if (sug(); as g) {
           <div class="caja !border-marca">
-            <div class="fila entre"><h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />Sugerencia de la IA</h3><button type="button" class="btn sm" (click)="sugerir()" [disabled]="pensando()">Otra vez</button></div>
+            <div class="fila entre"><h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />Sugerencia de la IA</h3><div class="fila"><button type="button" class="btn sm" (click)="limpiar()" [disabled]="pensando()">Limpiar</button><button type="button" class="btn sm" (click)="sugerir()" [disabled]="pensando()">{{ pensando() ? 'Pensando…' : 'Otra vez' }}</button></div></div>
             <p>{{ g.nota }}</p>
             @if (g.precioMax) { <p class="chico tenue">En el mercado se cobra entre <span class="num">{{ g.precioMin | dinero }}</span> y <span class="num">{{ g.precioMax | dinero }}</span>. Revisa los datos antes de guardar.</p> }
           </div>
@@ -148,6 +148,15 @@ export class AltaProducto implements OnInit {
       this.sug.set(g);
     } catch (e) { this.aviso.error(mensajeError(e)); }
     finally { this.pensando.set(false); }
+  }
+
+  /** Quita la sugerencia y lo que llenó, para volver a preguntar. */
+  limpiar() {
+    this.precio = null;
+    this.costo = null;
+    this.categoria = '';
+    this.unidad = 'pza';
+    this.sug.set(null);
   }
 
   async guardar() {

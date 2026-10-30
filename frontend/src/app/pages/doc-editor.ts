@@ -75,7 +75,7 @@ interface Form {
               </div>
               <span class="num col-span-2 flex flex-col self-center text-right text-base">{{ (it.cantidad || 0) * (it.precio || 0) | dinero }}
                 @if (s.verCostos() && it.productoId) { <small class="text-xs text-tenue">costo {{ costoDe(it) | dinero }}</small> }</span>
-              @if (!it.productoId && notasIA().get(it); as n) { <p class="col-span-6 flex items-start gap-1.5 text-sm text-tenue"><app-icono nombre="chispa" class="mt-0.5 shrink-0 text-marca" />{{ n }}</p> }
+              @if (!it.productoId && notasIA().get(it); as n) { <p class="col-span-6 flex items-start gap-1.5 text-sm text-tenue"><app-icono nombre="chispa" class="mt-0.5 shrink-0 text-marca" /><span class="flex-1">{{ n.nota }}</span><button type="button" class="shrink-0 font-semibold text-marca" (click)="quitarSugerencia(it)" title="Quitar la sugerencia y regresar el precio anterior">Limpiar</button></p> }
             </div>
             <button class="text-2xl text-bad" (click)="quitar(i)" aria-label="Quitar concepto">×</button>
           </div>
@@ -188,7 +188,7 @@ export class DocEditor implements OnInit {
   /** Renglón libre para el que la IA está calculando precio. */
   pensandoEn = signal<Renglon | null>(null);
   /** Explicación de la IA por renglón; solo se ve en el editor, no sale en el PDF. */
-  notasIA = signal(new Map<Renglon, string>());
+  notasIA = signal(new Map<Renglon, { nota: string; antes: number }>());
   private lista = this.ruta.snapshot.data['tipo'] === 'ventas' ? '/app/ventas' : '/app/cotizaciones';
   esVenta = this.ruta.snapshot.data['tipo'] === 'ventas';
   base = this.esVenta ? '/ventas' : '/cotizaciones';
@@ -305,12 +305,22 @@ export class DocEditor implements OnInit {
     this.pensandoEn.set(it);
     try {
       const g = await this.ia.sugerirProducto(it.descripcion);
+      const antes = this.notasIA().get(it)?.antes ?? it.precio ?? 0;
       it.precio = g.precio;
       this.tocar();
       const rango = g.precioMax ? ` En el mercado: ${dinero(g.precioMin, this.s.moneda())} a ${dinero(g.precioMax, this.s.moneda())}.` : '';
-      this.notasIA.update((m) => new Map(m).set(it, `${g.nota}${rango} Costo estimado: ${dinero(g.costoTotal, this.s.moneda())} por pieza.`));
+      this.notasIA.update((m) => new Map(m).set(it, { nota: `${g.nota}${rango} Costo estimado: ${dinero(g.costoTotal, this.s.moneda())} por pieza.`, antes }));
     } catch (e) { this.aviso.error(mensajeError(e)); }
     finally { this.pensandoEn.set(null); }
+  }
+
+  /** Descarta la sugerencia de la IA de un concepto y regresa el precio que tenía. */
+  quitarSugerencia(it: Renglon) {
+    const n = this.notasIA().get(it);
+    if (!n) return;
+    it.precio = n.antes;
+    this.notasIA.update((m) => { const c = new Map(m); c.delete(it); return c; });
+    this.tocar();
   }
 
   tocar() { this.sucio = true; this.cambios.update((x) => x + 1); }

@@ -77,7 +77,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
         @if (!e.id && ia.estado()?.disponible) {
           <div class="caja" [class.!border-marca]="sug()">
             @if (sug(); as g) {
-              <div class="fila entre"><h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />Sugerencia de la IA</h3><button class="btn sm" (click)="sugerir()" [disabled]="pensando()">Otra vez</button></div>
+              <div class="fila entre"><h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />Sugerencia de la IA</h3><div class="fila"><button class="btn sm" (click)="limpiar()" [disabled]="pensando()">Limpiar</button><button class="btn sm" (click)="sugerir()" [disabled]="pensando()">{{ pensando() ? 'Pensando…' : 'Otra vez' }}</button></div></div>
               <p>{{ g.nota }}</p>
               @if (g.precioMax) { <p class="tenue chico">En el mercado se cobra entre <span class="num">{{ g.precioMin | dinero }}</span> y <span class="num">{{ g.precioMax | dinero }}</span>.</p> }
               <p class="tenue chico">Ya llené los campos de abajo. Revísalos y ajústalos a tu taller antes de guardar.</p>
@@ -238,6 +238,15 @@ export class Inventario implements OnInit {
       this.calc();
     } catch (err) { this.aviso.error(mensajeError(err)); }
     finally { this.pensando.set(false); }
+  }
+
+  /** Quita la sugerencia y lo que llenó, para cambiar los detalles y volver a preguntar. */
+  limpiar() {
+    const e = this.e();
+    if (!e) return;
+    Object.assign(e, { tipo: 'producto', categoria: 'Sublimación', unidad: 'pza', costo: 0, minutos: 0, extra: 0, precio: 0, componentes: [] });
+    this.sug.set(null);
+    this.calc();
   }
 
   async guardar() {
