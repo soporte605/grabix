@@ -561,6 +561,8 @@ export class AdminBitacora {
   @Column({ type: 'int', nullable: true }) entidadId: number | null;
   @Column({ type: 'json', nullable: true }) detalle: unknown;
   @Index() @CreateDateColumn() creadoEn: Date;
+}
+
 /** Prueba de diseño que el cliente aprueba por el enlace del pedido o por WhatsApp. */
 export enum EstadoDiseno {
   Pendiente = 'pendiente',
