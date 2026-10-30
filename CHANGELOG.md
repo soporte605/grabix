@@ -7,6 +7,7 @@ Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el co
 ### Sugerir con IA al dar de alta un artículo
 - En Inventario → Nuevo artículo, el botón **Sugerir con IA** propone tipo, línea, unidad, minutos de máquina, otros costos, la receta con insumos que ya existen y el precio de venta, con una nota de cómo lo calculó y el rango que se cobra en el mercado. Se pueden agregar detalles (medidas, material). Los campos quedan llenos para revisarlos; nunca se guarda solo.
 - Usa los datos del taller: insumos con su costo, tarifa por minuto, margen objetivo y precios de artículos parecidos. Las recetas solo aceptan ids de insumos reales.
+- **En cotizaciones y ventas:** al crear un producto o servicio desde el buscador ("Nuevo producto o servicio") también está el botón; guarda precio, costo, receta y minutos sugeridos. En un concepto libre, el botón con la chispa junto al precio propone el precio por pieza y deja debajo del renglón la explicación, el rango de mercado y el costo estimado (no sale en el PDF).
 - `POST /api/asistente/sugerir-producto`, solo para roles que ven costos. Cuenta como una consulta del límite diario del asistente.
 
 ### Logo por sucursal e imágenes en cotizaciones

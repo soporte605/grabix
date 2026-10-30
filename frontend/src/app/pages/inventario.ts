@@ -2,7 +2,7 @@ import { Esqueleto } from '../ui/esqueleto';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api.service';
-import { AsistenteService } from '../core/asistente.service';
+import { AsistenteService, SugerenciaProducto } from '../core/asistente.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { DineroPipe, PctPipe } from '../core/formato';
 import { Componente, Producto, TIPOS, TipoProducto } from '../core/modelos';
@@ -15,10 +15,6 @@ import { Buscador } from '../ui/buscador';
 import { Hoja } from '../ui/hoja';
 import { Icono } from '../ui/icono';
 
-interface Sugerencia {
-  tipo: TipoProducto; categoria: string; unidad: string; costo: number; minutos: number; extra: number; precio: number;
-  precioMin: number; precioMax: number; componentes: Componente[]; nota: string; restantes: number;
-}
 type Edit = Omit<Producto, 'id' | 'existencia' | 'minimo' | 'controlaStock'> & { id?: number; stockInicial?: number; minimo?: number };
 const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
 
@@ -171,7 +167,7 @@ export class Inventario implements OnInit {
   private confirmar = inject(ConfirmarService);
   ia = inject(AsistenteService);
   /** Última sugerencia de la IA para el artículo que se está creando. */
-  sug = signal<Sugerencia | null>(null);
+  sug = signal<SugerenciaProducto | null>(null);
   pensando = signal(false);
   detalles = '';
   /** Producto cuya galería de trabajos está abierta. */
@@ -236,10 +232,9 @@ export class Inventario implements OnInit {
     if (e.nombre.trim().length < 3) { this.aviso.error('Escribe primero el nombre del artículo'); return; }
     this.pensando.set(true);
     try {
-      const g = await this.api.post<Sugerencia>('/asistente/sugerir-producto', { nombre: e.nombre.trim(), detalles: this.detalles.trim() || undefined });
+      const g = await this.ia.sugerirProducto(e.nombre, this.detalles);
       Object.assign(e, { tipo: g.tipo, categoria: g.categoria, unidad: g.unidad, costo: g.costo, minutos: g.minutos, extra: g.extra, precio: g.precio, componentes: g.componentes });
       this.sug.set(g);
-      this.ia.estado.update((x) => (x ? { ...x, usadas: x.limite - g.restantes } : x));
       this.calc();
     } catch (err) { this.aviso.error(mensajeError(err)); }
     finally { this.pensando.set(false); }

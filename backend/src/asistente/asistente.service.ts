@@ -32,6 +32,8 @@ export interface DatosSugerencia { nombre: string; tipo?: TipoProducto; categori
 export interface Sugerencia {
   tipo: TipoProducto; categoria: string; unidad: string; costo: number; minutos: number; extra: number; precio: number;
   precioMin: number; precioMax: number; componentes: { insumoId: number; cantidad: number }[]; nota: string;
+  /** Costo por pieza ya calculado con la receta, la tarifa por minuto y los extras. */
+  costoTotal?: number;
 }
 
 const NUM = { type: 'number' } as const;
@@ -270,11 +272,13 @@ export class AsistenteService {
       const componentes = x.tipo === TipoProducto.Producto
         ? x.componentes.filter((c) => ids.has(c.insumoId) && c.cantidad > 0).slice(0, 30).map((c) => ({ insumoId: c.insumoId, cantidad: Math.round(c.cantidad * 10000) / 10000 }))
         : [];
+      const costo = componentes.length ? 0 : n(x.costo), minutos = n(x.minutos), extra = n(x.extra);
+      const base = componentes.length ? componentes.reduce((a, c) => a + (insumos.find((p) => p.id === c.insumoId)?.costoUnitario ?? 0) * c.cantidad, 0) : costo;
       return {
         tipo: Object.values(TipoProducto).includes(x.tipo) ? x.tipo : TipoProducto.Producto,
         categoria: LINEAS.includes(x.categoria) ? x.categoria : 'Otro',
         unidad: String(x.unidad || 'pza').slice(0, 20),
-        costo: componentes.length ? 0 : n(x.costo), minutos: n(x.minutos), extra: n(x.extra),
+        costo, minutos, extra, costoTotal: r2(base + minutos * taller.tarifaMinuto + extra),
         precio: n(x.precio), precioMin: n(x.precioMin), precioMax: n(x.precioMax),
         componentes,
         nota: String(x.nota || '').slice(0, 500),

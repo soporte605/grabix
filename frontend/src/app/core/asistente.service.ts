@@ -3,6 +3,12 @@ import { Api } from './api.service';
 import { mensajeError } from './aviso.service';
 import { SesionService } from './sesion.service';
 
+/** Lo que propone la IA para un artículo nuevo (ver POST /asistente/sugerir-producto). */
+export interface SugerenciaProducto {
+  tipo: 'producto' | 'insumo' | 'servicio'; categoria: string; unidad: string; costo: number; minutos: number; extra: number; precio: number;
+  precioMin: number; precioMax: number; componentes: { insumoId: number; cantidad: number }[]; nota: string; costoTotal: number; restantes: number;
+}
+
 export interface MensajeAsistente { rol: 'usuario' | 'asistente'; texto: string; error?: boolean }
 
 /**
@@ -60,6 +66,13 @@ export class AsistenteService {
     } finally {
       this.pensando.set(false);
     }
+  }
+
+  /** Pide a la IA costo, receta y precio para un artículo. Cuenta como una pregunta del cupo diario. */
+  async sugerirProducto(nombre: string, detalles?: string, tipo?: string) {
+    const g = await this.api.post<SugerenciaProducto>('/asistente/sugerir-producto', { nombre: nombre.trim(), detalles: detalles?.trim() || undefined, tipo });
+    this.estado.update((e) => (e ? { ...e, usadas: e.limite - g.restantes } : e));
+    return g;
   }
 
   private poner(lista: MensajeAsistente[], clave = this.clave()) {
