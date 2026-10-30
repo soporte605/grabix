@@ -35,7 +35,7 @@ const sugerencia = (pct: number) =>
         <h4 class="mt-1 text-base font-semibold">Logo</h4>
         <div class="flex flex-wrap items-center gap-3">
           <div class="grid h-20 w-44 place-items-center overflow-hidden rounded-xl border border-linea bg-white p-2">
-            @if (logoUrl(); as u) { <img [src]="u" alt="Logo de la sucursal" class="max-h-full max-w-full object-contain"> }
+            @if (logoUrl(); as u) { <img [src]="u" alt="Logo de la sucursal" class="max-h-16 max-w-40 object-contain"> }
             @else { <span class="chico text-center text-[#5a6a74]">Sin logo</span> }
           </div>
           <div class="flex flex-col gap-2">
