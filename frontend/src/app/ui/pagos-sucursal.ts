@@ -1,11 +1,16 @@
-import { Component, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Component, ElementRef, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
+import { ConfirmarService } from '../core/confirmar.service';
+import { FotosService } from '../core/fotos.service';
 import { Sucursal } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { validarFormulario } from '../core/validar';
 import { DatosPago } from './datos-pago';
+import { Icono } from './icono';
 
 type Pago = Required<Pick<Sucursal, 'banco' | 'titular' | 'clabe' | 'cuenta' | 'tarjeta' | 'anticipoPct'>> & { indicacionesPago: string; condiciones: string };
 
@@ -16,18 +21,35 @@ const sugerencia = (pct: number) =>
 /** Datos bancarios, anticipo y condiciones de cada sucursal (salen en PDF, WhatsApp y vista previa). */
 @Component({
   selector: 'app-pagos-sucursal',
-  imports: [FormsModule, DatosPago],
+  imports: [FormsModule, DatosPago, Icono],
   template: `
     <section class="caja" #zona>
-      <h3>Cobro y condiciones por sucursal</h3>
-      <p class="tenue chico">Aparecen en tus cotizaciones y notas de venta (PDF, vista previa y WhatsApp) mientras haya saldo por pagar.</p>
+      <h3>Logo, cobro y condiciones por sucursal</h3>
+      <p class="tenue chico">Aparecen en tus cotizaciones y notas de venta: PDF, vista previa, WhatsApp y el enlace del cliente.</p>
       @if (sucursales().length > 1) {
         <div class="chips" role="radiogroup" aria-label="Sucursal">
           @for (x of sucursales(); track x.id) { <button type="button" role="radio" class="chip" [class.on]="x.id === actual()?.id" [attr.aria-checked]="x.id === actual()?.id" (click)="elegir(x)">{{ x.nombre }}</button> }
         </div>
       }
       @if (actual()) {
-        <h4 class="mt-1 text-base font-semibold">Anticipo y condiciones</h4>
+        <h4 class="mt-1 text-base font-semibold">Logo</h4>
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="grid h-20 w-44 place-items-center overflow-hidden rounded-xl border border-linea bg-white p-2">
+            @if (logoUrl(); as u) { <img [src]="u" alt="Logo de la sucursal" class="max-h-full max-w-full object-contain"> }
+            @else { <span class="chico text-center text-[#5a6a74]">Sin logo</span> }
+          </div>
+          <div class="flex flex-col gap-2">
+            <div class="flex flex-wrap gap-2">
+              <button type="button" class="btn sm" (click)="elegirLogo.click()" [disabled]="subiendoLogo()"><app-icono nombre="camara" />{{ subiendoLogo() ? 'Subiendo…' : logoUrl() ? 'Cambiar logo' : 'Subir logo' }}</button>
+              @if (logoUrl()) { <button type="button" class="btn sm" (click)="quitarLogo()" [disabled]="subiendoLogo()"><app-icono nombre="basura" />Quitar</button> }
+            </div>
+            @if (sucursales().length > 1) { <label class="fila chico cursor-pointer"><input type="checkbox" [(ngModel)]="logoTodas"> Usar en todas las sucursales</label> }
+            <p class="chico tenue">PNG, JPG o SVG. De preferencia horizontal y con fondo transparente.</p>
+          </div>
+          <input #elegirLogo type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" class="hidden" (change)="subirLogo($event)" aria-label="Elegir logo">
+        </div>
+
+        <h4 class="mt-2 text-base font-semibold">Anticipo y condiciones</h4>
         <div class="campos">
           <div class="campo"><label for="ps-a">Anticipo para iniciar (%)</label>
             <input id="ps-a" name="anticipoPct" type="number" inputmode="numeric" min="0" max="100" class="num" [(ngModel)]="f.anticipoPct">
@@ -57,10 +79,16 @@ const sugerencia = (pct: number) =>
     </section>
   `,
 })
-export class PagosSucursal implements OnInit {
+export class PagosSucursal implements OnInit, OnDestroy {
   private api = inject(Api);
   private aviso = inject(AvisoService);
   private s = inject(SesionService);
+  private http = inject(HttpClient);
+  private fotos = inject(FotosService);
+  private confirmar = inject(ConfirmarService);
+  logoUrl = signal<string | null>(null);
+  subiendoLogo = signal(false);
+  logoTodas = false;
   private zona = viewChild.required<ElementRef<HTMLElement>>('zona');
   sucursales = signal<Sucursal[]>([]);
   actual = signal<Sucursal | null>(null);
@@ -80,7 +108,58 @@ export class PagosSucursal implements OnInit {
 
   private vacio(): Pago { return { banco: '', titular: '', clabe: '', cuenta: '', tarjeta: '', indicacionesPago: '', anticipoPct: 0, condiciones: '' }; }
 
+  ngOnDestroy() { this.soltarLogo(); }
+
+  private soltarLogo() {
+    const u = this.logoUrl();
+    if (u) URL.revokeObjectURL(u);
+    this.logoUrl.set(null);
+  }
+
+  /** El logo se pide con la sesión; la etiqueta <img> no puede mandar el token. */
+  private async cargarLogo(x: Sucursal) {
+    this.soltarLogo();
+    if (!x.logo) return;
+    try {
+      const b = await firstValueFrom(this.http.get(`/api/sucursales/${x.id}/logo`, { responseType: 'blob' }));
+      if (this.actual()?.id === x.id) this.logoUrl.set(URL.createObjectURL(b));
+    } catch { /* sin logo */ }
+  }
+
+  async subirLogo(ev: Event) {
+    const el = ev.target as HTMLInputElement;
+    const a = el.files?.[0];
+    el.value = '';
+    const x = this.actual();
+    if (!a || !x) return;
+    this.subiendoLogo.set(true);
+    try {
+      const imagen = await this.fotos.prepararLogo(a);
+      const r = await this.api.put<{ logo: string; sucursales: number[] }>(`/sucursales/${x.id}/logo`, { imagen, todas: this.logoTodas });
+      this.sucursales.update((l) => l.map((y) => (r.sucursales.includes(y.id) ? { ...y, logo: r.logo } : y)));
+      this.actual.set({ ...x, logo: r.logo });
+      await this.cargarLogo({ ...x, logo: r.logo });
+      await this.s.cargar();
+      this.aviso.ok(r.sucursales.length > 1 ? 'Logo guardado en todas las sucursales' : `Logo de ${x.nombre} guardado`);
+    } catch (e) { this.aviso.error(e instanceof Error && !('status' in e) ? e.message : mensajeError(e)); }
+    this.subiendoLogo.set(false);
+  }
+
+  async quitarLogo() {
+    const x = this.actual();
+    if (!x || !(await this.confirmar.preguntar({ titulo: '¿Quitar el logo?', texto: `Los PDF de ${x.nombre} saldrán solo con el nombre del taller.`, accion: 'Quitar', peligro: true }))) return;
+    try {
+      await this.api.del(`/sucursales/${x.id}/logo`);
+      this.sucursales.update((l) => l.map((y) => (y.id === x.id ? { ...y, logo: null } : y)));
+      this.actual.set({ ...x, logo: null });
+      this.soltarLogo();
+      await this.s.cargar();
+      this.aviso.ok('Logo quitado');
+    } catch (e) { this.aviso.error(mensajeError(e)); }
+  }
+
   elegir(x: Sucursal) {
+    void this.cargarLogo(x);
     this.actual.set(x);
     this.f = {
       banco: x.banco ?? '', titular: x.titular ?? '', clabe: x.clabe ?? '', cuenta: x.cuenta ?? '', tarjeta: x.tarjeta ?? '',

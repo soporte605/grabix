@@ -6,13 +6,14 @@ import { FechaPipe } from '../core/formato';
 import { EtapaTaller, ETAPAS, Maquina, OrdenTaller, RenglonTaller } from '../core/modelos';
 import { DisenoPedidoSeccion } from './diseno-pedido';
 import { FotosPedido } from './fotos-pedido';
+import { ImagenesCotizacion } from './imagenes-cotizacion';
 import { Hoja } from './hoja';
 import { Icono } from './icono';
 
 /** Detalle de un pedido en el taller: etapa, máquina, responsable, prioridad y avance de cada renglón. */
 @Component({
   selector: 'app-orden-taller',
-  imports: [FormsModule, Hoja, Icono, FechaPipe, FotosPedido, DisenoPedidoSeccion],
+  imports: [FormsModule, Hoja, Icono, FechaPipe, FotosPedido, DisenoPedidoSeccion, ImagenesCotizacion],
   template: `
     @let o = orden();
     <app-hoja [titulo]="o.folio + ' · ' + cliente()" ancho="620px" (cerrar)="cerrar.emit()">
@@ -61,6 +62,7 @@ import { Icono } from './icono';
           }
         </div>
       </section>
+      <app-imagenes-cotizacion [ventaId]="o.id" />
       <app-diseno-pedido [ventaId]="o.id" [folio]="o.folio" [telefono]="telefono()" (cambio)="recargar.emit()" />
       <app-fotos-pedido [ventaId]="o.id" [folio]="o.folio" />
       @if (o.notas) { <section class="rounded-xl border border-linea bg-superficie p-3"><p class="chico mb-0.5 font-semibold tenue">Notas del pedido</p><p class="whitespace-pre-line">{{ o.notas }}</p></section> }

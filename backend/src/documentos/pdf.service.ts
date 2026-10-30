@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
 import { Cotizacion, Sucursal, Venta } from '../entities';
 import { sumarDias } from '../common/suscripcion';
+import { ruta, rutaLogo } from '../fotos/fotos.module';
 import { DocumentosService } from './documentos.service';
 
 type Datos = Awaited<ReturnType<DocumentosService['paraImprimir']>>;
@@ -43,7 +44,8 @@ export class PdfService {
    * Nota de venta o cotización con diseño sobrio, como factura: fondo blanco, un solo color de acento
    * (azul de la marca) para títulos y total, líneas finas y datos alineados en columnas.
    */
-  generar({ tipo, d, taller, sucursal, cliente, promocion }: Datos): Promise<Buffer> {
+  async generar({ tipo, d, taller, sucursal, cliente, promocion, imagenes }: Datos): Promise<Buffer> {
+    const logo = await rutaLogo(sucursal);
     const m = (n: number) => this.money(n, taller.moneda);
     const doc = new PDFDocument({ size: 'LETTER', margin: 54, bufferPages: true, info: { Title: `${d.folio} ${taller.nombre}`, Author: taller.nombre } });
     const out: Buffer[] = [];
@@ -60,8 +62,18 @@ export class PdfService {
 
     doc.rect(0, 0, W, 4).fill(ACENTO);
 
-    /* Encabezado: taller a la izquierda, documento a la derecha. */
-    doc.font('Helvetica-Bold').fontSize(17).fillColor(ACENTO).text(taller.nombre, L, 44, { width: 300 });
+    /* Encabezado: logo y taller a la izquierda, documento a la derecha. */
+    let yTaller = 44;
+    if (logo) {
+      try {
+        // Cabe en 160 × 52 pt sin deformarse; un logo cuadrado queda chico y uno horizontal, ancho.
+        const img = (doc as unknown as { openImage(p: string): { width: number; height: number } }).openImage(logo);
+        const k = Math.min(160 / img.width, 52 / img.height);
+        doc.image(img as never, L, 40, { width: img.width * k, height: img.height * k });
+        yTaller = 40 + img.height * k + 8;
+      } catch { /* imagen dañada: se omite */ }
+    }
+    doc.font('Helvetica-Bold').fontSize(logo ? 13 : 17).fillColor(ACENTO).text(taller.nombre, L, yTaller, { width: 300 });
     const nomSuc = sucursal && sucursal.nombre !== 'Matriz' ? (/^sucursal\b/i.test(sucursal.nombre) ? sucursal.nombre : `Sucursal ${sucursal.nombre}`) : '';
     const contacto = [
       nomSuc,
@@ -185,6 +197,7 @@ export class PdfService {
     /* Datos para transferencia: recuadro a todo lo ancho, solo si hay algo por pagar. */
     const banco = datosTransferencia(sucursal);
     const porPagar = esVenta ? saldo > 0 && v!.estado !== 'cancelada' : d.total > 0;
+    let finY = Math.max(iy, ty);
     if (banco.length && porPagar) {
       const ind = sucursal?.indicacionesPago?.trim() ?? '';
       const porFila = 3, colW = (AN - 32) / porFila;
@@ -204,6 +217,30 @@ export class PdfService {
           .text(val, cx, cy + 10, { width: colW - 10, lineBreak: false, ellipsis: true });
       });
       if (ind) doc.font('Helvetica').fontSize(8.5).fillColor(GRIS).text(ind, L + 16, by + 28 + filas * 30 + 2, { width: AN - 32, lineGap: 2 });
+      finY = by + alto;
+    }
+
+    /* Imágenes de referencia de la cotización: tres por renglón, con su nota. */
+    if (imagenes.length) {
+      const GAP = 12, CW = (AN - GAP * 2) / 3, CH = 130;
+      let gy = finY + 22;
+      const titulo = () => { etiqueta('Imágenes de referencia', L, gy); gy += 14; };
+      if (gy + 14 + CH + 30 > H - 74) { doc.addPage(); doc.rect(0, 0, W, 4).fill(ACENTO); gy = 54; }
+      titulo();
+      for (let n = 0; n < imagenes.length; n += 3) {
+        const fila = imagenes.slice(n, n + 3);
+        doc.font('Helvetica').fontSize(8);
+        const altoNota = Math.max(0, ...fila.map((x) => (x.nota ? doc.heightOfString(x.nota, { width: CW - 4 }) + 6 : 0)));
+        if (gy + CH + altoNota > H - 74) { doc.addPage(); doc.rect(0, 0, W, 4).fill(ACENTO); gy = 54; titulo(); }
+        fila.forEach((x, k) => {
+          const cx = L + k * (CW + GAP);
+          doc.roundedRect(cx, gy, CW, CH, 6).fillAndStroke('#ffffff', LINEA);
+          try { doc.image(ruta(x.tallerId, x.vista), cx + 6, gy + 6, { fit: [CW - 12, CH - 12], align: 'center', valign: 'center' }); }
+          catch { /* archivo faltante: queda el recuadro */ }
+          if (x.nota) doc.font('Helvetica').fontSize(8).fillColor(GRIS).text(x.nota, cx + 2, gy + CH + 5, { width: CW - 4 });
+        });
+        gy += CH + altoNota + 14;
+      }
     }
 
     /* Pie en cada página. */

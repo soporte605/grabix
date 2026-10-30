@@ -14,6 +14,7 @@ import { Buscador } from '../ui/buscador';
 import { Hoja } from '../ui/hoja';
 import { VistaDocumento } from '../ui/vista-documento';
 import { Icono } from '../ui/icono';
+import { ImagenesCotizacion } from '../ui/imagenes-cotizacion';
 
 interface Form {
   clienteId: number | null; clienteNombre: string; clienteTelefono: string; guardarCliente: boolean;
@@ -24,7 +25,7 @@ interface Form {
 
 @Component({
   selector: 'app-doc-editor',
-  imports: [FormsModule, Buscador, DineroPipe, FechaPipe, PctPipe, Icono, Confirmar, Hoja, VistaDocumento, AltaCliente, AltaProducto, AltaPromocion],
+  imports: [FormsModule, Buscador, DineroPipe, FechaPipe, PctPipe, Icono, Confirmar, Hoja, VistaDocumento, AltaCliente, AltaProducto, AltaPromocion, ImagenesCotizacion],
   template: `
     <app-hoja [titulo]="titulo()" ancho="1000px" (cerrar)="cerrar()">
       @if (doc(); as d) {
@@ -92,6 +93,8 @@ interface Form {
       </section>
 
       <div class="campo"><label for="d-no">Notas {{ esVenta ? 'del pedido' : '(aparecen en el PDF)' }}</label><textarea id="d-no" [(ngModel)]="f.notas" (ngModelChange)="tocar()"></textarea></div>
+
+      @if (!esVenta) { <app-imagenes-cotizacion [cotizacionId]="id" [asegurar]="asegurarFn" /> }
 
       <section class="caja">
         <div class="totales">
@@ -366,6 +369,7 @@ export class DocEditor implements OnInit {
     }
   }
 
+  asegurarFn = () => this.asegurar();
   private async asegurar() {
     return this.id && !this.sucio ? this.id : this.guardar(false);
   }

@@ -4,6 +4,11 @@ Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el co
 
 ## 2026-10-30
 
+### Logo por sucursal e imágenes en cotizaciones
+- **Logo:** en Ajustes → "Logo, cobro y condiciones por sucursal" se sube el logo (PNG, JPG o SVG; se guarda como PNG). Sale en el encabezado del PDF de notas y cotizaciones, en el enlace del cliente y como vista previa de WhatsApp cuando no hay otra imagen. Se puede usar el mismo en todas las sucursales.
+- **Imágenes en la cotización:** hasta 8 por cotización, cada una con nota (el diseño sobre la taza, un boceto, un trabajo parecido). Se suben desde el editor o la vista previa. El cliente las ve en su enlace ("Así quedaría tu pedido"), la primera sale en la vista previa de WhatsApp y todas van al final del PDF en "Imágenes de referencia". Al convertirla en venta se ven en la venta y en la orden de Producción.
+- En ventas o cotizaciones sin diseño ni imagen, la vista previa de WhatsApp usa el logo de la sucursal.
+
 ### Enlace del pedido para el cliente
 - Cada venta y cotización tiene un enlace `/p/:token` que se manda por WhatsApp. El cliente ve su nota o cotización, el avance del pedido (Recibido, Diseño, En producción, Listo, Entregado), las fotos del trabajo terminado, los datos para transferir y el PDF, sin crear cuenta.
 - **Aprobación de diseño:** el taller sube la prueba (JPG, PNG o SVG) desde Producción o la vista previa de la venta y la manda por WhatsApp. La imagen sale en la vista previa del enlace dentro del chat (etiquetas Open Graph con un JPEG ligero). El cliente aprueba o pide cambios en el enlace, o contesta "sí" y el taller lo registra con "Ya lo aprobó". Queda quién, cuándo y por qué medio. Subir un diseño pasa el pedido a "Esperando aprobación"; aprobarlo, a "En cola"; pedir cambios, a "Por diseñar".

@@ -17,7 +17,7 @@ interface DisenoCliente {
 }
 interface PedidoCliente {
   tipo: 'venta' | 'cotizacion'; folio: string; fecha: string; estado: string; etapa: EtapaTaller | null; entrega: string | null; vigenciaDias: number | null;
-  cliente: string; taller: { nombre: string; moneda: string; lada: string };
+  cliente: string; taller: { nombre: string; moneda: string; lada: string }; logo: string | null;
   sucursal: { nombre: string; direccion: string; telefono: string; condiciones: string | null } | null;
   items: { descripcion: string; cantidad: number; precio: number }[];
   subtotal: number; descuento: number; total: number; pagado: number; saldo: number;
@@ -25,6 +25,7 @@ interface PedidoCliente {
   transferencia: [string, string][]; indicacionesPago: string | null; puedeSubirComprobante: boolean; pdf: string;
   disenos: DisenoCliente[];
   fotos: { id: number; ancho: number; alto: number; url: string; mini: string }[];
+  imagenes: { id: number; nota: string | null; ancho: number; alto: number; url: string; mini: string }[];
   comprobantes: { id: number; estado: 'pendiente' | 'aplicado' | 'descartado'; monto: number; creadoEn: string }[];
 }
 
@@ -54,6 +55,7 @@ const COMPROBANTE: Record<string, [string, string]> = { pendiente: ['En revisió
       } @else {
         @let d = p()!;
         <header class="flex flex-col gap-1">
+          @if (d.logo) { <img [src]="d.logo" [alt]="d.taller.nombre" class="mb-2 max-h-14 max-w-[220px] self-start rounded-md bg-white object-contain p-1"> }
           <p class="font-semibold text-marca">{{ d.taller.nombre }}</p>
           <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
             <h1 class="text-2xl">{{ esVenta() ? 'Pedido' : 'Cotización' }} {{ d.folio }}</h1>
@@ -128,6 +130,21 @@ const COMPROBANTE: Record<string, [string, string]> = { pendiente: ['En revisió
               @if (x.via === 'registro') { <div><h2 class="text-base">Diseño de tu pedido</h2>@if (x.nota) { <p class="chico tenue">{{ x.nota }}</p> }</div> }
               @else { <div><h2 class="text-base">Diseño aprobado</h2>
                 <p class="chico tenue">Por {{ x.respondidoPor }} {{ via[x.via ?? ''] }} el {{ cuando(x.respondidoEn!) }}</p></div> }
+            </div>
+          </section>
+        }
+
+        @if (d.imagenes.length) {
+          <section class="flex flex-col gap-2">
+            <h2 class="text-lg">{{ esVenta() ? 'Imágenes de tu cotización' : 'Así quedaría tu pedido' }}</h2>
+            <div class="grid gap-3" [class.sm:grid-cols-2]="d.imagenes.length > 1">
+              @for (x of d.imagenes; track x.id; let i = $index) {
+                <figure class="flex flex-col gap-1">
+                  <button type="button" class="block overflow-hidden rounded-xl border border-linea bg-white" (click)="verImagen(i)" [attr.aria-label]="'Ver imagen ' + (i + 1) + ' en grande'">
+                    <img [src]="d.imagenes.length > 1 ? x.mini : x.url" [alt]="x.nota || 'Imagen ' + (i + 1)" class="max-h-[50vh] w-full object-contain" loading="lazy"></button>
+                  @if (x.nota) { <figcaption class="chico whitespace-pre-line">{{ x.nota }}</figcaption> }
+                </figure>
+              }
             </div>
           </section>
         }
@@ -337,6 +354,10 @@ export class Pedido implements OnInit {
   }
   verFoto(i: number) {
     this.visor.set({ fotos: this.p()!.fotos.map((f, k) => ({ id: f.id, src: f.url, titulo: `Foto ${k + 1} de ${this.p()!.fotos.length}` })), indice: i });
+  }
+  verImagen(i: number) {
+    const l = this.p()!.imagenes;
+    this.visor.set({ fotos: l.map((x, k) => ({ id: x.id, src: x.url, titulo: l.length > 1 ? `Imagen ${k + 1} de ${l.length}` : 'Imagen', nota: x.nota })), indice: i });
   }
   moverVisor(i: number) { this.visor.update((v) => (v ? { ...v, indice: i } : v)); }
 

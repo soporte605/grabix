@@ -21,6 +21,7 @@ import {
   VentaItem,
   CajaTurno,
   EstadoTurno,
+  ImagenCotizacion,
 } from '../entities';
 import { BitacoraService } from '../common/bitacora.service';
 import { Sesion } from '../common/sesion';
@@ -406,7 +407,9 @@ export class DocumentosService {
     const sucursal = await em.findOneBy(Sucursal, { id: d.sucursalId });
     const cliente = d.clienteId ? await em.findOneBy(Cliente, { id: d.clienteId }) : null;
     const promocion = d.promocionId ? await em.findOneBy(Promocion, { id: d.promocionId }) : null;
-    return { tipo, d, taller, sucursal, cliente, promocion };
+    // Imágenes de referencia: solo la cotización las lleva en el PDF.
+    const imagenes = tipo === 'cotizacion' ? await em.find(ImagenCotizacion, { where: { tallerId: d.tallerId, cotizacionId: d.id }, order: { id: 'ASC' } }) : [];
+    return { tipo, d, taller, sucursal, cliente, promocion, imagenes };
   }
 
   async porToken(tk: string) {

@@ -12,9 +12,9 @@ import { DocumentosModule } from '../documentos/documentos.module';
 import { DocumentosService } from '../documentos/documentos.service';
 import { anticipoDe, datosTransferencia } from '../documentos/pdf.service';
 import {
-  Comprobante, Cotizacion, Diseno, EstadoComprobante, EstadoCotizacion, EstadoDiseno, EstadoVenta, EtapaTaller, Foto, Rol, Venta,
+  Comprobante, Cotizacion, Diseno, ImagenCotizacion, Sucursal, EstadoComprobante, EstadoCotizacion, EstadoDiseno, EstadoVenta, EtapaTaller, Foto, Rol, Venta,
 } from '../entities';
-import { DIR, imagenDe, nombre, ruta } from '../fotos/fotos.module';
+import { DIR, imagenDe, nombre, ruta, rutaLogo } from '../fotos/fotos.module';
 import { etapaDe } from '../produccion/produccion.module';
 
 /*
@@ -25,6 +25,7 @@ import { etapaDe } from '../produccion/produccion.module';
  */
 
 const MAX_VERSIONES = 20;
+const MAX_IMAGENES = 8;
 const MAX_COMPROBANTES = 20;
 const MAX_PENDIENTES = 5;
 const base = () => (process.env.PUBLIC_URL ?? 'http://localhost:8080').replace(/\/$/, '');
@@ -99,7 +100,7 @@ export class EnlaceService {
     return v;
   }
 
-  private archivoUrl(token: string, tipo: 'disenos' | 'fotos' | 'comprobantes', id: number, t?: 'mini' | 'vista') {
+  private archivoUrl(token: string, tipo: 'disenos' | 'fotos' | 'comprobantes' | 'imagenes', id: number, t?: 'mini' | 'vista') {
     return `/api/publico/pedido/${token}/${tipo}/${id}${t ? `?t=${t}` : ''}`;
   }
 
@@ -216,6 +217,61 @@ export class EnlaceService {
     return { ok: true };
   }
 
+  /* ---------- imágenes de la cotización ---------- */
+
+  private async cotizacion(s: Sesion, id: number) {
+    const c = await this.ds.manager.findOne(Cotizacion, { where: { id, tallerId: s.tallerId }, relations: { items: false } });
+    if (!c || (s.sucursal && c.sucursalId !== s.sucursal)) throw new NotFoundException('No encontramos esa cotización');
+    return c;
+  }
+
+  private imagenUrls(token: string, x: ImagenCotizacion) {
+    const { archivo: _a, miniatura: _m, vista: _v, ...resto } = x;
+    return { ...resto, url: this.archivoUrl(token, 'imagenes', x.id), mini: this.archivoUrl(token, 'imagenes', x.id, 'mini') };
+  }
+
+  async imagenes(s: Sesion, cotizacionId: number) {
+    const c = await this.cotizacion(s, cotizacionId);
+    const xs = await this.ds.manager.find(ImagenCotizacion, { where: { tallerId: s.tallerId, cotizacionId }, order: { id: 'ASC' } });
+    return xs.map((x) => this.imagenUrls(c.tokenPublico, x));
+  }
+
+  /** Imágenes de la cotización de la que salió una venta (para que el taller sepa qué se cotizó). */
+  async imagenesDeVenta(s: Sesion, ventaId: number) {
+    const v = await this.venta(s, ventaId);
+    if (!v.cotizacionId) return [];
+    const c = await this.ds.manager.findOne(Cotizacion, { where: { id: v.cotizacionId, tallerId: s.tallerId }, relations: { items: false } });
+    if (!c) return [];
+    const xs = await this.ds.manager.find(ImagenCotizacion, { where: { tallerId: s.tallerId, cotizacionId: c.id }, order: { id: 'ASC' } });
+    return xs.map((x) => this.imagenUrls(c.tokenPublico, x));
+  }
+
+  async subirImagen(s: Sesion, cotizacionId: number, dto: DisenoDto) {
+    const em = this.ds.manager;
+    const c = await this.cotizacion(s, cotizacionId);
+    const n = await em.count(ImagenCotizacion, { where: { tallerId: s.tallerId, cotizacionId } });
+    if (n >= MAX_IMAGENES) throw new BadRequestException(`Una cotización puede tener hasta ${MAX_IMAGENES} imágenes`);
+    if (imagenDe(dto.vista).ext !== 'jpg') throw new BadRequestException('La vista previa debe ser JPEG');
+    const [g, m, p] = await Promise.all([guardar(s.tallerId, dto.imagen), guardar(s.tallerId, dto.miniatura), guardar(s.tallerId, dto.vista)]);
+    const x = await em.save(em.create(ImagenCotizacion, {
+      tallerId: s.tallerId, cotizacionId, archivo: g.archivo, miniatura: m.archivo, vista: p.archivo, ancho: dto.ancho, alto: dto.alto,
+      nota: dto.nota?.trim().slice(0, 200) || null, usuarioId: s.usuarioId, usuarioNombre: s.nombre,
+    }));
+    await this.bitacora.registrar(s, 'imagen', 'cotizacion', cotizacionId, { folio: c.folio, imagen: x.id });
+    return this.imagenUrls(c.tokenPublico, x);
+  }
+
+  async eliminarImagen(s: Sesion, id: number) {
+    const em = this.ds.manager;
+    const x = await em.findOneBy(ImagenCotizacion, { id, tallerId: s.tallerId });
+    if (!x) throw new NotFoundException('No encontramos esa imagen');
+    const c = await this.cotizacion(s, x.cotizacionId);
+    await em.delete(ImagenCotizacion, { id });
+    await borrar(s.tallerId, x.archivo, x.miniatura, x.vista);
+    await this.bitacora.registrar(s, 'eliminar_imagen', 'cotizacion', c.id, { folio: c.folio, imagen: id });
+    return { ok: true };
+  }
+
   /** Cambia la etapa solo mientras el pedido sigue antes de máquina (no toca el estado de la venta). */
   private async moverEtapa(v: Venta, desde: EtapaTaller[], a: EtapaTaller) {
     if (v.estado !== EstadoVenta.Pendiente) return;
@@ -238,6 +294,8 @@ export class EnlaceService {
     const { tipo, d, taller, sucursal, cliente } = await this.porToken(token);
     const v = tipo === 'venta' ? (d as Venta) : null;
     const c = tipo === 'cotizacion' ? (d as Cotizacion) : null;
+    const cotId = c?.id ?? v?.cotizacionId ?? null;
+    const imagenes = cotId ? await em.find(ImagenCotizacion, { where: { tallerId: d.tallerId, cotizacionId: cotId }, order: { id: 'ASC' } }) : [];
     const [disenos, fotos, comprobantes] = v
       ? await Promise.all([
           em.find(Diseno, { where: { tallerId: v.tallerId, ventaId: v.id, estado: Not(EstadoDiseno.Reemplazado) }, order: { version: 'DESC' } }),
@@ -256,6 +314,7 @@ export class EnlaceService {
       etapa: v ? etapaDe(v) : null, entrega: v?.entrega ?? null, vigenciaDias: c?.vigenciaDias ?? null,
       cliente: sinEjemplo(cliente?.nombre || d.clienteNombre || ''),
       taller: { nombre: sinEjemplo(taller.nombre), moneda: taller.moneda, lada: taller.lada },
+      logo: sucursal?.logo ? `/api/publico/pedido/${token}/logo?v=${sucursal.logo.slice(0, 8)}` : null,
       sucursal: sucursal ? { nombre: sucursal.nombre, direccion: sucursal.direccion, telefono: sucursal.telefono || taller.telefono, condiciones: sucursal.condiciones } : null,
       items: d.items.map((i) => ({ descripcion: i.descripcion, cantidad: i.cantidad, precio: i.precio })),
       subtotal: d.subtotal, descuento: d.descuento, total: d.total, pagado, saldo,
@@ -271,15 +330,21 @@ export class EnlaceService {
       })),
       fotos: fotos.map((f) => ({ id: f.id, ancho: f.ancho, alto: f.alto, url: this.archivoUrl(token, 'fotos', f.id), mini: this.archivoUrl(token, 'fotos', f.id, 'mini') })),
       comprobantes: comprobantes.map((x) => ({ id: x.id, estado: x.estado, monto: x.monto, creadoEn: x.creadoEn })),
+      imagenes: imagenes.map((x) => ({ id: x.id, nota: x.nota, ancho: x.ancho, alto: x.alto, url: this.archivoUrl(token, 'imagenes', x.id), mini: this.archivoUrl(token, 'imagenes', x.id, 'mini') })),
     };
   }
 
   async archivo(token: string, tipo: string, id: number, t?: string) {
     const { tipo: td, d } = await this.porToken(token);
-    if (td !== 'venta') throw new NotFoundException('No encontramos ese archivo');
-    const where = { id, tallerId: d.tallerId, ventaId: d.id };
     const em = this.ds.manager;
     let nom: string | null | undefined;
+    if (tipo === 'imagenes') {
+      const cotId = td === 'cotizacion' ? d.id : (d as Venta).cotizacionId;
+      const x = cotId ? await em.findOneBy(ImagenCotizacion, { id, tallerId: d.tallerId, cotizacionId: cotId }) : null;
+      nom = x && (t === 'mini' ? x.miniatura : t === 'vista' ? x.vista : x.archivo);
+    }
+    if (td !== 'venta' && tipo !== 'imagenes') throw new NotFoundException('No encontramos ese archivo');
+    const where = { id, tallerId: d.tallerId, ventaId: d.id };
     if (tipo === 'disenos') {
       const x = await em.findOneBy(Diseno, where);
       nom = x && (t === 'mini' ? x.miniatura : t === 'vista' ? x.vista : x.archivo);
@@ -294,6 +359,13 @@ export class EnlaceService {
     const p = ruta(d.tallerId, nom);
     await stat(p).catch(() => { throw new NotFoundException('El archivo ya no existe'); });
     return { p, tipo: nom.endsWith('.webp') ? 'image/webp' : 'image/jpeg' };
+  }
+
+  async logo(token: string) {
+    const { sucursal } = await this.porToken(token);
+    const p = await rutaLogo(sucursal);
+    if (!p) throw new NotFoundException('Sin logo');
+    return { p, tipo: p.endsWith('.png') ? 'image/png' : 'image/jpeg' };
   }
 
   async responder(token: string, id: number, dto: RespuestaDto) {
@@ -346,17 +418,28 @@ export class EnlaceService {
     return { id: c.id, estado: c.estado, monto: c.monto, creadoEn: c.creadoEn };
   }
 
+  /** El logo de la sucursal como imagen de la vista previa cuando no hay otra. */
+  private async imagenLogo(token: string, suc: Sucursal | null) {
+    const p = await rutaLogo(suc);
+    return p ? { url: `${base()}/api/publico/pedido/${token}/logo`, ancho: 0, alto: 0, tipo: p.endsWith('.png') ? 'image/png' : 'image/jpeg' } : null;
+  }
+
   /** Página mínima con etiquetas Open Graph: WhatsApp muestra el diseño en la vista previa del enlace. */
   async vistaPrevia(token: string, version?: number) {
     const esc = (t: string) => t.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
     const destino = `/pedido/${token}`;
     let titulo = 'Grabix';
     let desc = '';
-    let imagen: { url: string; ancho: number; alto: number } | null = null;
+    let imagen: { url: string; ancho: number; alto: number; tipo?: string } | null = null;
     try {
-      const { tipo, d, taller } = await this.porToken(token);
+      const { tipo, d, taller, sucursal } = await this.porToken(token);
       const tn = sinEjemplo(taller.nombre);
       if (tipo === 'cotizacion') {
+        const x = await this.ds.manager.findOne(ImagenCotizacion, { where: { tallerId: d.tallerId, cotizacionId: d.id }, order: { id: 'ASC' } });
+        if (x) {
+          const k = Math.min(1, 1200 / Math.max(x.ancho, x.alto));
+          imagen = { url: `${base()}${this.archivoUrl(token, 'imagenes', x.id, 'vista')}`, ancho: Math.round(x.ancho * k), alto: Math.round(x.alto * k) };
+        } else imagen = await this.imagenLogo(token, sucursal);
         titulo = `Cotización ${d.folio} · ${tn}`;
         desc = 'Revisa los conceptos, el total y acéptala desde aquí.';
       } else {
@@ -367,6 +450,14 @@ export class EnlaceService {
           const k = Math.min(1, 1200 / Math.max(x.ancho, x.alto));
           imagen = { url: `${base()}${this.archivoUrl(token, 'disenos', x.id, 'vista')}`, ancho: Math.round(x.ancho * k), alto: Math.round(x.alto * k) };
         }
+        // Sin diseño: la primera imagen de la cotización de la que salió, y si no hay, el logo.
+        const cotId = (d as { cotizacionId?: number | null }).cotizacionId;
+        const ic = !imagen && cotId ? await em.findOne(ImagenCotizacion, { where: { tallerId: d.tallerId, cotizacionId: cotId }, order: { id: 'ASC' } }) : null;
+        if (ic) {
+          const k = Math.min(1, 1200 / Math.max(ic.ancho, ic.alto));
+          imagen = { url: `${base()}${this.archivoUrl(token, 'imagenes', ic.id, 'vista')}`, ancho: Math.round(ic.ancho * k), alto: Math.round(ic.alto * k) };
+        }
+        if (!imagen) imagen = await this.imagenLogo(token, sucursal);
         titulo = `Pedido ${d.folio} · ${tn}`;
         desc = x?.estado === EstadoDiseno.Pendiente ? 'Tu diseño está listo para revisar. Apruébalo o pide cambios aquí.' : 'Consulta tu nota, el avance de tu pedido y las fotos del trabajo.';
       }
@@ -378,10 +469,12 @@ export class EnlaceService {
       `<meta property="og:url" content="${esc(base() + destino)}">`,
       ...(imagen ? [
         `<meta property="og:image" content="${esc(imagen.url)}">`,
-        `<meta property="og:image:type" content="image/jpeg">`,
-        `<meta property="og:image:width" content="${imagen.ancho}">`,
-        `<meta property="og:image:height" content="${imagen.alto}">`,
-        `<meta name="twitter:card" content="summary_large_image">`,
+        `<meta property="og:image:type" content="${imagen.tipo ?? 'image/jpeg'}">`,
+        ...(imagen.ancho ? [
+          `<meta property="og:image:width" content="${imagen.ancho}">`,
+          `<meta property="og:image:height" content="${imagen.alto}">`,
+          `<meta name="twitter:card" content="summary_large_image">`,
+        ] : []),
       ] : []),
     ].join('\n');
     return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -416,6 +509,18 @@ export class EnlaceController {
   @Delete('disenos/:id') @Roles(...TALLER) @HttpCode(200)
   eliminar(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number) { return this.e.eliminarDiseno(s, id); }
 
+  @Get('cotizaciones/:id/imagenes') @Roles(...VENTA)
+  imagenes(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number) { return this.e.imagenes(s, id); }
+
+  @Post('cotizaciones/:id/imagenes') @Roles(...VENTA)
+  subirImagen(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number, @Body() dto: DisenoDto) { return this.e.subirImagen(s, id, dto); }
+
+  @Delete('cotizacion-imagenes/:id') @Roles(...VENTA) @HttpCode(200)
+  eliminarImagen(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number) { return this.e.eliminarImagen(s, id); }
+
+  @Get('ventas/:id/imagenes-cotizacion') @Roles(...TALLER)
+  imagenesDeVenta(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number) { return this.e.imagenesDeVenta(s, id); }
+
   @Get('ventas/:id/comprobantes') @Roles(...VENTA)
   comprobantes(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number) { return this.e.comprobantes(s, id); }
 
@@ -447,6 +552,13 @@ export class EnlacePublicoController {
   async archivo(@Param('token') token: string, @Param('tipo') tipo: string, @Param('id', ParseIntPipe) id: number, @Query('t') t: string | undefined, @Res({ passthrough: true }) res: Response) {
     const a = await this.e.archivo(token, tipo, id, t);
     res.set({ 'Content-Type': a.tipo, 'Cache-Control': 'public, max-age=86400', 'X-Robots-Tag': 'noindex' });
+    return new StreamableFile(createReadStream(a.p));
+  }
+
+  @Get('pedido/:token/logo')
+  async logo(@Param('token') token: string, @Res({ passthrough: true }) res: Response) {
+    const a = await this.e.logo(token);
+    res.set({ 'Content-Type': a.tipo, 'Cache-Control': 'public, max-age=3600' });
     return new StreamableFile(createReadStream(a.p));
   }
 

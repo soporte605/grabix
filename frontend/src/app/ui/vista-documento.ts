@@ -9,6 +9,7 @@ import { ComprobantesPedido } from './comprobantes-pedido';
 import { DatosPago } from './datos-pago';
 import { DisenoPedidoSeccion } from './diseno-pedido';
 import { FotosPedido } from './fotos-pedido';
+import { ImagenesCotizacion } from './imagenes-cotizacion';
 import { Hoja } from './hoja';
 import { Icono } from './icono';
 
@@ -19,7 +20,7 @@ import { Icono } from './icono';
  */
 @Component({
   selector: 'app-vista-documento',
-  imports: [Hoja, Icono, DineroPipe, FechaPipe, FotosPedido, DatosPago, DisenoPedidoSeccion, ComprobantesPedido],
+  imports: [Hoja, Icono, DineroPipe, FechaPipe, FotosPedido, DatosPago, DisenoPedidoSeccion, ComprobantesPedido, ImagenesCotizacion],
   template: `
     @let v = doc();
     <app-hoja [titulo]="titulo()" ancho="640px" (cerrar)="cerrar.emit()">
@@ -59,6 +60,9 @@ import { Icono } from './icono';
         <section class="rounded-xl border border-linea bg-superficie p-3"><p class="chico mb-0.5 font-semibold tenue">Notas</p><p class="whitespace-pre-line">{{ v.notas }}</p></section>
       }
 
+      @if (v.id) {
+        @if (esVenta()) { <app-imagenes-cotizacion [ventaId]="v.id" /> } @else { <app-imagenes-cotizacion [cotizacionId]="v.id" /> }
+      }
       @if (conImportes()) {
         <div class="totales rounded-xl bg-superficie-2 p-3">
           @if (v.descuento) {

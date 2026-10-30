@@ -13,6 +13,8 @@ export interface Sucursal {
   /** Datos para transferencia y condiciones de venta (PDF, WhatsApp y vista previa). */
   banco?: string; titular?: string; clabe?: string; cuenta?: string; tarjeta?: string; indicacionesPago?: string | null;
   anticipoPct?: number; condiciones?: string | null;
+  /** Archivo del logo (para saber si tiene y refrescar la imagen). */
+  logo?: string | null;
 }
 export interface Usuario { id: number; nombre: string; email: string; rol: Rol; sucursalId: number | null; activo?: boolean; emailVerificado?: boolean; recorridoVisto?: boolean }
 export interface Plan { id: string; nombre: string; precioMensual: number; precioAnual: number; sucursales: number; usuarios: number; incluye: string[] }

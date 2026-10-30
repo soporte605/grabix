@@ -79,6 +79,20 @@ export class FotosService {
     } finally { f.cerrar(); }
   }
 
+  /** Logo para el PDF: PNG (conserva la transparencia) de hasta 800 px; si pesa mucho, JPEG sobre blanco. */
+  async prepararLogo(archivo: File): Promise<string> {
+    const f = await abrir(archivo);
+    try {
+      const k = Math.min(1, 800 / Math.max(f.ancho, f.alto));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(f.ancho * k));
+      c.height = Math.max(1, Math.round(f.alto * k));
+      c.getContext('2d')!.drawImage(f.img, 0, 0, c.width, c.height);
+      const png = c.toDataURL('image/png');
+      return png.length < 1_800_000 ? png : reducir(f, 800, 0.9, true).url;
+    } finally { f.cerrar(); }
+  }
+
   /** URL local (blob:) de la foto o su miniatura. */
   url(id: number, mini = false): Promise<string> {
     const k = `${id}:${mini ? 1 : 0}`;

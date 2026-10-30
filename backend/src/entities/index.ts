@@ -119,6 +119,8 @@ export class Sucursal {
   @Column({ type: 'int', default: 0 }) anticipoPct: number;
   /** Condiciones de venta de la sucursal (anticipo, tiempos, garantía); van en cotizaciones y notas. */
   @Column({ type: 'text', nullable: true }) condiciones: string | null;
+  /** Logo (PNG o JPEG en FOTOS_DIR/tallerId) para el PDF, el enlace del cliente y la vista previa en WhatsApp. */
+  @Column({ type: 'varchar', length: 60, nullable: true }) logo: string | null;
 }
 
 @Entity('usuarios')
@@ -630,7 +632,29 @@ export class Comprobante {
   venta: Relation<Venta>;
 }
 
+/** Imagen que acompaña una cotización (diseño propuesto, boceto o foto de un trabajo parecido). */
+@Entity('cotizacion_imagenes')
+export class ImagenCotizacion {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Index() @Column() cotizacionId: number;
+  @Column({ length: 60 }) archivo: string;
+  @Column({ length: 60 }) miniatura: string;
+  /** JPEG para el PDF y la vista previa del enlace en WhatsApp. */
+  @Column({ length: 60 }) vista: string;
+  @Column({ type: 'int', default: 0 }) ancho: number;
+  @Column({ type: 'int', default: 0 }) alto: number;
+  @Column({ type: 'varchar', length: 200, nullable: true }) nota: string | null;
+  @Column() usuarioId: number;
+  @Column({ length: 120 }) usuarioNombre: string;
+  @CreateDateColumn() creadoEn: Date;
+  @ManyToOne(() => Cotizacion, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'cotizacionId' })
+  cotizacion: Relation<Cotizacion>;
+}
+
 export const ENTIDADES = [
+  ImagenCotizacion,
   Diseno,
   Comprobante,
   Foto,

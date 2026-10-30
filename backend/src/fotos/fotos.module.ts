@@ -1,6 +1,6 @@
-import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, HttpCode, Injectable, Module, NotFoundException, Param, ParseIntPipe, Post, Query, Res, StreamableFile } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, HttpCode, Injectable, Module, NotFoundException, Param, ParseIntPipe, Post, Put, Query, Res, StreamableFile } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { randomBytes } from 'crypto';
 import type { Response } from 'express';
 import { createReadStream } from 'fs';
@@ -8,8 +8,8 @@ import { mkdir, stat, unlink, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { DataSource } from 'typeorm';
 import { BitacoraService } from '../common/bitacora.service';
-import { Roles, Ses, type Sesion, VEN_COSTOS } from '../common/sesion';
-import { Foto, Rol, Venta } from '../entities';
+import { GERENCIA, Roles, Ses, type Sesion, VEN_COSTOS } from '../common/sesion';
+import { Foto, Rol, Sucursal, Venta } from '../entities';
 
 export const DIR = process.env.FOTOS_DIR ?? join(process.cwd(), 'fotos');
 const MAX_BYTES = 3 * 1024 * 1024;
@@ -145,5 +145,78 @@ export class FotosController {
   }
 }
 
-@Module({ controllers: [FotosController], providers: [FotosService] })
+export class LogoDto {
+  /** data:image/png;base64,… o jpeg; el navegador lo reduce a 800 px. */
+  @IsString() @MaxLength(2_000_000) imagen: string;
+  /** Usar el mismo logo en todas las sucursales del taller. */
+  @IsOptional() @IsBoolean() todas?: boolean;
+}
+
+/** El PDF (pdfkit) solo dibuja PNG y JPEG, así que el logo no puede ser WebP. */
+function logoDe(dataUrl: string): { buf: Buffer; ext: 'png' | 'jpg' } {
+  const m = /^data:image\/(png|jpeg);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
+  if (!m) throw new BadRequestException('El logo debe ser PNG o JPG');
+  const buf = Buffer.from(m[2], 'base64');
+  if (!buf.length || buf.length > 1.5 * 1024 * 1024) throw new BadRequestException('El logo pesa demasiado');
+  const png = buf.subarray(1, 4).toString('ascii') === 'PNG';
+  const jpg = buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+  if (!(m[1] === 'png' ? png : jpg)) throw new BadRequestException('El archivo no es una imagen válida');
+  return { buf, ext: m[1] === 'png' ? 'png' : 'jpg' };
+}
+
+/** Ruta del logo de una sucursal, o null si no tiene (o el archivo ya no está). */
+export async function rutaLogo(suc?: Pick<Sucursal, 'tallerId' | 'logo'> | null) {
+  if (!suc?.logo) return null;
+  const p = ruta(suc.tallerId, suc.logo);
+  return (await stat(p).then(() => true, () => false)) ? p : null;
+}
+
+@Controller()
+export class LogoController {
+  constructor(@InjectDataSource() private ds: DataSource, private bitacora: BitacoraService) {}
+
+  private async sucursal(s: Sesion, id: number) {
+    const x = await this.ds.manager.findOneBy(Sucursal, { id, tallerId: s.tallerId });
+    if (!x) throw new NotFoundException('No encontramos esa sucursal');
+    return x;
+  }
+
+  /** Borra los archivos de logo que ya no use ninguna sucursal. */
+  private async limpiar(tallerId: number, archivos: (string | null)[]) {
+    const usados = new Set((await this.ds.manager.find(Sucursal, { where: { tallerId }, select: { logo: true } })).map((x) => x.logo));
+    await Promise.all([...new Set(archivos)].filter((a): a is string => !!a && !usados.has(a)).map((a) => unlink(ruta(tallerId, a)).catch(() => undefined)));
+  }
+
+  @Put('sucursales/:id/logo') @Roles(...GERENCIA)
+  async subir(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number, @Body() dto: LogoDto) {
+    const suc = await this.sucursal(s, id);
+    const img = logoDe(dto.imagen);
+    const archivo = nombre(img.ext);
+    await mkdir(join(DIR, String(s.tallerId)), { recursive: true });
+    await writeFile(ruta(s.tallerId, archivo), img.buf);
+    const afectadas = dto.todas ? await this.ds.manager.find(Sucursal, { where: { tallerId: s.tallerId } }) : [suc];
+    await this.ds.manager.update(Sucursal, afectadas.map((x) => x.id), { logo: archivo });
+    await this.limpiar(s.tallerId, afectadas.map((x) => x.logo));
+    await this.bitacora.registrar(s, 'logo', 'sucursal', id, { todas: !!dto.todas });
+    return { logo: archivo, sucursales: afectadas.map((x) => x.id) };
+  }
+
+  @Delete('sucursales/:id/logo') @Roles(...GERENCIA) @HttpCode(200)
+  async quitar(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number) {
+    const suc = await this.sucursal(s, id);
+    await this.ds.manager.update(Sucursal, { id }, { logo: null });
+    await this.limpiar(s.tallerId, [suc.logo]);
+    return { ok: true };
+  }
+
+  @Get('sucursales/:id/logo')
+  async ver(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number, @Res({ passthrough: true }) res: Response) {
+    const p = await rutaLogo(await this.sucursal(s, id));
+    if (!p) throw new NotFoundException('Esta sucursal no tiene logo');
+    res.set({ 'Content-Type': p.endsWith('.png') ? 'image/png' : 'image/jpeg', 'Cache-Control': 'private, no-cache' });
+    return new StreamableFile(createReadStream(p));
+  }
+}
+
+@Module({ controllers: [FotosController, LogoController], providers: [FotosService] })
 export class FotosModule {}

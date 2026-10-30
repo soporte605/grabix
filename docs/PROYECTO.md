@@ -75,6 +75,8 @@ scripts/smoke.mjs        prueba de punta a punta de la API
 - `/p/:token` lo atiende la API (`publico/p/:token`, vía el nginx del contenedor web): devuelve una página mínima con etiquetas Open Graph para que WhatsApp muestre la imagen del diseño, y redirige a la pantalla `/pedido/:token` de Angular (sin sesión).
 - Diseños (`disenos`) y comprobantes (`comprobantes`) se guardan en `FOTOS_DIR` como las fotos; las imágenes se sirven por el token público.
 - Subir diseño → etapa `aprobacion`; aprobado → `cola`; cambios → `diseno`. Solo se mueve si el pedido no ha entrado a máquina.
+- Imágenes de cotización (`cotizacion_imagenes`, máx. 8) se ligan a la cotización; la venta las lee por `cotizacionId`. Imagen de WhatsApp: diseño → primera imagen de la cotización → logo de la sucursal.
+- Logo por sucursal (`sucursales.logo`): siempre PNG o JPEG porque pdfkit no dibuja WebP.
 
 ### Caja
 - Turnos con fondo inicial, entradas y salidas y corte con conteo por denominación.
