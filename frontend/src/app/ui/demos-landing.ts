@@ -383,3 +383,127 @@ export class DemoCotizacion {
     ['1', 'Diseño personalizado', '$200.00'],
   ];
 }
+
+interface Sugerencia {
+  tipo: 'Producto' | 'Servicio' | 'Insumo'; nombre: string; linea: string; unidad: string;
+  nota: string; min: number; max: number; precio: number;
+  insumos: [string, string][]; minutos?: number; otros?: number; costo: number;
+}
+
+/** "Sugerir con IA" al dar de alta un producto, servicio o insumo: llena costo, receta y precio. */
+@Component({
+  selector: 'app-demo-sugerencia',
+  imports: [Icono],
+  host: { class: 'relative block' },
+  template: `
+    <div class="pointer-events-none absolute -inset-6 rounded-[3rem] bg-linear-to-tr from-[#67be28]/20 to-[#002150]/15 blur-2xl" aria-hidden="true"></div>
+    <div class="relative flex flex-col gap-3">
+      <div class="chips justify-center" role="tablist" aria-label="Ejemplos de sugerencia">
+        @for (x of ejemplos; track x.tipo; let i = $index) {
+          <button type="button" role="tab" class="chip" [class.on]="i === actual()" [attr.aria-selected]="i === actual()" (click)="elegir(i)">{{ x.tipo }}</button>
+        }
+      </div>
+
+      @let s = ejemplos[actual()];
+      <div class="overflow-hidden rounded-2xl bg-white text-[.8rem] text-[#0f1b2d] shadow-[0_24px_50px_-18px_rgba(0,33,80,.45)] ring-1 ring-black/5" aria-hidden="true">
+        <div class="flex items-center justify-between border-b border-[#e2e8f0] px-4 py-3"><b class="font-titulo text-[.98rem]">Nuevo {{ s.tipo.toLowerCase() }}</b><span class="text-[#94a3b8]">✕</span></div>
+        <div class="flex flex-col gap-3 p-4">
+          <div class="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
+            <span><span class="mb-1 block text-[.66rem] font-semibold text-[#64748b]">Nombre</span><span class="block truncate rounded-lg border border-[#e2e8f0] px-2.5 py-2">{{ s.nombre }}</span></span>
+            <span class="flex items-center gap-1.5 rounded-lg border border-[#002150] px-2.5 py-2 font-semibold text-[#002150]"><app-icono nombre="chispa" />Sugerir con IA</span>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            @for (c of [['Tipo', s.tipo], ['Línea', s.linea], ['Unidad', s.unidad]]; track c[0]) {
+              <span class="min-w-0"><span class="mb-1 block text-[.66rem] font-semibold text-[#64748b]">{{ c[0] }}</span><span class="block truncate rounded-lg border border-[#e2e8f0] px-2.5 py-2">{{ c[1] }}</span></span>
+            }
+          </div>
+
+          @if (!listo()) {
+            <div class="flex flex-col gap-2 rounded-xl border border-[#002150] p-3">
+              <span class="flex items-center gap-1.5 font-semibold"><app-icono nombre="chispa" class="animate-pulse text-[#3f7a16]" />Calculando con tus costos…</span>
+              <span class="h-2.5 w-11/12 animate-pulse rounded bg-[#e2e8f0]"></span><span class="h-2.5 w-3/4 animate-pulse rounded bg-[#e2e8f0]"></span><span class="h-2.5 w-1/2 animate-pulse rounded bg-[#e2e8f0]"></span>
+            </div>
+          } @else {
+            <div class="flex animate-entra flex-col gap-2 rounded-xl border border-[#002150] p-3">
+              <div class="flex items-center justify-between gap-2"><b class="flex items-center gap-1.5"><app-icono nombre="chispa" class="text-[#3f7a16]" />Sugerencia de la IA</b>
+                <span class="flex gap-1"><span class="rounded-md border border-[#e2e8f0] px-2 py-0.5 text-[.68rem] font-semibold">Limpiar</span><span class="rounded-md border border-[#e2e8f0] px-2 py-0.5 text-[.68rem] font-semibold">Otra vez</span></span></div>
+              <p class="leading-relaxed">{{ s.nota }}</p>
+              <div>
+                <div class="relative mt-1 h-2 rounded-full bg-linear-to-r from-[#e6ecf4] via-[#cfe9bb] to-[#e6ecf4]">
+                  <span class="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-[#002150] shadow" [style.left.%]="marca(s)"></span>
+                </div>
+                <div class="mt-1 flex justify-between text-[.66rem] text-[#64748b]"><span>{{ $(s.min) }}</span><span>En el mercado</span><span>{{ $(s.max) }}</span></div>
+              </div>
+            </div>
+          }
+
+          @if (s.insumos.length) {
+            <div class="flex flex-col gap-1.5 rounded-xl border border-[#e2e8f0] p-3">
+              <b>¿De qué está hecho?</b>
+              @for (x of s.insumos; track x[0]) {
+                <div class="grid grid-cols-[minmax(0,1fr)_56px] gap-1.5"><span class="truncate rounded-lg border border-[#e2e8f0] px-2.5 py-1.5">{{ listo() ? x[0] : '\u00a0' }}</span><span class="rounded-lg border border-[#e2e8f0] px-2 py-1.5 text-right">{{ listo() ? x[1] : '\u00a0' }}</span></div>
+              }
+            </div>
+          }
+
+          <div class="grid gap-2" [class]="s.tipo === 'Insumo' ? 'grid-cols-2' : 'grid-cols-3'">
+            @for (c of campos(s); track c[0]) {
+              <span class="min-w-0"><span class="mb-1 block truncate text-[.66rem] font-semibold text-[#64748b]">{{ c[0] }}</span>
+                <span class="block rounded-lg border px-2.5 py-2 transition-colors" [class]="listo() ? 'border-[#67be28] bg-[#f3faee] font-semibold' : 'border-[#e2e8f0] text-transparent'">{{ c[1] }}</span></span>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+})
+export class DemoSugerencia implements OnInit {
+  ejemplos: Sugerencia[] = [
+    { tipo: 'Producto', nombre: 'Llavero MDF grabado 5 cm', linea: 'Grabado láser', unidad: 'pza', min: 20, max: 40, precio: 28, costo: 16.85, minutos: 2, otros: 1,
+      nota: 'MDF $1.35 + argolla $2.50 + 2 min de láser $12 + $1 de empaque = $16.85 de costo. Con tu margen sale en $28, dentro de lo que se cobra.',
+      insumos: [['MDF 3 mm (lámina 60×40)', '0.03'], ['Argolla metálica', '1']] },
+    { tipo: 'Servicio', nombre: 'Grabado en termo del cliente', linea: 'Grabado láser', unidad: 'servicio', min: 60, max: 120, precio: 75, costo: 39, minutos: 6, otros: 0,
+      nota: 'Cinta de transferencia $3 + 6 min de láser $36 = $39 de costo. A $75 cubres el riesgo de trabajar sobre la pieza del cliente.',
+      insumos: [['Cinta de transferencia', '1']] },
+    { tipo: 'Insumo', nombre: 'Taza blanca 11 oz para sublimar', linea: 'Sublimación', unidad: 'pza', min: 22, max: 35, precio: 0, costo: 26,
+      nota: 'Por caja de 36 piezas sale entre $22 y $35 cada una. Si compras al menudeo, cuenta arriba de $30.', insumos: [] },
+  ];
+  actual = signal(0);
+  listo = signal(true);
+  private reloj?: ReturnType<typeof setInterval>;
+  private espera?: ReturnType<typeof setTimeout>;
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => { clearInterval(this.reloj); clearTimeout(this.espera); });
+  }
+
+  ngOnInit() {
+    if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    this.reloj = setInterval(() => this.mostrar((this.actual() + 1) % this.ejemplos.length), 6500);
+  }
+
+  elegir(i: number) {
+    clearInterval(this.reloj);
+    this.mostrar(i);
+  }
+
+  /** Cambia de ejemplo con un momento de "calculando", como en el sistema. */
+  private mostrar(i: number) {
+    clearTimeout(this.espera);
+    this.actual.set(i);
+    this.listo.set(false);
+    this.espera = setTimeout(() => this.listo.set(true), 900);
+  }
+
+  campos(s: Sugerencia): [string, string][] {
+    if (s.tipo === 'Insumo') return [['Costo de compra', this.$(s.costo)], ['Unidad', s.unidad]];
+    return [['Minutos de láser', String(s.minutos)], ['Costo por pieza', this.$(s.costo)], ['Precio de venta', this.$(s.precio)]];
+  }
+
+  marca(s: Sugerencia) {
+    const v = s.precio || s.costo;
+    return Math.min(92, Math.max(8, ((v - s.min) / (s.max - s.min)) * 100));
+  }
+
+  $ = (n: number) => '$' + n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}

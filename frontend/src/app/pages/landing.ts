@@ -5,7 +5,7 @@ import { Logo } from '../ui/logo';
 import { Icono } from '../ui/icono';
 import { SelectorTema } from '../ui/selector-tema';
 import { Hoja } from '../ui/hoja';
-import { DemoCotizacion, DemoEnlace } from '../ui/demos-landing';
+import { DemoCotizacion, DemoEnlace, DemoSugerencia } from '../ui/demos-landing';
 import { AvisoService } from '../core/aviso.service';
 import { Api } from '../core/api.service';
 import { dinero } from '../core/formato';
@@ -29,7 +29,7 @@ const SUBLI: Preset[] = [
 
 @Component({
   selector: 'app-landing',
-  imports: [FormsModule, RouterLink, Logo, Icono, SelectorTema, Hoja, DemoEnlace, DemoCotizacion],
+  imports: [FormsModule, RouterLink, Logo, Icono, SelectorTema, Hoja, DemoEnlace, DemoCotizacion, DemoSugerencia],
   template: `
     <header class="sticky top-0 z-30 border-b border-linea bg-superficie/90 py-2.5 backdrop-blur">
       <div class="mx-auto max-w-[1200px] margen-x fila entre">
@@ -230,6 +230,26 @@ const SUBLI: Preset[] = [
       </div>
     </section>
 
+    <!-- Sugerir con IA -->
+    <section class="scroll-mt-16 overflow-hidden bg-superficie-2 py-14 lg:py-20" id="precios-ia">
+      <div class="mx-auto grid max-w-[1200px] items-center gap-12 margen-x lg:grid-cols-[minmax(0,1.05fr)_minmax(0,.95fr)] lg:gap-14">
+        <app-demo-sugerencia class="max-lg:order-2 mx-auto w-full max-w-[540px]" />
+        <div class="flex flex-col gap-5 max-lg:order-1">
+          <span class="pill sec self-start">Nuevo</span>
+          <h2 class="text-[clamp(1.6rem,3.4vw,2.4rem)] leading-tight tracking-[-.03em]">Escribe el nombre y la IA le pone precio</h2>
+          <p class="text-[1.05rem] text-tenue">Al dar de alta un producto, servicio o insumo, la IA calcula con tus insumos, tu tarifa por minuto y tu margen. Tú revisas y guardas.</p>
+          <ul class="grid gap-3 sm:grid-cols-2">
+            @for (x of sugerenciaPuntos; track x.t) {
+              <li class="flex gap-3">
+                <span class="flex size-9 flex-none items-center justify-center rounded-xl bg-marca-suave text-[1.1rem] text-marca"><app-icono [nombre]="x.i" /></span>
+                <div><b class="font-semibold">{{ x.t }}</b><p class="text-[.92rem] text-tenue">{{ x.d }}</p></div>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+    </section>
+
     <!-- Asistente con IA -->
     <section class="scroll-mt-16 py-14 lg:py-20" id="asistente">
       <div class="mx-auto grid max-w-[1200px] items-center gap-10 margen-x lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14">
@@ -405,17 +425,23 @@ export class Landing implements OnInit {
   navegacion = [
     { id: 'cliente', texto: 'Tu cliente' },
     { id: 'simulador', texto: 'Cotizador' },
-    { id: 'asistente', texto: 'Asistente IA' },
+    { id: 'precios-ia', texto: 'Precios con IA' },
     { id: 'funciones', texto: 'Funciones' },
     { id: 'precios', texto: 'Precios' },
     { id: 'preguntas', texto: 'Preguntas' },
   ];
-  destacados = ['Enlace para tu cliente', 'Aprobación de diseño', 'Producción por etapas', 'Caja y cortes'];
+  destacados = ['Enlace para tu cliente', 'Precios sugeridos con IA', 'Producción por etapas', 'Caja y cortes'];
   marcaPuntos = [
     { i: 'sucursales', t: 'Logo por sucursal', d: 'Cada sucursal con su logo, dirección y teléfono.' },
     { i: 'fotos', t: 'Imágenes de referencia', d: 'Tu cliente ve cómo quedará antes de pagar.' },
     { i: 'ventas', t: 'Anticipo y datos de pago', d: 'CLABE y tarjeta listas para copiar.' },
     { i: 'wa', t: 'Directo a WhatsApp', d: 'El enlace se ve con imagen en el chat.' },
+  ];
+  sugerenciaPuntos = [
+    { i: 'rayo', t: 'Costo desglosado', d: 'Material, minutos de máquina y empaque, sin hacer cuentas.' },
+    { i: 'inventario', t: 'Arma la receta', d: 'Elige los insumos de tu inventario que lleva cada pieza.' },
+    { i: 'reportes', t: 'Precio de mercado', d: 'Te dice cuánto se cobra en México por algo parecido.' },
+    { i: 'cotizaciones', t: 'También al cotizar', d: '¿Un trabajo nuevo? Pídele la sugerencia desde la cotización.' },
   ];
   asistentePuntos = [
     { i: 'inicio', t: 'Tus números, sin buscar', d: 'Ventas, ganancia, pedidos pendientes y quién te debe, con los datos reales del día.' },
@@ -446,7 +472,7 @@ export class Landing implements OnInit {
     { i: 'ventas', t: 'Anticipos y comprobantes', d: 'El cliente sube su transferencia y tú la aplicas al saldo.' },
     { i: 'inventario', t: 'Inventario que se descuenta solo', d: 'Una taza sublimada descuenta la taza y el papel al venderse.' },
     { i: 'sucursales', t: 'Sucursales y roles', d: 'Logo, folios e inventario por sucursal. El vendedor no ve tus costos.' },
-    { i: 'chispa', t: 'Asistente con IA', d: 'Pregunta por ventas, pedidos o inventario y te responde al momento.' },
+    { i: 'chispa', t: 'IA en tu taller', d: 'Te sugiere precios y recetas, y responde sobre ventas, pedidos e inventario.' },
   ];
   pasos = [
     { t: 'Cotiza y manda el enlace', d: 'Precio con tus costos, imágenes de referencia y PDF. Tu cliente acepta desde WhatsApp.' },
@@ -460,6 +486,7 @@ export class Landing implements OnInit {
     { p: '¿Sirve si hago corte láser y también sublimación?', r: 'Sí. Puedes tener productos de los dos tipos, con sus propios costos de material, papel, tinta y minutos de máquina o plancha.' },
     { p: '¿Puedo tener varias sucursales y empleados?', r: 'Sí. Cada sucursal tiene su inventario y sus folios, y cada empleado entra con su usuario. Tú decides qué puede ver cada quien.' },
     { p: '¿Puedo cancelar cuando quiera?', r: 'Sí. No hay plazos forzosos. Si cancelas, puedes seguir consultando tu información.' },
+    { p: '¿La IA pone los precios por mí?', r: 'Te sugiere costo, receta y precio con tus propios insumos y margen, y te dice el rango del mercado. Tú revisas, ajustas y decides antes de guardar.' },
     { p: '¿Qué puede hacer el asistente con IA?', r: 'Responde preguntas sobre tu taller (ventas, pedidos, inventario, clientes y cotizaciones) con los datos de tu sucursal, y te explica cómo hacer cualquier cosa en Grabix. Solo consulta: no cambia ni borra nada, y respeta los permisos de cada usuario.' },
     { p: '¿Mis datos están seguros?', r: 'Cada taller tiene su información separada, las contraseñas se guardan cifradas y solo tu equipo puede entrar a tu cuenta.' },
   ];
