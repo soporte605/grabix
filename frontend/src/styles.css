@@ -154,6 +154,9 @@
   [hidden] { display: none !important; }
 }
 
+/* Barra de avance de las maquetas de la landing. */
+@keyframes barra { from { width: 0; } to { width: 100%; } }
+
 /* Piezas que se repiten en todas las pantallas (como la librería UI de SiloPro). */
 @layer components {
   .num { @apply tabular-nums; font-feature-settings: 'tnum' 1; }

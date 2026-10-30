@@ -5,6 +5,7 @@ import { Logo } from '../ui/logo';
 import { Icono } from '../ui/icono';
 import { SelectorTema } from '../ui/selector-tema';
 import { Hoja } from '../ui/hoja';
+import { DemoCotizacion, DemoEnlace } from '../ui/demos-landing';
 import { AvisoService } from '../core/aviso.service';
 import { Api } from '../core/api.service';
 import { dinero } from '../core/formato';
@@ -28,7 +29,7 @@ const SUBLI: Preset[] = [
 
 @Component({
   selector: 'app-landing',
-  imports: [FormsModule, RouterLink, Logo, Icono, SelectorTema, Hoja],
+  imports: [FormsModule, RouterLink, Logo, Icono, SelectorTema, Hoja, DemoEnlace, DemoCotizacion],
   template: `
     <header class="sticky top-0 z-30 border-b border-linea bg-superficie/90 py-2.5 backdrop-blur">
       <div class="mx-auto max-w-[1200px] margen-x fila entre">
@@ -49,7 +50,10 @@ const SUBLI: Preset[] = [
       <div class="mx-auto grid max-w-[1200px] items-center gap-10 margen-x lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-14">
         <div class="flex flex-col items-start gap-5 max-lg:items-center max-lg:text-center">
           <h1 class="text-[clamp(2rem,5vw,3.25rem)] leading-[1.05] tracking-[-.035em]">Tu taller organizado, de la cotización a la entrega</h1>
-          <p class="max-w-[52ch] text-[1.05rem] text-tenue sm:text-[1.12rem]">Grabix reúne cotizaciones, pedidos, producción, inventario y cobros en un solo lugar. Cotizas en segundos con tus costos reales, tu equipo sabe qué sigue y tú ves cuánto ganas cada mes.</p>
+          <p class="max-w-[52ch] text-[1.05rem] text-tenue sm:text-[1.12rem]">Cotiza con tus costos reales, manda a tu cliente un enlace donde acepta, aprueba su diseño y sigue su pedido, y cobra sin perder la cuenta.</p>
+          <ul class="flex flex-wrap gap-x-4 gap-y-1.5 text-[.92rem] font-medium max-lg:justify-center">
+            @for (x of destacados; track x) { <li class="flex items-center gap-1.5"><app-icono class="text-acento-2" nombre="ok" />{{ x }}</li> }
+          </ul>
           <div class="flex w-full flex-col gap-2.5 min-[480px]:w-auto min-[480px]:flex-row">
             <a routerLink="/registro" class="btn pri min-h-12 px-6 text-[1rem]">Prueba {{ diasPrueba() }} días gratis</a>
             <a href="#simulador" class="btn min-h-12 px-6 text-[1rem]"><app-icono class="text-acento-2" nombre="rayo" />Prueba el cotizador</a>
@@ -96,6 +100,18 @@ const SUBLI: Preset[] = [
             </div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- Enlace del cliente -->
+    <section class="scroll-mt-16 bg-superficie-2 py-14 lg:py-20" id="cliente">
+      <div class="mx-auto max-w-[1200px] margen-x">
+        <div class="mx-auto mb-10 max-w-[640px] text-center">
+          <span class="pill sec">Nuevo</span>
+          <h2 class="mt-3 text-[clamp(1.6rem,3.4vw,2.4rem)] leading-tight tracking-[-.03em]">Tu cliente sigue su pedido desde un enlace</h2>
+          <p class="mt-3 text-[1.05rem] text-tenue">Se lo mandas por WhatsApp. No descarga nada ni crea cuenta, y tú dejas de contestar “¿ya está mi pedido?”.</p>
+        </div>
+        <app-demo-enlace />
       </div>
     </section>
 
@@ -195,8 +211,27 @@ const SUBLI: Preset[] = [
       </div>
     </section>
 
+    <!-- Cotizaciones con tu marca -->
+    <section class="scroll-mt-16 overflow-hidden bg-superficie py-14 lg:py-20" id="marca">
+      <div class="mx-auto grid max-w-[1200px] items-center gap-12 margen-x lg:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] lg:gap-14">
+        <div class="flex flex-col gap-5">
+          <h2 class="text-[clamp(1.6rem,3.4vw,2.4rem)] leading-tight tracking-[-.03em]">Cotizaciones que venden por ti</h2>
+          <p class="text-[1.05rem] text-tenue">Tu logo, fotos de cómo quedará el trabajo y tus datos de pago, en PDF y en el enlace.</p>
+          <ul class="grid gap-3 sm:grid-cols-2">
+            @for (x of marcaPuntos; track x.t) {
+              <li class="flex gap-3">
+                <span class="flex size-9 flex-none items-center justify-center rounded-xl bg-marca-suave text-[1.1rem] text-marca"><app-icono [nombre]="x.i" /></span>
+                <div><b class="font-semibold">{{ x.t }}</b><p class="text-[.92rem] text-tenue">{{ x.d }}</p></div>
+              </li>
+            }
+          </ul>
+        </div>
+        <app-demo-cotizacion />
+      </div>
+    </section>
+
     <!-- Asistente con IA -->
-    <section class="scroll-mt-16 bg-superficie py-14 lg:py-20" id="asistente">
+    <section class="scroll-mt-16 py-14 lg:py-20" id="asistente">
       <div class="mx-auto grid max-w-[1200px] items-center gap-10 margen-x lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14">
         <div class="flex flex-col gap-5">
           <h2 class="text-[clamp(1.6rem,3.4vw,2.4rem)] leading-tight tracking-[-.03em]">Pregúntale a tu taller y te responde al momento</h2>
@@ -368,11 +403,19 @@ export class Landing implements OnInit {
   private api = inject(Api);
   private avisos = inject(AvisoService);
   navegacion = [
+    { id: 'cliente', texto: 'Tu cliente' },
     { id: 'simulador', texto: 'Cotizador' },
     { id: 'asistente', texto: 'Asistente IA' },
     { id: 'funciones', texto: 'Funciones' },
     { id: 'precios', texto: 'Precios' },
     { id: 'preguntas', texto: 'Preguntas' },
+  ];
+  destacados = ['Enlace para tu cliente', 'Aprobación de diseño', 'Producción por etapas', 'Caja y cortes'];
+  marcaPuntos = [
+    { i: 'sucursales', t: 'Logo por sucursal', d: 'Cada sucursal con su logo, dirección y teléfono.' },
+    { i: 'fotos', t: 'Imágenes de referencia', d: 'Tu cliente ve cómo quedará antes de pagar.' },
+    { i: 'ventas', t: 'Anticipo y datos de pago', d: 'CLABE y tarjeta listas para copiar.' },
+    { i: 'wa', t: 'Directo a WhatsApp', d: 'El enlace se ve con imagen en el chat.' },
   ];
   asistentePuntos = [
     { i: 'inicio', t: 'Tus números, sin buscar', d: 'Ventas, ganancia, pedidos pendientes y quién te debe, con los datos reales del día.' },
@@ -383,31 +426,36 @@ export class Landing implements OnInit {
   antes = [
     'Cada precio se calcula a mano y cada quien cotiza distinto.',
     'Las cotizaciones se pierden entre chats y nadie les da seguimiento.',
+    'Los clientes preguntan a cada rato si su pedido ya está.',
     'El material se acaba sin aviso y los pedidos se retrasan.',
     'Saber cuánto se ganó en el mes toma horas de cuentas.',
   ];
   despues = [
     'Precios consistentes, calculados con tus costos reales y tu margen.',
     'Cotizaciones con folio y PDF, enviadas por WhatsApp en un toque.',
+    'El cliente ve el avance y las fotos de su pedido en su enlace.',
     'El inventario se descuenta solo y te avisa antes de que falte.',
     'Ventas, ganancia y cobros pendientes al día, por sucursal.',
   ];
   beneficios = [
-    { i: 'cotizaciones', t: 'Cotiza y envía por WhatsApp', d: 'Folio, descuentos y promociones. El cliente recibe el resumen y la liga a su PDF.' },
-    { i: 'inventario', t: 'Inventario que se descuenta solo', d: 'Arma recetas: una taza sublimada usa una taza blanca y una hoja de papel. Al vender se descuentan.' },
-    { i: 'rayo', t: 'Costos reales', d: 'Material, minutos de máquina y extras. Sabes cuánto ganas en cada pedido antes de aceptarlo.' },
-    { i: 'ventas', t: 'Ventas, anticipos y saldos', d: 'Del pedido a producción y entrega, con pagos parciales y lo que te deben.' },
-    { i: 'sucursales', t: 'Sucursales y roles', d: 'Inventario y folios por sucursal, traspasos, y permisos: el vendedor no ve tus costos.' },
-    { i: 'chispa', t: 'Asistente con IA', d: 'Pregunta por tus ventas, pedidos o inventario y recibe la respuesta al momento, con los datos de tu sucursal.' },
-    { i: 'inicio', t: 'Estadísticas', d: 'Ventas, ganancia y margen por mes, lo que más te deja y alertas de stock bajo.' },
+    { i: 'cotizaciones', t: 'Cotiza y envía por WhatsApp', d: 'Folio, imágenes, descuentos y PDF con tu logo, en un toque.' },
+    { i: 'ojo', t: 'Aprobación de diseño', d: 'El cliente aprueba en su enlace o por WhatsApp. Queda quién, cuándo y cómo.' },
+    { i: 'produccion', t: 'Producción por etapas', d: 'Diseño, cola, máquina, acabado y listo. Tu equipo sabe qué sigue.' },
+    { i: 'fotos', t: 'Fotos de cada trabajo', d: 'Tu cliente las ve en su enlace y tú armas tu galería por producto.' },
+    { i: 'caja', t: 'Caja y cortes', d: 'Cobro en mostrador, pagos combinados, ticket y corte por turno.' },
+    { i: 'ventas', t: 'Anticipos y comprobantes', d: 'El cliente sube su transferencia y tú la aplicas al saldo.' },
+    { i: 'inventario', t: 'Inventario que se descuenta solo', d: 'Una taza sublimada descuenta la taza y el papel al venderse.' },
+    { i: 'sucursales', t: 'Sucursales y roles', d: 'Logo, folios e inventario por sucursal. El vendedor no ve tus costos.' },
+    { i: 'chispa', t: 'Asistente con IA', d: 'Pregunta por ventas, pedidos o inventario y te responde al momento.' },
   ];
   pasos = [
-    { t: 'Cotiza en segundos', d: 'Elige el producto y la cantidad. Grabix calcula material, máquina y margen, y mandas el PDF por WhatsApp.' },
-    { t: 'Produce sin perder nada', d: 'La cotización aceptada pasa a producción. Tu equipo ve qué sigue y el inventario se descuenta solo.' },
-    { t: 'Cobra y mide', d: 'Registra anticipos y saldos, entrega, y mira cuánto ganaste por producto, por mes y por sucursal.' },
+    { t: 'Cotiza y manda el enlace', d: 'Precio con tus costos, imágenes de referencia y PDF. Tu cliente acepta desde WhatsApp.' },
+    { t: 'Aprueba y produce', d: 'Envía el diseño, tu cliente lo aprueba y el pedido pasa a producción con sus etapas.' },
+    { t: 'Entrega y cobra', d: 'Sube las fotos, registra el saldo o su comprobante, y mira cuánto ganaste.' },
   ];
   preguntas = [
     { p: '¿Necesito tarjeta para la prueba?', r: 'No. Creas tu cuenta con tu correo y usas todas las funciones durante la prueba. Al terminar eliges un plan si te convenció.' },
+    { p: '¿Mi cliente necesita instalar algo?', r: 'No. Recibe un enlace por WhatsApp y lo abre en su celular. Ahí acepta la cotización, aprueba su diseño, ve el avance y sube su comprobante.' },
     { p: '¿Funciona en el celular?', r: 'Sí. Grabix funciona en el navegador del celular, la tablet o la computadora, y puedes instalarlo como app en tu pantalla de inicio.' },
     { p: '¿Sirve si hago corte láser y también sublimación?', r: 'Sí. Puedes tener productos de los dos tipos, con sus propios costos de material, papel, tinta y minutos de máquina o plancha.' },
     { p: '¿Puedo tener varias sucursales y empleados?', r: 'Sí. Cada sucursal tiene su inventario y sus folios, y cada empleado entra con su usuario. Tú decides qué puede ver cada quien.' },
