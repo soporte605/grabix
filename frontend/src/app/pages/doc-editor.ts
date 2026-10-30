@@ -61,6 +61,13 @@ interface Form {
 
       <section class="caja">
         <h3>Conceptos</h3>
+        @if (cambiados().length) {
+          <div class="flex flex-wrap items-center gap-2 rounded-xl bg-warn-suave px-3.5 py-2.5 text-sm">
+            <p class="flex-1">{{ cambiados().length === 1 ? 'Un concepto tiene' : cambiados().length + ' conceptos tienen' }} otro precio en tu catálogo:
+              @for (c of cambiados(); track $index; let ult = $last) { <b>{{ c.it.descripcion }}</b> ({{ c.it.precio | dinero }} → {{ c.precio | dinero }}){{ ult ? '.' : ', ' }} }</p>
+            <button type="button" class="btn sm" (click)="usarPreciosActuales()">Usar precios actuales</button>
+          </div>
+        }
         @for (it of f.items; track $index; let i = $index) {
           <div class="grid grid-cols-[minmax(0,1fr)_30px] gap-1.5 rounded-[10px] border border-linea bg-superficie-2 p-2.5">
             <div class="grid grid-cols-6 gap-1.5">
@@ -330,6 +337,21 @@ export class DocEditor implements OnInit {
   costoDe(i: Renglon) { return this.productos().find((p) => p.id === i.productoId)?.costoUnitario ?? i.costo ?? 0; }
   agregar() { this.f.items.push({ productoId: null, descripcion: '', cantidad: 1, precio: 0 }); this.tocar(); }
   quitar(i: number) { this.f.items.splice(i, 1); this.tocar(); }
+  /** En cotizaciones sin enviar: renglones del catálogo cuyo precio cambió desde que se cotizaron. */
+  cambiados = computed(() => {
+    this.cambios();
+    if (this.esVenta || (this.id && this.f.estado !== 'borrador')) return [];
+    return this.f.items
+      .map((it) => ({ it, precio: this.productos().find((p) => p.id === it.productoId)?.precio }))
+      .filter((x): x is { it: Renglon; precio: number } => x.precio != null && Number(x.it.precio) !== x.precio);
+  });
+
+  usarPreciosActuales() {
+    for (const c of this.cambiados()) c.it.precio = c.precio;
+    this.tocar();
+    this.aviso.info('Precios actualizados. Guarda la cotización para que el PDF y el enlace los muestren.');
+  }
+
   elegir(it: Renglon) {
     const p = this.productos().find((x) => x.id === it.productoId);
     if (p) { it.descripcion = p.nombre.replace(/ \(ejemplo\)$/, ''); it.precio = p.precio; }
