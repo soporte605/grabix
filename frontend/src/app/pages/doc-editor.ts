@@ -2,6 +2,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Api } from '../core/api.service';
+import { AsistenteService } from '../core/asistente.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { ConfirmarService } from '../core/confirmar.service';
 import { PosService } from '../core/pos.service';
@@ -66,9 +67,15 @@ interface Form {
               <app-buscador class="col-span-6 sm:col-span-3" [opciones]="opsProductos()" [conVacio]="true" vacio="Concepto libre" etiqueta="Artículo" placeholder="Buscar producto o servicio…" [crear]="s.verCostos() ? 'Nuevo producto o servicio' : ''" (nuevo)="altaProducto.set({ it, q: $event })" [(ngModel)]="it.productoId" (ngModelChange)="elegir(it)" />
               <input class="entrada col-span-6 p-2 sm:col-span-3" [(ngModel)]="it.descripcion" (ngModelChange)="tocar()" placeholder="Descripción" aria-label="Descripción">
               <input class="entrada col-span-2 p-2" type="number" inputmode="decimal" [(ngModel)]="it.cantidad" (ngModelChange)="tocar()" placeholder="Cant." aria-label="Cantidad">
-              <input class="entrada col-span-2 p-2" type="number" inputmode="decimal" [(ngModel)]="it.precio" (ngModelChange)="tocar()" placeholder="Precio c/u" aria-label="Precio unitario">
+              <div class="col-span-2 flex gap-1">
+                <input class="entrada min-w-0 flex-1 p-2" type="number" inputmode="decimal" [(ngModel)]="it.precio" (ngModelChange)="tocar()" placeholder="Precio c/u" aria-label="Precio unitario">
+                @if (!it.productoId && s.verCostos() && ia.estado()?.disponible) {
+                  <button type="button" class="ico shrink-0" [disabled]="pensandoEn() === it" title="Sugerir precio con IA" aria-label="Sugerir precio con IA" (click)="sugerirPrecio(it)"><app-icono nombre="chispa" /></button>
+                }
+              </div>
               <span class="num col-span-2 flex flex-col self-center text-right text-base">{{ (it.cantidad || 0) * (it.precio || 0) | dinero }}
                 @if (s.verCostos() && it.productoId) { <small class="text-xs text-tenue">costo {{ costoDe(it) | dinero }}</small> }</span>
+              @if (!it.productoId && notasIA().get(it); as n) { <p class="col-span-6 flex items-start gap-1.5 text-sm text-tenue"><app-icono nombre="chispa" class="mt-0.5 shrink-0 text-marca" />{{ n }}</p> }
             </div>
             <button class="text-2xl text-bad" (click)="quitar(i)" aria-label="Quitar concepto">×</button>
           </div>
@@ -177,6 +184,11 @@ export class DocEditor implements OnInit {
   private ruta = inject(ActivatedRoute);
   private confirmar = inject(ConfirmarService);
   private pos = inject(PosService);
+  ia = inject(AsistenteService);
+  /** Renglón libre para el que la IA está calculando precio. */
+  pensandoEn = signal<Renglon | null>(null);
+  /** Explicación de la IA por renglón; solo se ve en el editor, no sale en el PDF. */
+  notasIA = signal(new Map<Renglon, string>());
   private lista = this.ruta.snapshot.data['tipo'] === 'ventas' ? '/app/ventas' : '/app/cotizaciones';
   esVenta = this.ruta.snapshot.data['tipo'] === 'ventas';
   base = this.esVenta ? '/ventas' : '/cotizaciones';
@@ -240,6 +252,7 @@ export class DocEditor implements OnInit {
   });
 
   async ngOnInit() {
+    if (this.s.verCostos() && !this.ia.estado()) this.ia.cargarEstado();
     const [cl, pr, po] = await Promise.all([
       this.api.get<Cliente[]>('/clientes'),
       this.api.get<Producto[]>('/productos'),
@@ -283,6 +296,21 @@ export class DocEditor implements OnInit {
     if (!id) return;
     this.pos.hecha.set({ id, nueva: false });
     this.router.navigate([this.lista]);
+  }
+
+  /** Precio sugerido por la IA para un concepto libre, con los insumos y la tarifa del taller. */
+  async sugerirPrecio(it: Renglon) {
+    if (this.pensandoEn()) return;
+    if ((it.descripcion ?? '').trim().length < 3) { this.aviso.error('Escribe primero la descripción del concepto'); return; }
+    this.pensandoEn.set(it);
+    try {
+      const g = await this.ia.sugerirProducto(it.descripcion);
+      it.precio = g.precio;
+      this.tocar();
+      const rango = g.precioMax ? ` En el mercado: ${dinero(g.precioMin, this.s.moneda())} a ${dinero(g.precioMax, this.s.moneda())}.` : '';
+      this.notasIA.update((m) => new Map(m).set(it, `${g.nota}${rango} Costo estimado: ${dinero(g.costoTotal, this.s.moneda())} por pieza.`));
+    } catch (e) { this.aviso.error(mensajeError(e)); }
+    finally { this.pensandoEn.set(null); }
   }
 
   tocar() { this.sucio = true; this.cambios.update((x) => x + 1); }

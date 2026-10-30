@@ -1,10 +1,13 @@
 import { Component, inject, input, OnInit, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api.service';
+import { AsistenteService, SugerenciaProducto } from '../core/asistente.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
+import { DineroPipe } from '../core/formato';
 import { Cliente, Producto, Promocion } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { Hoja } from './hoja';
+import { Icono } from './icono';
 
 /*
  * Altas rápidas desde una cotización, venta o la caja: lo mínimo para seguir vendiendo
@@ -62,7 +65,7 @@ export class AltaCliente implements OnInit {
 
 @Component({
   selector: 'app-alta-producto',
-  imports: [FormsModule, Hoja],
+  imports: [FormsModule, Hoja, Icono, DineroPipe],
   template: `
     <app-hoja titulo="Nuevo producto o servicio" ancho="520px" (cerrar)="cerrar.emit()">
       <div class="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Tipo">
@@ -74,6 +77,17 @@ export class AltaCliente implements OnInit {
         }
       </div>
       <div class="campo"><label for="ar-pn">Nombre</label><input id="ar-pn" name="nombre" required minlength="2" maxlength="160" [(ngModel)]="nombre" [placeholder]="tipo() === 'servicio' ? 'Ej. Grabado láser en madera' : 'Ej. Llavero MDF grabado'"></div>
+      @if (s.verCostos() && ia.estado()?.disponible) {
+        @if (sug(); as g) {
+          <div class="caja !border-marca">
+            <div class="fila entre"><h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />Sugerencia de la IA</h3><button type="button" class="btn sm" (click)="sugerir()" [disabled]="pensando()">Otra vez</button></div>
+            <p>{{ g.nota }}</p>
+            @if (g.precioMax) { <p class="chico tenue">En el mercado se cobra entre <span class="num">{{ g.precioMin | dinero }}</span> y <span class="num">{{ g.precioMax | dinero }}</span>. Revisa los datos antes de guardar.</p> }
+          </div>
+        } @else {
+          <button type="button" class="btn self-start" (click)="sugerir()" [disabled]="pensando()"><app-icono nombre="chispa" />{{ pensando() ? 'Pensando…' : '¿No sabes cuánto cobrar? Sugerir con IA' }}</button>
+        }
+      }
       <div class="campos">
         <div class="campo"><label for="ar-pp">Precio de venta</label><input id="ar-pp" name="precio" required min="0" class="num" type="number" inputmode="decimal" [(ngModel)]="precio"></div>
         @if (s.verCostos()) { <div class="campo"><label for="ar-pc">Costo (opcional)</label><input id="ar-pc" min="0" class="num" type="number" inputmode="decimal" [(ngModel)]="costo"></div> }
@@ -83,7 +97,7 @@ export class AltaCliente implements OnInit {
           <datalist id="ar-cats">@for (c of categorias(); track c) { <option [value]="c"></option> }</datalist></div>
         <div class="campo"><label for="ar-pu">Unidad</label><input id="ar-pu" maxlength="20" [(ngModel)]="unidad"></div>
       </div>
-      <p class="chico tenue">La receta de insumos y el tiempo de máquina los puedes completar después en Inventario.</p>
+      <p class="chico tenue">{{ sug()?.componentes?.length || sug()?.minutos ? 'La receta y el tiempo de máquina sugeridos se guardan también; puedes ajustarlos en Inventario.' : 'La receta de insumos y el tiempo de máquina los puedes completar después en Inventario.' }}</p>
       <ng-container pie>
         <button class="btn" (click)="cerrar.emit()">Cancelar</button><span class="flex-1"></span>
         <button class="btn pri" (click)="guardar()" [disabled]="ocupado()">{{ ocupado() ? 'Guardando…' : 'Guardar y usar' }}</button>
@@ -110,8 +124,31 @@ export class AltaProducto implements OnInit {
   categoria = '';
   unidad = 'pza';
   ocupado = signal(false);
+  ia = inject(AsistenteService);
+  sug = signal<SugerenciaProducto | null>(null);
+  pensando = signal(false);
 
-  ngOnInit() { this.nombre = this.inicial().trim(); }
+  ngOnInit() {
+    this.nombre = this.inicial().trim();
+    if (this.s.verCostos() && !this.ia.estado()) this.ia.cargarEstado();
+  }
+
+  async sugerir() {
+    if (this.pensando()) return;
+    if (this.nombre.trim().length < 3) { this.aviso.error('Escribe primero el nombre'); return; }
+    this.pensando.set(true);
+    try {
+      const g = await this.ia.sugerirProducto(this.nombre, undefined, this.tipo());
+      // Desde aquí solo se dan de alta productos o servicios, no insumos.
+      this.tipo.set(g.tipo === 'servicio' ? 'servicio' : 'producto');
+      this.precio = g.precio;
+      this.costo = g.componentes.length ? null : g.costo;
+      this.categoria = g.categoria;
+      this.unidad = g.unidad;
+      this.sug.set(g);
+    } catch (e) { this.aviso.error(mensajeError(e)); }
+    finally { this.pensando.set(false); }
+  }
 
   async guardar() {
     if (this.ocupado() || this.nombre.trim().length < 2) return;
@@ -120,6 +157,7 @@ export class AltaProducto implements OnInit {
       const p = await this.api.post<Producto>('/productos', {
         nombre: this.nombre.trim(), tipo: this.tipo(), precio: Number(this.precio) || 0, costo: Number(this.costo) || 0,
         categoria: this.categoria.trim(), unidad: this.unidad.trim() || 'pza',
+        ...(this.sug() ? { minutos: this.sug()!.minutos, extra: this.sug()!.extra, componentes: this.tipo() === 'producto' ? this.sug()!.componentes : [] } : {}),
       });
       this.aviso.ok(this.tipo() === 'servicio' ? 'Servicio guardado' : 'Producto guardado');
       this.creado.emit(p);

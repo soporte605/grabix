@@ -4,6 +4,12 @@ Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el co
 
 ## 2026-10-30
 
+### Sugerir con IA al dar de alta un artículo
+- En Inventario → Nuevo artículo, el botón **Sugerir con IA** propone tipo, línea, unidad, minutos de máquina, otros costos, la receta con insumos que ya existen y el precio de venta, con una nota de cómo lo calculó y el rango que se cobra en el mercado. Se pueden agregar detalles (medidas, material). Los campos quedan llenos para revisarlos; nunca se guarda solo.
+- Usa los datos del taller: insumos con su costo, tarifa por minuto, margen objetivo y precios de artículos parecidos. Las recetas solo aceptan ids de insumos reales.
+- **En cotizaciones y ventas:** al crear un producto o servicio desde el buscador ("Nuevo producto o servicio") también está el botón; guarda precio, costo, receta y minutos sugeridos. En un concepto libre, el botón con la chispa junto al precio propone el precio por pieza y deja debajo del renglón la explicación, el rango de mercado y el costo estimado (no sale en el PDF).
+- `POST /api/asistente/sugerir-producto`, solo para roles que ven costos. Cuenta como una consulta del límite diario del asistente.
+
 ### Logo por sucursal e imágenes en cotizaciones
 - **Logo:** en Ajustes → "Logo, cobro y condiciones por sucursal" se sube el logo (PNG, JPG o SVG; se guarda como PNG). Sale en el encabezado del PDF de notas y cotizaciones, en el enlace del cliente y como vista previa de WhatsApp cuando no hay otra imagen. Se puede usar el mismo en todas las sucursales.
 - **Imágenes en la cotización:** hasta 8 por cotización, cada una con nota (el diseño sobre la taza, un boceto, un trabajo parecido). Se suben desde el editor o la vista previa. El cliente las ve en su enlace ("Así quedaría tu pedido"), la primera sale en la vista previa de WhatsApp y todas van al final del PDF en "Imágenes de referencia". Al convertirla en venta se ven en la venta y en la orden de Producción.
