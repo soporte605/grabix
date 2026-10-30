@@ -22,7 +22,7 @@ const cuando = (f: string) => new Date(f).toLocaleString('es-MX', { day: 'numeri
     @if (!cerrado() || disenos().length) {
     <section>
       <div class="mb-1.5 flex items-center justify-between gap-2">
-        <h3 class="text-base">{{ cerrado() ? 'Diseño' : 'Diseño para aprobar' }}</h3>
+        <h3 class="text-base">{{ cerrado() || entregado() ? 'Diseño' : 'Diseño para aprobar' }}</h3>
         @if (cargado() && !nuevo() && !cerrado()) {
           <button type="button" class="btn sm" (click)="elegir.click()"><app-icono nombre="nueva" />{{ ultimo() ? 'Nueva versión' : 'Subir diseño' }}</button>
         }
@@ -45,18 +45,22 @@ const cuando = (f: string) => new Date(f).toLocaleString('es-MX', { day: 'numeri
             <img [src]="d.mini" [alt]="'Diseño versión ' + d.version" class="max-h-60 w-full object-contain">
           </button>
           <div class="flex flex-wrap items-center gap-2">
-            <span class="pill" [class]="est[d.estado][1]">{{ est[d.estado][0] }}</span>
+            @if (d.via === 'registro') { <span class="pill mut">Registro del trabajo</span> } @else { <span class="pill" [class]="est[d.estado][1]">{{ est[d.estado][0] }}</span> }
             <span class="chico tenue">Versión {{ d.version }} · {{ d.usuarioNombre }} · {{ cuando(d.creadoEn) }}</span>
           </div>
           @if (d.nota) { <p class="chico whitespace-pre-line">{{ d.nota }}</p> }
-          @if (d.estado === 'aprobado') {
+          @if (d.via === 'registro') {
+          } @else if (d.estado === 'aprobado') {
             <p class="chico rounded-lg bg-ok-suave p-2.5"><b>Aprobado</b> por {{ d.respondidoPor }} {{ via[d.via ?? ''] }} el {{ cuando(d.respondidoEn!) }}.@if (d.respuesta) { “{{ d.respuesta }}” }</p>
           } @else if (d.estado === 'cambios') {
             <p class="chico rounded-lg bg-bad-suave p-2.5"><b>{{ d.respondidoPor }} pidió cambios</b> el {{ cuando(d.respondidoEn!) }}: <span class="whitespace-pre-line">“{{ d.respuesta }}”</span></p>
           }
 
-          @if (cerrado()) {
-            <button type="button" class="btn self-start" (click)="copiar()">Copiar enlace</button>
+          @if (cerrado() || entregado()) {
+            <div class="flex flex-wrap gap-2">
+              <button type="button" class="btn" (click)="copiar()">Copiar enlace</button>
+              @if (entregado() && puedeBorrar(d)) { <button type="button" class="btn" (click)="eliminar(d)" [disabled]="ocupado()"><app-icono nombre="basura" />Quitar</button> }
+            </div>
           } @else if (marcando()) {
             <div class="flex flex-col gap-2 rounded-lg border border-linea p-2.5">
               <p class="chico font-semibold">¿Cómo te lo aprobó?</p>
@@ -89,6 +93,10 @@ const cuando = (f: string) => new Date(f).toLocaleString('es-MX', { day: 'numeri
             </div>
           </details>
         }
+      } @else if (cargado() && entregado()) {
+        <button type="button" class="w-full rounded-xl border border-dashed border-linea p-4 text-center tenue" (click)="elegir.click()">
+          Guarda la imagen del diseño final como registro de este trabajo. Queda en el pedido y en el enlace del cliente.
+        </button>
       } @else if (cargado() && !cerrado()) {
         <button type="button" class="w-full rounded-xl border border-dashed border-linea p-4 text-center tenue" (click)="elegir.click()">
           Sube la imagen del diseño (JPG, PNG o SVG) y mándala por WhatsApp. El cliente lo ve en el chat y lo aprueba con un toque o contestando “sí”.
@@ -112,6 +120,8 @@ export class DisenoPedidoSeccion {
   telefono = input('');
   /** Pedido entregado o cancelado: solo se consulta lo que hubo. */
   cerrado = input(false);
+  /** Pedido entregado: el diseño se guarda como registro, sin mandarlo a aprobar. */
+  entregado = input(false);
   /** Cambió el diseño o su aprobación: la etapa del pedido pudo moverse. */
   cambio = output();
 
@@ -147,7 +157,7 @@ export class DisenoPedidoSeccion {
     this.cargado.set(true);
   }
 
-  puedeBorrar(d: DisenoPedido) { return d.estado !== 'aprobado' && (this.s.verCostos() || d.usuarioId === this.s.perfil()?.usuario.id); }
+  puedeBorrar(d: DisenoPedido) { return (d.estado !== 'aprobado' || d.via === 'registro') && (this.s.verCostos() || d.usuarioId === this.s.perfil()?.usuario.id); }
   ver(d: DisenoPedido) { this.verIndice.set(this.disenos().indexOf(d)); }
 
   async preparar(ev: Event) {
@@ -169,7 +179,7 @@ export class DisenoPedidoSeccion {
       const d = await this.api.post<DisenoPedido>(`/ventas/${this.ventaId()}/disenos`, { ...n, nota: this.nota.trim() });
       this.disenos.update((l) => [d, ...l.map((x) => (x.estado === 'pendiente' ? { ...x, estado: 'reemplazado' as const } : x))]);
       this.nuevo.set(null);
-      this.aviso.ok(this.telefono() ? 'Diseño guardado. Ahora mándalo por WhatsApp.' : 'Diseño guardado');
+      this.aviso.ok(this.telefono() && !this.entregado() ? 'Diseño guardado. Ahora mándalo por WhatsApp.' : 'Diseño guardado');
       this.cambio.emit();
     } catch (e) { this.aviso.error(mensajeError(e)); }
     this.ocupado.set(false);

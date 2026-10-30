@@ -79,7 +79,7 @@ import { Icono } from './icono';
       }
       @if (esVenta() && modo() === 'documento' && v.id) {
         @if (conImportes()) { <app-comprobantes-pedido [ventaId]="v.id" [saldo]="$any(v).saldo" (cambio)="recargar()" /> }
-        <app-diseno-pedido [ventaId]="v.id" [folio]="v.folio" [telefono]="telefono()" [cerrado]="['cancelada', 'entregada'].includes(v.estado)" (cambio)="cambio.emit()" />
+        <app-diseno-pedido [ventaId]="v.id" [folio]="v.folio" [telefono]="telefono()" [cerrado]="v.estado === 'cancelada'" [entregado]="v.estado === 'entregada'" (cambio)="cambio.emit()" />
         <app-fotos-pedido [ventaId]="v.id" [folio]="v.folio" />
       }
 

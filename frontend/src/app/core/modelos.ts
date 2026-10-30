@@ -109,7 +109,7 @@ export interface FotoTrabajo extends Omit<FotoPedido, 'usuarioId'> { folio: stri
 export type EstadoDiseno = 'pendiente' | 'aprobado' | 'cambios' | 'reemplazado';
 export interface DisenoPedido {
   id: number; ventaId: number; version: number; estado: EstadoDiseno; nota: string | null; respuesta: string | null;
-  respondidoPor: string | null; via: 'enlace' | 'whatsapp' | 'mostrador' | null; respondidoEn: string | null;
+  respondidoPor: string | null; via: 'enlace' | 'whatsapp' | 'mostrador' | 'registro' | null; respondidoEn: string | null;
   ancho: number; alto: number; usuarioId: number; usuarioNombre: string; creadoEn: string; url: string; mini: string;
 }
 export const EST_DISENO: Record<EstadoDiseno, [string, string]> = {
@@ -118,7 +118,7 @@ export const EST_DISENO: Record<EstadoDiseno, [string, string]> = {
   cambios: ['Pidió cambios', 'bad'],
   reemplazado: ['Versión anterior', 'mut'],
 };
-export const VIA_DISENO: Record<string, string> = { enlace: 'en el enlace', whatsapp: 'por WhatsApp', mostrador: 'en mostrador' };
+export const VIA_DISENO: Record<string, string> = { enlace: 'en el enlace', whatsapp: 'por WhatsApp', mostrador: 'en mostrador', registro: 'como registro, después de entregar' };
 export interface ComprobantePedido {
   id: number; ventaId: number; ancho: number; alto: number; monto: number; nota: string | null;
   estado: 'pendiente' | 'aplicado' | 'descartado'; revisadoPor: string | null; revisadoEn: string | null; creadoEn: string; url: string; mini: string;

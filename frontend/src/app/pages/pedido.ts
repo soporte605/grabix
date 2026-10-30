@@ -125,8 +125,9 @@ const COMPROBANTE: Record<string, [string, string]> = { pendiente: ['En revisió
           <section class="caja">
             <div class="flex items-center gap-3">
               <button type="button" class="size-20 flex-none overflow-hidden rounded-lg bg-white" (click)="verDiseno(x)" aria-label="Ver el diseño aprobado"><img [src]="x.mini" alt="Diseño aprobado" class="size-full object-contain"></button>
-              <div><h2 class="text-base">Diseño aprobado</h2>
-                <p class="chico tenue">Por {{ x.respondidoPor }} {{ via[x.via ?? ''] }} el {{ cuando(x.respondidoEn!) }}</p></div>
+              @if (x.via === 'registro') { <div><h2 class="text-base">Diseño de tu pedido</h2>@if (x.nota) { <p class="chico tenue">{{ x.nota }}</p> }</div> }
+              @else { <div><h2 class="text-base">Diseño aprobado</h2>
+                <p class="chico tenue">Por {{ x.respondidoPor }} {{ via[x.via ?? ''] }} el {{ cuando(x.respondidoEn!) }}</p></div> }
             </div>
           </section>
         }

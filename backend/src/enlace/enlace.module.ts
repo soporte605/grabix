@@ -117,7 +117,9 @@ export class EnlaceService {
   async subirDiseno(s: Sesion, ventaId: number, dto: DisenoDto) {
     const em = this.ds.manager;
     const v = await this.venta(s, ventaId);
-    if (v.estado === EstadoVenta.Cancelada || v.estado === EstadoVenta.Entregada) throw new BadRequestException('Ese pedido ya está cerrado');
+    if (v.estado === EstadoVenta.Cancelada) throw new BadRequestException('Ese pedido está cancelado');
+    // En un pedido entregado el diseño solo se guarda como registro de lo que se hizo.
+    const registro = v.estado === EstadoVenta.Entregada;
     const n = await em.count(Diseno, { where: { tallerId: s.tallerId, ventaId } });
     if (n >= MAX_VERSIONES) throw new BadRequestException(`Un pedido puede tener hasta ${MAX_VERSIONES} versiones de diseño`);
     const vista = imagenDe(dto.vista);
@@ -129,6 +131,7 @@ export class EnlaceService {
     const d = await em.save(em.create(Diseno, {
       tallerId: s.tallerId, ventaId, version: (ultima?.version ?? 0) + 1, archivo: g.archivo, miniatura: m.archivo, vista: p.archivo,
       ancho: dto.ancho, alto: dto.alto, nota: dto.nota?.trim() || null, usuarioId: s.usuarioId, usuarioNombre: s.nombre,
+      ...(registro ? { estado: EstadoDiseno.Aprobado, via: 'registro', respondidoPor: s.nombre, respondidoEn: new Date() } : {}),
     }));
     // El pedido pasa a "Esperando aprobación" si todavía no entra a máquina.
     await this.moverEtapa(v, [EtapaTaller.Diseno, EtapaTaller.Cola], EtapaTaller.Aprobacion);
@@ -142,7 +145,7 @@ export class EnlaceService {
     const d = await em.findOneBy(Diseno, { id, tallerId: s.tallerId });
     if (!d) throw new NotFoundException('No encontramos ese diseño');
     const v = await this.venta(s, d.ventaId);
-    if (d.estado === EstadoDiseno.Aprobado) throw new BadRequestException('Ese diseño ya está aprobado');
+    if (d.estado === EstadoDiseno.Aprobado && d.via !== 'registro') throw new BadRequestException('Ese diseño ya está aprobado');
     if (d.estado === EstadoDiseno.Reemplazado) throw new BadRequestException('Hay una versión más nueva de este diseño');
     Object.assign(d, { estado: EstadoDiseno.Aprobado, via: dto.via, respuesta: dto.nota?.trim() || null, respondidoPor: s.nombre, respondidoEn: new Date() });
     await em.save(d);
@@ -157,7 +160,7 @@ export class EnlaceService {
     if (!d) throw new NotFoundException('No encontramos ese diseño');
     const v = await this.venta(s, d.ventaId);
     if (!VEN_COSTOS.includes(s.rol) && d.usuarioId !== s.usuarioId) throw new ForbiddenException('Solo puedes borrar los diseños que tú subiste');
-    if (d.estado === EstadoDiseno.Aprobado) throw new BadRequestException('Un diseño aprobado se conserva como registro');
+    if (d.estado === EstadoDiseno.Aprobado && d.via !== 'registro') throw new BadRequestException('Un diseño aprobado se conserva como registro');
     await em.delete(Diseno, { id });
     await borrar(s.tallerId, d.archivo, d.miniatura, d.vista);
     await this.bitacora.registrar(s, 'eliminar_diseno', 'venta', v.id, { folio: v.folio, version: d.version });
