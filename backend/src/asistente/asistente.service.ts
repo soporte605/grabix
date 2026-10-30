@@ -51,7 +51,7 @@ const FORMATO_SUGERENCIA = {
     precioMax: NUM,
     componentes: {
       type: 'array',
-      description: 'Receta con insumos que YA existen en el inventario (usa su id). Vacía si no aplica.',
+      description: 'Insumos que lleva (producto o servicio), solo los que YA existen en el inventario (usa su id). Vacía si no aplica.',
       items: { type: 'object', properties: { insumoId: { type: 'integer' }, cantidad: NUM }, required: ['insumoId', 'cantidad'], additionalProperties: false },
     },
     nota: { type: 'string', description: 'Dos o tres frases: cómo se calculó y qué revisar' },
@@ -64,7 +64,7 @@ const GUIA_SUGERENCIA = `Eres un experto en costeo de talleres de corte y grabad
 Te dan el nombre de un artículo que el taller quiere dar de alta, sus insumos con su costo real, su tarifa por minuto de máquina y artículos parecidos que ya vende.
 Propón los datos del artículo para que el taller cobre lo justo:
 - tipo: "producto" (se fabrica o se vende pieza), "insumo" (materia prima que compra) o "servicio" (mano de obra sin pieza, p. ej. corte con material del cliente).
-- Si es producto y se arma con insumos del inventario, ponlos en componentes con su id y cantidad (fracciones si usa parte de una hoja o placa) y deja costo en 0. Nunca inventes ids. Si falta un insumo importante, estima su costo en costo o extra y dilo en la nota.
+- Si es producto o servicio y lleva insumos del inventario (p. ej. un grabado que incluye la libreta o la placa), ponlos en componentes con su id y cantidad (fracciones si usa parte de una hoja o placa) y deja costo en 0. Nunca inventes ids. Si falta un insumo importante, estima su costo en costo o extra y dilo en la nota.
 - Si es insumo, costo es el precio de compra típico por unidad en México y precio puede ser 0 si no se revende.
 - minutos: tiempo realista de máquina por pieza; el costo de máquina lo calcula el sistema con la tarifa del taller.
 - precio: apunta al margen objetivo del taller, ajustado a lo que suele cobrarse en México y a los precios que ya maneja el taller. precioMin y precioMax es el rango de mercado.
@@ -269,7 +269,7 @@ export class AsistenteService {
       // Solo insumos reales del taller, y nada de números negativos.
       const ids = new Set(insumos.map((p) => p.id));
       const n = (v: unknown) => Math.max(0, r2(Number(v) || 0));
-      const componentes = x.tipo === TipoProducto.Producto
+      const componentes = x.tipo !== TipoProducto.Insumo
         ? x.componentes.filter((c) => ids.has(c.insumoId) && c.cantidad > 0).slice(0, 30).map((c) => ({ insumoId: c.insumoId, cantidad: Math.round(c.cantidad * 10000) / 10000 }))
         : [];
       const costo = componentes.length ? 0 : n(x.costo), minutos = n(x.minutos), extra = n(x.extra);
