@@ -74,7 +74,7 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
           <div class="campo"><label for="p-c">Línea</label><select id="p-c" [(ngModel)]="e.categoria">@for (c of categorias; track c) { <option>{{ c }}</option> }</select></div>
           <div class="campo"><label for="p-u">Unidad</label><input id="p-u" [(ngModel)]="e.unidad"></div>
         </div>
-        @if (!e.id && ia.estado()?.disponible) {
+        @if (ia.estado()?.disponible) {
           <div class="caja" [class.!border-marca]="sug()">
             @if (sug(); as g) {
               <div class="fila entre"><h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />Sugerencia de la IA</h3><span class="fila"><button class="btn sm" (click)="limpiar()" [disabled]="pensando()">Limpiar</button><button class="btn sm" (click)="sugerir()" [disabled]="pensando()">{{ pensando() ? 'Pensando…' : 'Otra vez' }}</button></span></div>
@@ -82,8 +82,10 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
               @if (g.precioMax) { <p class="tenue chico">En el mercado se cobra entre <span class="num">{{ g.precioMin | dinero }}</span> y <span class="num">{{ g.precioMax | dinero }}</span>.</p> }
               <p class="tenue chico">Ya llené los campos de abajo. Revísalos y ajústalos a tu taller antes de guardar. Con "Limpiar" quedan como estaban y puedes cambiar el nombre o los detalles para preguntar de nuevo.</p>
             } @else {
-              <h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />¿No sabes cuánto cobrar?</h3>
-              <p class="tenue chico">Escribe el nombre y la IA propone costo, minutos de máquina, receta y precio usando tus insumos y tu tarifa.</p>
+              <h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />{{ e.tipo === 'insumo' ? '¿No sabes cuánto cuesta?' : '¿No sabes cuánto cobrar?' }}</h3>
+              <p class="tenue chico">{{ e.tipo === 'insumo'
+                ? 'Escribe el nombre y la IA propone la unidad y el costo de compra típico en México. Ajústalo con lo que te cobra tu proveedor.'
+                : 'Escribe el nombre y la IA propone costo, minutos de máquina, insumos y precio usando tus insumos y tu tarifa.' }}</p>
               <div class="fila">
                 <input class="entrada flex-1" placeholder="Detalles opcionales: medidas, material, acabado" maxlength="400" [(ngModel)]="detalles" aria-label="Detalles para la IA">
                 <button class="btn" (click)="sugerir()" [disabled]="pensando()"><app-icono nombre="chispa" />{{ pensando() ? 'Pensando…' : 'Sugerir con IA' }}</button>
@@ -224,7 +226,7 @@ export class Inventario implements OnInit {
     this.sug.set(null);
     this.detalles = '';
     this.antes = null;
-    if (!p && !this.ia.estado()) this.ia.cargarEstado();
+    if (!this.ia.estado()) this.ia.cargarEstado();
     this.e_.set(p
       ? { ...p, componentes: p.componentes.map((c: Componente) => ({ ...c })), stockInicial: p.controlaStock ? p.existencia : undefined, minimo: p.minimo }
       : { nombre: '', tipo: 'producto' as TipoProducto, categoria: 'Sublimación', unidad: 'pza', costo: 0, precio: 0, minutos: 0, extra: 0, activo: true, componentes: [] });
@@ -237,7 +239,7 @@ export class Inventario implements OnInit {
     if (e.nombre.trim().length < 3) { this.aviso.error('Escribe primero el nombre del artículo'); return; }
     this.pensando.set(true);
     try {
-      const g = await this.ia.sugerirProducto(e.nombre, this.detalles);
+      const g = await this.ia.sugerirProducto(e.nombre, this.detalles, e.tipo);
       this.antes ??= { tipo: e.tipo, categoria: e.categoria, unidad: e.unidad, costo: e.costo, minutos: e.minutos, extra: e.extra, precio: e.precio, componentes: e.componentes };
       Object.assign(e, { tipo: g.tipo, categoria: g.categoria, unidad: g.unidad, costo: g.costo, minutos: g.minutos, extra: g.extra, precio: g.precio, componentes: g.componentes });
       this.sug.set(g);

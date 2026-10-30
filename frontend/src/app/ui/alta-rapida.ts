@@ -139,7 +139,7 @@ export class AltaProducto implements OnInit {
     if (this.nombre.trim().length < 3) { this.aviso.error('Escribe primero el nombre'); return; }
     this.pensando.set(true);
     try {
-      const g = await this.ia.sugerirProducto(this.nombre, undefined, this.tipo());
+      const g = await this.ia.sugerirProducto(this.nombre);
       this.antes ??= { tipo: this.tipo(), precio: this.precio, costo: this.costo, categoria: this.categoria, unidad: this.unidad };
       // Desde aquí solo se dan de alta productos o servicios, no insumos.
       this.tipo.set(g.tipo === 'servicio' ? 'servicio' : 'producto');
