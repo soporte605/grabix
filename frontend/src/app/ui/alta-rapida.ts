@@ -80,7 +80,7 @@ export class AltaCliente implements OnInit {
       @if (s.verCostos() && ia.estado()?.disponible) {
         @if (sug(); as g) {
           <div class="caja !border-marca">
-            <div class="fila entre"><h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />Sugerencia de la IA</h3><button type="button" class="btn sm" (click)="sugerir()" [disabled]="pensando()">Otra vez</button></div>
+            <div class="fila entre"><h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />Sugerencia de la IA</h3><span class="fila"><button type="button" class="btn sm" (click)="limpiar()" [disabled]="pensando()">Limpiar</button><button type="button" class="btn sm" (click)="sugerir()" [disabled]="pensando()">{{ pensando() ? 'Pensando…' : 'Otra vez' }}</button></span></div>
             <p>{{ g.nota }}</p>
             @if (g.precioMax) { <p class="chico tenue">En el mercado se cobra entre <span class="num">{{ g.precioMin | dinero }}</span> y <span class="num">{{ g.precioMax | dinero }}</span>. Revisa los datos antes de guardar.</p> }
           </div>
@@ -127,6 +127,7 @@ export class AltaProducto implements OnInit {
   ia = inject(AsistenteService);
   sug = signal<SugerenciaProducto | null>(null);
   pensando = signal(false);
+  private antes: { tipo: 'servicio' | 'producto'; precio: number | null; costo: number | null; categoria: string; unidad: string } | null = null;
 
   ngOnInit() {
     this.nombre = this.inicial().trim();
@@ -139,6 +140,7 @@ export class AltaProducto implements OnInit {
     this.pensando.set(true);
     try {
       const g = await this.ia.sugerirProducto(this.nombre, undefined, this.tipo());
+      this.antes ??= { tipo: this.tipo(), precio: this.precio, costo: this.costo, categoria: this.categoria, unidad: this.unidad };
       // Desde aquí solo se dan de alta productos o servicios, no insumos.
       this.tipo.set(g.tipo === 'servicio' ? 'servicio' : 'producto');
       this.precio = g.precio;
@@ -150,6 +152,16 @@ export class AltaProducto implements OnInit {
     finally { this.pensando.set(false); }
   }
 
+  /** Deshace lo que llenó la IA para cambiar el nombre y preguntar de nuevo. */
+  limpiar() {
+    if (this.antes) {
+      this.tipo.set(this.antes.tipo);
+      ({ precio: this.precio, costo: this.costo, categoria: this.categoria, unidad: this.unidad } = this.antes);
+    }
+    this.antes = null;
+    this.sug.set(null);
+  }
+
   async guardar() {
     if (this.ocupado() || this.nombre.trim().length < 2) return;
     this.ocupado.set(true);
@@ -157,7 +169,7 @@ export class AltaProducto implements OnInit {
       const p = await this.api.post<Producto>('/productos', {
         nombre: this.nombre.trim(), tipo: this.tipo(), precio: Number(this.precio) || 0, costo: Number(this.costo) || 0,
         categoria: this.categoria.trim(), unidad: this.unidad.trim() || 'pza',
-        ...(this.sug() ? { minutos: this.sug()!.minutos, extra: this.sug()!.extra, componentes: this.tipo() === 'producto' ? this.sug()!.componentes : [] } : {}),
+        ...(this.sug() ? { minutos: this.sug()!.minutos, extra: this.sug()!.extra, componentes: this.sug()!.componentes } : {}),
       });
       this.aviso.ok(this.tipo() === 'servicio' ? 'Servicio guardado' : 'Producto guardado');
       this.creado.emit(p);

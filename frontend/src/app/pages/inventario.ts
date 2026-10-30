@@ -77,10 +77,10 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
         @if (!e.id && ia.estado()?.disponible) {
           <div class="caja" [class.!border-marca]="sug()">
             @if (sug(); as g) {
-              <div class="fila entre"><h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />Sugerencia de la IA</h3><button class="btn sm" (click)="sugerir()" [disabled]="pensando()">Otra vez</button></div>
+              <div class="fila entre"><h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />Sugerencia de la IA</h3><span class="fila"><button class="btn sm" (click)="limpiar()" [disabled]="pensando()">Limpiar</button><button class="btn sm" (click)="sugerir()" [disabled]="pensando()">{{ pensando() ? 'Pensando…' : 'Otra vez' }}</button></span></div>
               <p>{{ g.nota }}</p>
               @if (g.precioMax) { <p class="tenue chico">En el mercado se cobra entre <span class="num">{{ g.precioMin | dinero }}</span> y <span class="num">{{ g.precioMax | dinero }}</span>.</p> }
-              <p class="tenue chico">Ya llené los campos de abajo. Revísalos y ajústalos a tu taller antes de guardar.</p>
+              <p class="tenue chico">Ya llené los campos de abajo. Revísalos y ajústalos a tu taller antes de guardar. Con "Limpiar" quedan como estaban y puedes cambiar el nombre o los detalles para preguntar de nuevo.</p>
             } @else {
               <h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />¿No sabes cuánto cobrar?</h3>
               <p class="tenue chico">Escribe el nombre y la IA propone costo, minutos de máquina, receta y precio usando tus insumos y tu tarifa.</p>
@@ -91,10 +91,12 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
             }
           </div>
         }
-        @if (e.tipo === 'producto') {
+        @if (e.tipo !== 'insumo') {
           <div class="caja">
-            <h3>¿De qué está hecho?</h3>
-            <p class="tenue chico">Si lo armas con insumos (una taza sublimada = 1 taza blanca + 1 hoja de papel), agrégalos. Al venderlo se descuentan del inventario.</p>
+            <h3>{{ e.tipo === 'servicio' ? '¿Qué insumos lleva?' : '¿De qué está hecho?' }}</h3>
+            <p class="tenue chico">{{ e.tipo === 'servicio'
+              ? 'Si el servicio incluye material (un grabado que lleva la libreta, un corte que lleva el MDF), agrégalo. Al venderlo se descuenta del inventario. Si el cliente trae su material, déjalo vacío.'
+              : 'Si lo armas con insumos (una taza sublimada = 1 taza blanca + 1 hoja de papel), agrégalos. Al venderlo se descuentan del inventario.' }}</p>
             @for (c of e.componentes; track $index; let i = $index) {
               <div class="fila">
                 <app-buscador class="flex-1" [opciones]="opsInsumos()" vacio="Elige insumo" etiqueta="Insumo" [(ngModel)]="c.insumoId" (ngModelChange)="calc()" />
@@ -170,6 +172,8 @@ export class Inventario implements OnInit {
   sug = signal<SugerenciaProducto | null>(null);
   pensando = signal(false);
   detalles = '';
+  /** Campos como estaban antes de la primera sugerencia, para "Limpiar". */
+  private antes: Partial<Edit> | null = null;
   /** Producto cuya galería de trabajos está abierta. */
   trabajos = signal<Producto | null>(null);
   tipos = TIPOS;
@@ -197,7 +201,7 @@ export class Inventario implements OnInit {
   opsInsumos = computed(() => this.insumos().map((p) => ({ valor: p.id, texto: p.nombre })));
   opsConStock = computed(() => this.conStock().map((p) => ({ valor: p.id, texto: p.nombre, detalle: `${p.existencia} en existencia` })));
   destinos = computed(() => (this.s.perfil()?.sucursales ?? []).filter((x) => x.id !== this.s.sucursal()));
-  tieneReceta = computed(() => { this.rev(); const e = this.e(); return !!e && e.tipo === 'producto' && e.componentes.some((c) => c.insumoId); });
+  tieneReceta = computed(() => { this.rev(); const e = this.e(); return !!e && e.tipo !== 'insumo' && e.componentes.some((c) => c.insumoId); });
   costo = computed(() => {
     this.rev();
     const e = this.e();
@@ -219,6 +223,7 @@ export class Inventario implements OnInit {
   abrir(p?: Producto) {
     this.sug.set(null);
     this.detalles = '';
+    this.antes = null;
     if (!p && !this.ia.estado()) this.ia.cargarEstado();
     this.e_.set(p
       ? { ...p, componentes: p.componentes.map((c: Componente) => ({ ...c })), stockInicial: p.controlaStock ? p.existencia : undefined, minimo: p.minimo }
@@ -233,11 +238,21 @@ export class Inventario implements OnInit {
     this.pensando.set(true);
     try {
       const g = await this.ia.sugerirProducto(e.nombre, this.detalles);
+      this.antes ??= { tipo: e.tipo, categoria: e.categoria, unidad: e.unidad, costo: e.costo, minutos: e.minutos, extra: e.extra, precio: e.precio, componentes: e.componentes };
       Object.assign(e, { tipo: g.tipo, categoria: g.categoria, unidad: g.unidad, costo: g.costo, minutos: g.minutos, extra: g.extra, precio: g.precio, componentes: g.componentes });
       this.sug.set(g);
       this.calc();
     } catch (err) { this.aviso.error(mensajeError(err)); }
     finally { this.pensando.set(false); }
+  }
+
+  /** Deshace lo que llenó la IA y vuelve a mostrar el recuadro para preguntar. */
+  limpiar() {
+    const e = this.e();
+    if (e && this.antes) Object.assign(e, this.antes, { componentes: (this.antes.componentes ?? []).map((c) => ({ ...c })) });
+    this.antes = null;
+    this.sug.set(null);
+    this.calc();
   }
 
   async guardar() {
@@ -246,7 +261,7 @@ export class Inventario implements OnInit {
     const body = {
       nombre: e.nombre.trim(), tipo: e.tipo, categoria: e.categoria, unidad: e.unidad, costo: Number(e.costo) || 0, precio: Number(e.precio) || 0,
       minutos: Number(e.minutos) || 0, extra: Number(e.extra) || 0,
-      componentes: e.tipo === 'producto' ? e.componentes.filter((c) => c.insumoId).map((c) => ({ insumoId: c.insumoId, cantidad: Number(c.cantidad) || 0 })) : [],
+      componentes: e.tipo !== 'insumo' ? e.componentes.filter((c) => c.insumoId).map((c) => ({ insumoId: c.insumoId, cantidad: Number(c.cantidad) || 0 })) : [],
       ...(e.id ? {} : { stockInicial: Number(e.stockInicial) || 0, minimo: Number(e.minimo) || 0 }),
     };
     try {

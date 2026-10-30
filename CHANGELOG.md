@@ -4,6 +4,11 @@ Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el co
 
 ## 2026-10-30
 
+### Servicios con insumos y botón Limpiar en la IA
+- Los servicios también pueden llevar insumos ("¿Qué insumos lleva?"), por ejemplo un grabado que incluye la libreta. Su costo se calcula con la receta y al venderlos se descuentan del inventario. Un servicio sin insumos sigue igual.
+- La IA puede sugerir insumos también para servicios.
+- Botón **Limpiar** en las sugerencias de la IA (Inventario, alta rápida y conceptos libres): regresa los campos a como estaban para preguntar de nuevo.
+
 ### Sugerir con IA al dar de alta un artículo
 - En Inventario → Nuevo artículo, el botón **Sugerir con IA** propone tipo, línea, unidad, minutos de máquina, otros costos, la receta con insumos que ya existen y el precio de venta, con una nota de cómo lo calculó y el rango que se cobra en el mercado. Se pueden agregar detalles (medidas, material). Los campos quedan llenos para revisarlos; nunca se guarda solo.
 - Usa los datos del taller: insumos con su costo, tarifa por minuto, margen objetivo y precios de artículos parecidos. Las recetas solo aceptan ids de insumos reales.
