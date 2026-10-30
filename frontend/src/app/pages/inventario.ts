@@ -82,8 +82,13 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
               @if (g.precioMax) { <p class="tenue chico">En el mercado se cobra entre <span class="num">{{ g.precioMin | dinero }}</span> y <span class="num">{{ g.precioMax | dinero }}</span>.</p> }
               <p class="tenue chico">Ya llené los campos de abajo. Revísalos y ajústalos a tu taller antes de guardar. Con "Limpiar" quedan como estaban y puedes cambiar el nombre o los detalles para preguntar de nuevo.</p>
             } @else {
-              <h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />¿No sabes cuánto cobrar?</h3>
-              <p class="tenue chico">Escribe el nombre y la IA propone costo, minutos de máquina, receta y precio usando tus insumos y tu tarifa.</p>
+              @if (e.tipo === 'insumo') {
+                <h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />¿No sabes cuánto cuesta?</h3>
+                <p class="tenue chico">Escribe el nombre y la IA propone el costo de compra típico, la unidad y la línea del insumo.</p>
+              } @else {
+                <h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />¿No sabes cuánto cobrar?</h3>
+                <p class="tenue chico">Escribe el nombre y la IA propone costo, minutos de máquina, receta y precio usando tus insumos y tu tarifa.</p>
+              }
               <div class="fila">
                 <input class="entrada flex-1" placeholder="Detalles opcionales: medidas, material, acabado" maxlength="400" [(ngModel)]="detalles" aria-label="Detalles para la IA">
                 <button class="btn" (click)="sugerir()" [disabled]="pensando()"><app-icono nombre="chispa" />{{ pensando() ? 'Pensando…' : 'Sugerir con IA' }}</button>
@@ -237,7 +242,8 @@ export class Inventario implements OnInit {
     if (e.nombre.trim().length < 3) { this.aviso.error('Escribe primero el nombre del artículo'); return; }
     this.pensando.set(true);
     try {
-      const g = await this.ia.sugerirProducto(e.nombre, this.detalles);
+      // Respeta el tipo elegido arriba (producto, insumo o servicio).
+      const g = await this.ia.sugerirProducto(e.nombre, this.detalles, e.tipo);
       this.antes ??= { tipo: e.tipo, categoria: e.categoria, unidad: e.unidad, costo: e.costo, minutos: e.minutos, extra: e.extra, precio: e.precio, componentes: e.componentes };
       Object.assign(e, { tipo: g.tipo, categoria: g.categoria, unidad: g.unidad, costo: g.costo, minutos: g.minutos, extra: g.extra, precio: g.precio, componentes: g.componentes });
       this.sug.set(g);

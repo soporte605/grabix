@@ -63,7 +63,7 @@ const FORMATO_SUGERENCIA = {
 const GUIA_SUGERENCIA = `Eres un experto en costeo de talleres de corte y grabado láser y sublimación en México.
 Te dan el nombre de un artículo que el taller quiere dar de alta, sus insumos con su costo real, su tarifa por minuto de máquina y artículos parecidos que ya vende.
 Propón los datos del artículo para que el taller cobre lo justo:
-- tipo: "producto" (se fabrica o se vende pieza), "insumo" (materia prima que compra) o "servicio" (mano de obra sin pieza, p. ej. corte con material del cliente).
+- tipo: si tipoIndicado no es "no indicado", usa ese tipo. Si no: "producto" (se fabrica o se vende pieza), "insumo" (materia prima que compra) o "servicio" (mano de obra sin pieza, p. ej. corte con material del cliente).
 - Si es producto o servicio y lleva insumos del inventario (p. ej. un grabado que incluye la libreta o la placa), ponlos en componentes con su id y cantidad (fracciones si usa parte de una hoja o placa) y deja costo en 0. Nunca inventes ids. Si falta un insumo importante, estima su costo en costo o extra y dilo en la nota.
 - Si es insumo, costo es el precio de compra típico por unidad en México y precio puede ser 0 si no se revende.
 - minutos: tiempo realista de máquina por pieza; el costo de máquina lo calcula el sistema con la tarifa del taller.
@@ -269,13 +269,14 @@ export class AsistenteService {
       // Solo insumos reales del taller, y nada de números negativos.
       const ids = new Set(insumos.map((p) => p.id));
       const n = (v: unknown) => Math.max(0, r2(Number(v) || 0));
-      const componentes = x.tipo !== TipoProducto.Insumo
+      const tipo = d.tipo ?? (Object.values(TipoProducto).includes(x.tipo) ? x.tipo : TipoProducto.Producto);
+      const componentes = tipo !== TipoProducto.Insumo
         ? x.componentes.filter((c) => ids.has(c.insumoId) && c.cantidad > 0).slice(0, 30).map((c) => ({ insumoId: c.insumoId, cantidad: Math.round(c.cantidad * 10000) / 10000 }))
         : [];
       const costo = componentes.length ? 0 : n(x.costo), minutos = n(x.minutos), extra = n(x.extra);
       const base = componentes.length ? componentes.reduce((a, c) => a + (insumos.find((p) => p.id === c.insumoId)?.costoUnitario ?? 0) * c.cantidad, 0) : costo;
       return {
-        tipo: Object.values(TipoProducto).includes(x.tipo) ? x.tipo : TipoProducto.Producto,
+        tipo,
         categoria: LINEAS.includes(x.categoria) ? x.categoria : 'Otro',
         unidad: String(x.unidad || 'pza').slice(0, 20),
         costo, minutos, extra, costoTotal: r2(base + minutos * taller.tarifaMinuto + extra),
