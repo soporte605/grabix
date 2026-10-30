@@ -19,7 +19,7 @@ Grabix es un sistema por suscripción (SaaS) para talleres de **corte y grabado 
 | `backend/` | NestJS 11 + TypeORM 0.3 + MySQL 8. ValidationPipe global con mensajes en español (`common/validacion.ts`). |
 | PDF | `pdfkit` (`backend/src/documentos/pdf.service.ts`) |
 | Correo | Resend en producción, o SMTP (Mailpit en desarrollo) |
-| IA | Asistente con la API de Anthropic (`@anthropic-ai/sdk`), solo lectura, con límite diario por plan |
+| IA | Asistente con la API de Anthropic (`@anthropic-ai/sdk`), solo lectura, con límite diario por plan. También "Sugerir con IA" en el alta de artículos (salida JSON con esquema, cuenta en el mismo límite) |
 | Despliegue | Docker Compose (`docker-compose.prod.yml`) detrás del nginx del servidor |
 
 ## Estructura

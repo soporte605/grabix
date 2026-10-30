@@ -8,7 +8,7 @@ import { GERENCIA, Sesion, VEN_COSTOS } from '../common/sesion';
 import { hoy, LIMITES_PRUEBA, limites, sumarDias } from '../common/suscripcion';
 import { r2 } from '../common/util';
 import { DocumentosService } from '../documentos/documentos.service';
-import { AsistenteUso, Cotizacion, EstadoSuscripcion, Rol, Sucursal, Taller, Venta } from '../entities';
+import { AsistenteUso, Cotizacion, EstadoSuscripcion, Rol, Sucursal, Taller, TipoProducto, Venta } from '../entities';
 import { GUIA } from './guia';
 
 type Herramienta = Anthropic.Beta.BetaTool & { roles: Rol[] };
@@ -24,6 +24,50 @@ const NOMBRE_ROL: Record<Rol, string> = {
   [Rol.Produccion]: 'Producción (no ve costos ni ganancias)',
 };
 const MAX_VUELTAS = 6;
+
+/** Líneas que ofrece el formulario de artículos. */
+export const LINEAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
+
+export interface DatosSugerencia { nombre: string; tipo?: TipoProducto; categoria?: string; detalles?: string }
+export interface Sugerencia {
+  tipo: TipoProducto; categoria: string; unidad: string; costo: number; minutos: number; extra: number; precio: number;
+  precioMin: number; precioMax: number; componentes: { insumoId: number; cantidad: number }[]; nota: string;
+}
+
+const NUM = { type: 'number' } as const;
+const FORMATO_SUGERENCIA = {
+  type: 'object',
+  properties: {
+    tipo: { type: 'string', enum: Object.values(TipoProducto) },
+    categoria: { type: 'string', enum: LINEAS },
+    unidad: { type: 'string', description: 'pza, hoja, m2, metro, servicio…' },
+    costo: { ...NUM, description: 'Costo de compra por unidad. 0 si lleva receta de insumos.' },
+    minutos: { ...NUM, description: 'Minutos de láser o plancha por pieza' },
+    extra: { ...NUM, description: 'Otros costos por pieza: empaque, base, tornillería, etc.' },
+    precio: { ...NUM, description: 'Precio de venta recomendado por unidad' },
+    precioMin: NUM,
+    precioMax: NUM,
+    componentes: {
+      type: 'array',
+      description: 'Receta con insumos que YA existen en el inventario (usa su id). Vacía si no aplica.',
+      items: { type: 'object', properties: { insumoId: { type: 'integer' }, cantidad: NUM }, required: ['insumoId', 'cantidad'], additionalProperties: false },
+    },
+    nota: { type: 'string', description: 'Dos o tres frases: cómo se calculó y qué revisar' },
+  },
+  required: ['tipo', 'categoria', 'unidad', 'costo', 'minutos', 'extra', 'precio', 'precioMin', 'precioMax', 'componentes', 'nota'],
+  additionalProperties: false,
+};
+
+const GUIA_SUGERENCIA = `Eres un experto en costeo de talleres de corte y grabado láser y sublimación en México.
+Te dan el nombre de un artículo que el taller quiere dar de alta, sus insumos con su costo real, su tarifa por minuto de máquina y artículos parecidos que ya vende.
+Propón los datos del artículo para que el taller cobre lo justo:
+- tipo: "producto" (se fabrica o se vende pieza), "insumo" (materia prima que compra) o "servicio" (mano de obra sin pieza, p. ej. corte con material del cliente).
+- Si es producto y se arma con insumos del inventario, ponlos en componentes con su id y cantidad (fracciones si usa parte de una hoja o placa) y deja costo en 0. Nunca inventes ids. Si falta un insumo importante, estima su costo en costo o extra y dilo en la nota.
+- Si es insumo, costo es el precio de compra típico por unidad en México y precio puede ser 0 si no se revende.
+- minutos: tiempo realista de máquina por pieza; el costo de máquina lo calcula el sistema con la tarifa del taller.
+- precio: apunta al margen objetivo del taller, ajustado a lo que suele cobrarse en México y a los precios que ya maneja el taller. precioMin y precioMax es el rango de mercado.
+- nota: en español sencillo, sin tecnicismos, máximo 300 caracteres.
+Cantidades en la moneda del taller, con hasta 2 decimales.`;
 
 /** Herramientas de solo lectura. Cada una respeta el rol y la sucursal de quien pregunta. */
 const HERRAMIENTAS: Herramienta[] = [
@@ -184,6 +228,64 @@ export class AsistenteService {
       if (entrada || salida) await this.registrar(s.tallerId, entrada, salida);
     }
     return { texto: texto || 'No encontré una respuesta. ¿Puedes decirlo de otra forma?', restantes: Math.max(0, limite - usadas - 1) };
+  }
+
+  /** Propone costo, precio, minutos y receta para un artículo nuevo con los datos del propio taller. Cuenta como una pregunta. */
+  async sugerirProducto(s: Sesion, d: DatosSugerencia): Promise<Sugerencia & { restantes: number }> {
+    if (!this.cliente) throw new HttpException('La IA aún no está configurada en este servidor.', HttpStatus.SERVICE_UNAVAILABLE);
+    const { limite, usadas, taller } = await this.cupo(s);
+    if (usadas >= limite)
+      throw new HttpException(`Tu taller ya usó las ${limite} consultas de IA de hoy. Mañana se renueva el cupo, o puedes subir de plan en Ajustes.`, HttpStatus.TOO_MANY_REQUESTS);
+
+    const ps = (await this.catalogo.productos(s)).filter((p) => p.activo);
+    const insumos = ps.filter((p) => p.tipo === TipoProducto.Insumo).slice(0, 120);
+    const parecidos = ps.filter((p) => p.tipo !== TipoProducto.Insumo && p.precio > 0).slice(0, 40);
+    const datos = {
+      taller: { moneda: taller.moneda, tarifaPorMinutoDeMaquina: taller.tarifaMinuto, margenObjetivoPct: taller.margenObjetivo },
+      insumos: insumos.map((p) => ({ id: p.id, nombre: p.nombre, unidad: p.unidad, costo: p.costoUnitario })),
+      articulosQueYaVende: parecidos.map((p) => ({ nombre: p.nombre, tipo: p.tipo, linea: p.categoria, precio: p.precio, costo: p.costoUnitario, minutos: p.minutos })),
+      articuloNuevo: { nombre: d.nombre, tipoIndicado: d.tipo ?? 'no indicado', lineaIndicada: d.categoria ?? 'no indicada', detalles: d.detalles || '' },
+    };
+
+    let entrada = 0, salida = 0;
+    try {
+      const r = await this.cliente.beta.messages.create({
+        model: this.modelo,
+        max_tokens: 8000,
+        betas: ['server-side-fallback-2026-07-01'],
+        fallbacks: 'default',
+        output_config: { effort: 'low', format: { type: 'json_schema', schema: FORMATO_SUGERENCIA } },
+        system: GUIA_SUGERENCIA,
+        messages: [{ role: 'user', content: JSON.stringify(datos) }],
+      });
+      entrada = r.usage.input_tokens + (r.usage.cache_read_input_tokens ?? 0) + (r.usage.cache_creation_input_tokens ?? 0);
+      salida = r.usage.output_tokens;
+      const json = r.content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text').map((b) => b.text).join('');
+      if (r.stop_reason !== 'end_turn' || !json) throw new HttpException('No pude armar una sugerencia para ese artículo. Prueba con un nombre más claro.', HttpStatus.UNPROCESSABLE_ENTITY);
+      const x = JSON.parse(json) as Sugerencia;
+
+      // Solo insumos reales del taller, y nada de números negativos.
+      const ids = new Set(insumos.map((p) => p.id));
+      const n = (v: unknown) => Math.max(0, r2(Number(v) || 0));
+      const componentes = x.tipo === TipoProducto.Producto
+        ? x.componentes.filter((c) => ids.has(c.insumoId) && c.cantidad > 0).slice(0, 30).map((c) => ({ insumoId: c.insumoId, cantidad: Math.round(c.cantidad * 10000) / 10000 }))
+        : [];
+      return {
+        tipo: Object.values(TipoProducto).includes(x.tipo) ? x.tipo : TipoProducto.Producto,
+        categoria: LINEAS.includes(x.categoria) ? x.categoria : 'Otro',
+        unidad: String(x.unidad || 'pza').slice(0, 20),
+        costo: componentes.length ? 0 : n(x.costo), minutos: n(x.minutos), extra: n(x.extra),
+        precio: n(x.precio), precioMin: n(x.precioMin), precioMax: n(x.precioMax),
+        componentes,
+        nota: String(x.nota || '').slice(0, 500),
+        restantes: Math.max(0, limite - usadas - 1),
+      };
+    } catch (e) {
+      if (e instanceof SyntaxError) throw new HttpException('La IA tuvo un problema. Intenta de nuevo.', HttpStatus.BAD_GATEWAY);
+      throw this.error(e);
+    } finally {
+      if (entrada || salida) await this.registrar(s.tallerId, entrada, salida);
+    }
   }
 
   /* ----------------------------------------------------------------------- */

@@ -2,6 +2,7 @@ import { Esqueleto } from '../ui/esqueleto';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api.service';
+import { AsistenteService } from '../core/asistente.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { DineroPipe, PctPipe } from '../core/formato';
 import { Componente, Producto, TIPOS, TipoProducto } from '../core/modelos';
@@ -14,6 +15,10 @@ import { Buscador } from '../ui/buscador';
 import { Hoja } from '../ui/hoja';
 import { Icono } from '../ui/icono';
 
+interface Sugerencia {
+  tipo: TipoProducto; categoria: string; unidad: string; costo: number; minutos: number; extra: number; precio: number;
+  precioMin: number; precioMax: number; componentes: Componente[]; nota: string; restantes: number;
+}
 type Edit = Omit<Producto, 'id' | 'existencia' | 'minimo' | 'controlaStock'> & { id?: number; stockInicial?: number; minimo?: number };
 const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
 
@@ -73,6 +78,23 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
           <div class="campo"><label for="p-c">Línea</label><select id="p-c" [(ngModel)]="e.categoria">@for (c of categorias; track c) { <option>{{ c }}</option> }</select></div>
           <div class="campo"><label for="p-u">Unidad</label><input id="p-u" [(ngModel)]="e.unidad"></div>
         </div>
+        @if (!e.id && ia.estado()?.disponible) {
+          <div class="caja" [class.!border-marca]="sug()">
+            @if (sug(); as g) {
+              <div class="fila entre"><h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />Sugerencia de la IA</h3><button class="btn sm" (click)="sugerir()" [disabled]="pensando()">Otra vez</button></div>
+              <p>{{ g.nota }}</p>
+              @if (g.precioMax) { <p class="tenue chico">En el mercado se cobra entre <span class="num">{{ g.precioMin | dinero }}</span> y <span class="num">{{ g.precioMax | dinero }}</span>.</p> }
+              <p class="tenue chico">Ya llené los campos de abajo. Revísalos y ajústalos a tu taller antes de guardar.</p>
+            } @else {
+              <h3 class="flex items-center gap-1.5"><app-icono nombre="chispa" />¿No sabes cuánto cobrar?</h3>
+              <p class="tenue chico">Escribe el nombre y la IA propone costo, minutos de máquina, receta y precio usando tus insumos y tu tarifa.</p>
+              <div class="fila">
+                <input class="entrada flex-1" placeholder="Detalles opcionales: medidas, material, acabado" maxlength="400" [(ngModel)]="detalles" aria-label="Detalles para la IA">
+                <button class="btn" (click)="sugerir()" [disabled]="pensando()"><app-icono nombre="chispa" />{{ pensando() ? 'Pensando…' : 'Sugerir con IA' }}</button>
+              </div>
+            }
+          </div>
+        }
         @if (e.tipo === 'producto') {
           <div class="caja">
             <h3>¿De qué está hecho?</h3>
@@ -147,6 +169,11 @@ export class Inventario implements OnInit {
   private api = inject(Api);
   private aviso = inject(AvisoService);
   private confirmar = inject(ConfirmarService);
+  ia = inject(AsistenteService);
+  /** Última sugerencia de la IA para el artículo que se está creando. */
+  sug = signal<Sugerencia | null>(null);
+  pensando = signal(false);
+  detalles = '';
   /** Producto cuya galería de trabajos está abierta. */
   trabajos = signal<Producto | null>(null);
   tipos = TIPOS;
@@ -194,10 +221,28 @@ export class Inventario implements OnInit {
   calc() { this.rev.update((x) => x + 1); }
 
   abrir(p?: Producto) {
+    this.sug.set(null);
+    this.detalles = '';
+    if (!p && !this.ia.estado()) this.ia.cargarEstado();
     this.e_.set(p
       ? { ...p, componentes: p.componentes.map((c: Componente) => ({ ...c })), stockInicial: p.controlaStock ? p.existencia : undefined, minimo: p.minimo }
       : { nombre: '', tipo: 'producto' as TipoProducto, categoria: 'Sublimación', unidad: 'pza', costo: 0, precio: 0, minutos: 0, extra: 0, activo: true, componentes: [] });
     this.calc();
+  }
+
+  async sugerir() {
+    const e = this.e();
+    if (!e || this.pensando()) return;
+    if (e.nombre.trim().length < 3) { this.aviso.error('Escribe primero el nombre del artículo'); return; }
+    this.pensando.set(true);
+    try {
+      const g = await this.api.post<Sugerencia>('/asistente/sugerir-producto', { nombre: e.nombre.trim(), detalles: this.detalles.trim() || undefined });
+      Object.assign(e, { tipo: g.tipo, categoria: g.categoria, unidad: g.unidad, costo: g.costo, minutos: g.minutos, extra: g.extra, precio: g.precio, componentes: g.componentes });
+      this.sug.set(g);
+      this.ia.estado.update((x) => (x ? { ...x, usadas: x.limite - g.restantes } : x));
+      this.calc();
+    } catch (err) { this.aviso.error(mensajeError(err)); }
+    finally { this.pensando.set(false); }
   }
 
   async guardar() {
