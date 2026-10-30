@@ -1,11 +1,13 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, linkedSignal, output, signal } from '@angular/core';
 import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { ConfirmarService } from '../core/confirmar.service';
 import { DineroPipe, FechaPipe, hoy, sumarDias } from '../core/formato';
 import { Cotizacion, EST_COT, EST_VTA, Venta } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
+import { ComprobantesPedido } from './comprobantes-pedido';
 import { DatosPago } from './datos-pago';
+import { DisenoPedidoSeccion } from './diseno-pedido';
 import { FotosPedido } from './fotos-pedido';
 import { Hoja } from './hoja';
 import { Icono } from './icono';
@@ -17,9 +19,9 @@ import { Icono } from './icono';
  */
 @Component({
   selector: 'app-vista-documento',
-  imports: [Hoja, Icono, DineroPipe, FechaPipe, FotosPedido, DatosPago],
+  imports: [Hoja, Icono, DineroPipe, FechaPipe, FotosPedido, DatosPago, DisenoPedidoSeccion, ComprobantesPedido],
   template: `
-    @let v = venta();
+    @let v = doc();
     <app-hoja [titulo]="titulo()" ancho="640px" (cerrar)="cerrar.emit()">
       <span cabeza class="pill" [class]="estado()[1]">{{ estado()[0] }}</span>
 
@@ -75,7 +77,11 @@ import { Icono } from './icono';
           @if (porPagar()) { <app-datos-pago [sucursal]="sucursal()" /> }
         }
       }
-      @if (esVenta() && modo() === 'documento' && v.id) { <app-fotos-pedido [ventaId]="v.id" [folio]="v.folio" /> }
+      @if (esVenta() && modo() === 'documento' && v.id) {
+        @if (conImportes()) { <app-comprobantes-pedido [ventaId]="v.id" [saldo]="$any(v).saldo" (cambio)="recargar()" /> }
+        @if (!['cancelada', 'entregada'].includes(v.estado)) { <app-diseno-pedido [ventaId]="v.id" [folio]="v.folio" [telefono]="telefono()" (cambio)="cambio.emit()" /> }
+        <app-fotos-pedido [ventaId]="v.id" [folio]="v.folio" />
+      }
 
       <ng-container pie>
         @if (puedeCancelar()) { <button class="btn peligro max-sm:order-last max-sm:w-full" (click)="cancelar()" [disabled]="ocupado()">Cancelar pedido</button> }
@@ -94,6 +100,8 @@ export class VistaDocumento {
   private confirmar = inject(ConfirmarService);
   private s = inject(SesionService);
   venta = input.required<Venta | Cotizacion>();
+  /** La venta mostrada; se vuelve a pedir cuando se registra un pago desde aquí. */
+  doc = linkedSignal(() => this.venta());
   tipo = input<'venta' | 'cotizacion'>('venta');
   /** 'orden' para el taller (qué hacer); 'documento' muestra precios unitarios. */
   modo = input<'orden' | 'documento'>('documento');
@@ -104,40 +112,45 @@ export class VistaDocumento {
   cambio = output();
 
   esVenta = computed(() => this.tipo() === 'venta');
-  titulo = computed(() => `${this.modo() === 'orden' ? 'Orden' : this.esVenta() ? 'Venta' : 'Cotización'} ${this.venta().folio}`);
-  estado = computed(() => (this.esVenta() ? EST_VTA : EST_COT)[this.venta().estado as never] as [string, string]);
-  vence = computed(() => sumarDias(String(this.venta().fecha).slice(0, 10), (this.venta() as Cotizacion).vigenciaDias ?? 15));
-  vencida = computed(() => !this.esVenta() && ['borrador', 'enviada'].includes(this.venta().estado) && this.vence() < hoy());
+  titulo = computed(() => `${this.modo() === 'orden' ? 'Orden' : this.esVenta() ? 'Venta' : 'Cotización'} ${this.doc().folio}`);
+  estado = computed(() => (this.esVenta() ? EST_VTA : EST_COT)[this.doc().estado as never] as [string, string]);
+  vence = computed(() => sumarDias(String(this.doc().fecha).slice(0, 10), (this.doc() as Cotizacion).vigenciaDias ?? 15));
+  vencida = computed(() => !this.esVenta() && ['borrador', 'enviada'].includes(this.doc().estado) && this.vence() < hoy());
   ocupado = signal(false);
   conImportes = computed(() => this.s.rol() !== 'produccion');
-  puedeCancelar = computed(() => this.esVenta() && this.conCancelar() && this.s.verCostos() && !['cancelada', 'entregada'].includes(this.venta().estado));
+  puedeCancelar = computed(() => this.esVenta() && this.conCancelar() && this.s.verCostos() && !['cancelada', 'entregada'].includes(this.doc().estado));
   /** Sucursal del documento: de ahí salen anticipo, condiciones y datos bancarios. */
-  sucursal = computed(() => this.s.perfil()?.sucursales.find((x) => x.id === this.venta().sucursalId) ?? null);
+  sucursal = computed(() => this.s.perfil()?.sucursales.find((x) => x.id === this.doc().sucursalId) ?? null);
   porPagar = computed(() => {
-    const v = this.venta() as Venta;
+    const v = this.doc() as Venta;
     return this.esVenta() ? v.estado !== 'cancelada' && v.total - v.pagado > 0 : v.total > 0;
   });
   anticipo = computed(() => {
-    const pct = this.sucursal()?.anticipoPct ?? 0, v = this.venta() as Venta;
+    const pct = this.sucursal()?.anticipoPct ?? 0, v = this.doc() as Venta;
     if (!pct || !this.porPagar()) return null;
     const a = Math.round(v.total * pct) / 100;
     if (!this.esVenta()) return { texto: `Anticipo para iniciar (${pct}%)`, monto: a };
     return v.pagado < a ? { texto: `Falta para iniciar (${pct}%)`, monto: Math.round((a - v.pagado) * 100) / 100 } : null;
   });
-  cliente = computed(() => this.venta().cliente?.nombre || this.venta().clienteNombre || 'Mostrador');
-  telefono = computed(() => this.venta().cliente?.telefono || this.venta().clienteTelefono || '');
+  cliente = computed(() => this.doc().cliente?.nombre || this.doc().clienteNombre || 'Mostrador');
+  telefono = computed(() => this.doc().cliente?.telefono || this.doc().clienteTelefono || '');
   atrasada = computed(() => {
-    const v = this.venta() as Venta;
+    const v = this.doc() as Venta;
     return !['entregada', 'cancelada'].includes(v.estado) && !!v.entrega && String(v.entrega).slice(0, 10) < hoy();
   });
 
-  private url() { return `/${this.esVenta() ? 'ventas' : 'cotizaciones'}/${this.venta().id}`; }
-  descargar() { this.api.descargarPdf(`${this.url()}/pdf`, this.venta().folio).catch((e) => this.aviso.error(mensajeError(e))); }
+  async recargar() {
+    try { this.doc.set(await this.api.get<Venta>(this.url())); } catch { /* se queda la que había */ }
+    this.cambio.emit();
+  }
+
+  private url() { return `/${this.esVenta() ? 'ventas' : 'cotizaciones'}/${this.doc().id}`; }
+  descargar() { this.api.descargarPdf(`${this.url()}/pdf`, this.doc().folio).catch((e) => this.aviso.error(mensajeError(e))); }
   abrir() { this.api.abrirPdf(`${this.url()}/pdf`).catch((e) => this.aviso.error(mensajeError(e))); }
   whatsapp() { this.api.whatsapp(`${this.url()}/whatsapp`).catch((e) => this.aviso.error(mensajeError(e))); }
 
   async cancelar() {
-    const v = this.venta() as Venta;
+    const v = this.doc() as Venta;
     const ok = await this.confirmar.preguntar({
       titulo: `¿Cancelar el pedido ${v.folio}?`,
       texto: v.pagado > 0

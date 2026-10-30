@@ -47,6 +47,8 @@ export interface RenglonTaller extends Renglon { id: number; hechos: number; min
 export interface OrdenTaller extends Omit<Venta, 'items'> {
   items: RenglonTaller[]; etapa: EtapaTaller; maquinaId: number | null; responsableId: number | null; urgente: boolean;
   piezas: number; hechas: number; minutos: number;
+  /** Último diseño enviado al cliente y comprobantes que subió y faltan por revisar. */
+  diseno: EstadoDiseno | null; comprobantes: number;
 }
 export const ETAPAS: Record<EtapaTaller, { nombre: string; clase: string; siguiente?: [EtapaTaller, string] }> = {
   diseno: { nombre: 'Por diseñar', clase: 'sec', siguiente: ['aprobacion', 'Mandar a aprobar'] },
@@ -103,3 +105,21 @@ export interface DetalleTurno extends CajaTurno { movimientos: CajaMovimiento[];
 export interface FotoPedido { id: number; ventaId: number; ancho: number; alto: number; nota: string | null; usuarioId: number; usuarioNombre: string; creadoEn: string }
 /** Foto en la galería de un producto, con el pedido de donde salió. */
 export interface FotoTrabajo extends Omit<FotoPedido, 'usuarioId'> { folio: string; fecha: string; cliente: string }
+
+export type EstadoDiseno = 'pendiente' | 'aprobado' | 'cambios' | 'reemplazado';
+export interface DisenoPedido {
+  id: number; ventaId: number; version: number; estado: EstadoDiseno; nota: string | null; respuesta: string | null;
+  respondidoPor: string | null; via: 'enlace' | 'whatsapp' | 'mostrador' | null; respondidoEn: string | null;
+  ancho: number; alto: number; usuarioId: number; usuarioNombre: string; creadoEn: string; url: string; mini: string;
+}
+export const EST_DISENO: Record<EstadoDiseno, [string, string]> = {
+  pendiente: ['Esperando respuesta', 'warn'],
+  aprobado: ['Aprobado', 'ok'],
+  cambios: ['Pidió cambios', 'bad'],
+  reemplazado: ['Versión anterior', 'mut'],
+};
+export const VIA_DISENO: Record<string, string> = { enlace: 'en el enlace', whatsapp: 'por WhatsApp', mostrador: 'en mostrador' };
+export interface ComprobantePedido {
+  id: number; ventaId: number; ancho: number; alto: number; monto: number; nota: string | null;
+  estado: 'pendiente' | 'aplicado' | 'descartado'; revisadoPor: string | null; revisadoEn: string | null; creadoEn: string; url: string; mini: string;
+}

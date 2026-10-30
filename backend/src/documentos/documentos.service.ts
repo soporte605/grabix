@@ -295,7 +295,7 @@ export class DocumentosService {
       v.pagado = r2(v.pagado + dto.monto);
       await em.update(Venta, { id: v.id }, { pagado: v.pagado });
       await this.bitacora.registrar(s, 'pago', 'venta', id, { folio: v.folio, monto: dto.monto, metodo: p.metodo }, em);
-      return { pagado: v.pagado, saldo: r2(Math.max(0, v.total - v.pagado)) };
+      return { pagado: v.pagado, saldo: r2(Math.max(0, v.total - v.pagado)), pagoId: p.id };
     });
   }
 

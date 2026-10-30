@@ -35,6 +35,7 @@ backend/src/
   caja/                  turnos de caja, entradas y salidas, corte, eliminar cortes
   produccion/            tablero del taller (etapas), máquinas, avance por pieza
   fotos/                 fotos de trabajos terminados (archivos en FOTOS_DIR)
+  enlace/                enlace del cliente /p/:token: diseño por aprobar, comprobantes, aceptar cotización
   estadisticas/          reportes
   asistente/             asistente con IA
   publico/               salud, cotizador de la landing, PDF por enlace público
@@ -69,6 +70,11 @@ scripts/smoke.mjs        prueba de punta a punta de la API
 - Una cotización se convierte en venta. La venta tiene anticipo, pagos (se permite pago combinado) y saldo.
 - Por **sucursal** se configuran banco, titular, CLABE, cuenta, tarjeta, indicaciones de pago, **% de anticipo para iniciar** y **condiciones de venta**. Se capturan en Ajustes. Mientras haya saldo aparecen en el PDF, en la vista previa y en WhatsApp.
 - WhatsApp se abre con enlaces `wa.me`, sin API. El texto va **compacto**, sin renglones vacíos y sin emoji (llegaban como �). Si la venta está liquidada dice "Pagado en su totalidad", sin "Saldo: $0.00". El enlace dice "Ver nota" o "Ver cotización". Las condiciones no se repiten en el mensaje porque ya van en la nota.
+
+### Enlace del cliente
+- `/p/:token` lo atiende la API (`publico/p/:token`, vía el nginx del contenedor web): devuelve una página mínima con etiquetas Open Graph para que WhatsApp muestre la imagen del diseño, y redirige a la pantalla `/pedido/:token` de Angular (sin sesión).
+- Diseños (`disenos`) y comprobantes (`comprobantes`) se guardan en `FOTOS_DIR` como las fotos; las imágenes se sirven por el token público.
+- Subir diseño → etapa `aprobacion`; aprobado → `cola`; cambios → `diseno`. Solo se mueve si el pedido no ha entrado a máquina.
 
 ### Caja
 - Turnos con fondo inicial, entradas y salidas y corte con conteo por denominación.
@@ -112,5 +118,6 @@ Luego verificar `https://app.grabix.elikarsystems.com/api/publico/salud`. Más d
 - Proveedor de pagos para la suscripción (Stripe o Mercado Pago). Hoy funciona en modo demostración.
 - Unir la rama `mejoras-interfaz-seguridad` (PR #1) a `main` y desplegar desde `main`.
 - Migraciones de TypeORM en lugar de `DB_SYNC`.
-- Producción fase 2: aprobación de diseño por enlace público, tiempos reales y pantalla del taller con QR.
+- Producción fase 2: tiempos reales y pantalla del taller con QR.
+- Siguiente del análisis de diferenciadores: cobro del anticipo con Mercado Pago, cargo por diseño y campañas por temporada.
 - `RESEND_API_KEY` en producción para los correos.

@@ -14,6 +14,7 @@ import { BitacoraModule } from './common/bitacora.service';
 import { CostosInterceptor } from './common/costos.interceptor';
 import { CajaModule } from './caja/caja.module';
 import { ProduccionModule } from './produccion/produccion.module';
+import { EnlaceModule } from './enlace/enlace.module';
 import { FotosModule } from './fotos/fotos.module';
 import { CuentaModule } from './cuenta/cuenta.module';
 import { DocumentosModule } from './documentos/documentos.module';
@@ -56,6 +57,7 @@ import { OrganizacionModule } from './organizacion/organizacion.module';
     CajaModule,
     ProduccionModule,
     FotosModule,
+    EnlaceModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },

@@ -94,6 +94,14 @@ export const duracion = (m: number) => {
                   </span>
                   <span class="font-semibold leading-snug">{{ cliente(o) }}</span>
                   <span class="chico" [class]="atrasado(o) ? 'font-semibold text-bad' : 'tenue'">Entrega {{ o.entrega ? (o.entrega | fecha) : 'sin fecha' }}@if (atrasado(o)) { · atrasado }</span>
+                  @if (o.diseno === 'aprobado' || o.diseno === 'cambios' || o.diseno === 'pendiente' || o.comprobantes) {
+                    <span class="flex flex-wrap gap-1.5 text-xs">
+                      @if (o.diseno === 'aprobado') { <span class="pill ok">Diseño aprobado</span> }
+                      @else if (o.diseno === 'cambios') { <span class="pill bad">Pidió cambios</span> }
+                      @else if (o.diseno === 'pendiente') { <span class="pill warn">Diseño enviado</span> }
+                      @if (o.comprobantes) { <span class="pill acc">Comprobante por revisar</span> }
+                    </span>
+                  }
                   <ul class="text-sm">@for (i of o.items; track i.id) { <li class="flex justify-between gap-2"><span class="min-w-0 truncate">{{ i.descripcion }}</span><span class="num flex-none tenue">{{ i.hechos }}/{{ i.cantidad }}</span></li> }</ul>
                   <span class="h-1.5 overflow-hidden rounded-full bg-superficie-2"><span class="block h-full rounded-full bg-acento" [style.width.%]="o.piezas ? o.hechas / o.piezas * 100 : 0"></span></span>
                   <span class="flex flex-wrap gap-1.5 text-xs">
@@ -116,7 +124,7 @@ export const duracion = (m: number) => {
 
     @if (abierta(); as o) {
       <app-orden-taller [orden]="o" [maquinas]="maquinas()" [equipo]="equipo()" (cerrar)="abierta.set(null)"
-        (verOrden)="vista.set(o)" (cambio)="actualizado($event.orden, $event.antes)" />
+        (verOrden)="vista.set(o)" (cambio)="actualizado($event.orden, $event.antes)" (recargar)="recargarAbierta()" />
     }
     @if (vista(); as v) { <app-vista-documento [venta]="$any(v)" modo="orden" (cerrar)="vista.set(null)" (cambio)="cargar()" /> }
   `,
@@ -207,6 +215,13 @@ export class Produccion implements OnInit {
 
   abrir(o: OrdenTaller) { this.abierta.set(o); }
 
+  /** Tras subir o aprobar un diseño: el pedido pudo cambiar de etapa. */
+  async recargarAbierta() {
+    await this.cargar();
+    const id = this.abierta()?.id;
+    if (id) this.abierta.set(this.ordenes().find((x) => x.id === id) ?? null);
+  }
+
   soltar(e: EtapaTaller) {
     const o = this.arrastrando;
     this.sobre.set(null);
@@ -264,7 +279,8 @@ export class Produccion implements OnInit {
     const taller = (this.s.taller()?.nombre ?? '').replace(/\s*\(ejemplo\)\s*$/i, '');
     const nombre = this.cliente(o).replace(/\s*\(ejemplo\)\s*$/i, '');
     const saldo = Math.max(0, o.total - o.pagado);
-    const texto = `Hola ${nombre}, tu pedido ${o.folio} ya está listo para recoger en ${taller}.${saldo > 0 ? ` Queda un saldo de ${dinero(saldo, this.s.taller()?.moneda)}.` : ''} ¡Te esperamos!`;
+    const enlace = o.tokenPublico ? `\nVer tu pedido y las fotos: ${location.origin}/p/${o.tokenPublico}` : '';
+    const texto = `Hola ${nombre}, tu pedido ${o.folio} ya está listo para recoger en ${taller}.${saldo > 0 ? ` Queda un saldo de ${dinero(saldo, this.s.taller()?.moneda)}.` : ''} ¡Te esperamos!${enlace}`;
     window.open(`https://wa.me/${tel}?text=${encodeURIComponent(texto)}`, '_blank', 'noopener');
   }
 }

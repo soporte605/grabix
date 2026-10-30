@@ -2,6 +2,15 @@
 
 Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el commit, en la rama `mejoras-interfaz-seguridad` (PR #1). El contexto del proyecto está en [`docs/PROYECTO.md`](docs/PROYECTO.md).
 
+## 2026-10-30
+
+### Enlace del pedido para el cliente
+- Cada venta y cotización tiene un enlace `/p/:token` que se manda por WhatsApp. El cliente ve su nota o cotización, el avance del pedido (Recibido, Diseño, En producción, Listo, Entregado), las fotos del trabajo terminado, los datos para transferir y el PDF, sin crear cuenta.
+- **Aprobación de diseño:** el taller sube la prueba (JPG, PNG o SVG) desde Producción o la vista previa de la venta y la manda por WhatsApp. La imagen sale en la vista previa del enlace dentro del chat (etiquetas Open Graph con un JPEG ligero). El cliente aprueba o pide cambios en el enlace, o contesta "sí" y el taller lo registra con "Ya lo aprobó". Queda quién, cuándo y por qué medio. Subir un diseño pasa el pedido a "Esperando aprobación"; aprobarlo, a "En cola"; pedir cambios, a "Por diseñar".
+- **Comprobantes:** el cliente sube la foto de su transferencia en el enlace. El taller la revisa en la vista previa de la venta y con "Ya llegó, registrar" se anota el pago como transferencia.
+- **Cotizaciones:** el cliente puede aceptarlas desde el enlace (queda en la bitácora).
+- El tablero de Producción marca "Diseño enviado", "Diseño aprobado", "Pidió cambios" y "Comprobante por revisar". El WhatsApp de "pedido listo" incluye el enlace.
+
 ## 2026-10-28 (panel)
 
 ### Super administrador

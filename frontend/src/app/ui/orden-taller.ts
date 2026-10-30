@@ -4,6 +4,7 @@ import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { FechaPipe } from '../core/formato';
 import { EtapaTaller, ETAPAS, Maquina, OrdenTaller, RenglonTaller } from '../core/modelos';
+import { DisenoPedidoSeccion } from './diseno-pedido';
 import { FotosPedido } from './fotos-pedido';
 import { Hoja } from './hoja';
 import { Icono } from './icono';
@@ -11,7 +12,7 @@ import { Icono } from './icono';
 /** Detalle de un pedido en el taller: etapa, máquina, responsable, prioridad y avance de cada renglón. */
 @Component({
   selector: 'app-orden-taller',
-  imports: [FormsModule, Hoja, Icono, FechaPipe, FotosPedido],
+  imports: [FormsModule, Hoja, Icono, FechaPipe, FotosPedido, DisenoPedidoSeccion],
   template: `
     @let o = orden();
     <app-hoja [titulo]="o.folio + ' · ' + cliente()" ancho="620px" (cerrar)="cerrar.emit()">
@@ -60,6 +61,7 @@ import { Icono } from './icono';
           }
         </div>
       </section>
+      <app-diseno-pedido [ventaId]="o.id" [folio]="o.folio" [telefono]="telefono()" (cambio)="recargar.emit()" />
       <app-fotos-pedido [ventaId]="o.id" [folio]="o.folio" />
       @if (o.notas) { <section class="rounded-xl border border-linea bg-superficie p-3"><p class="chico mb-0.5 font-semibold tenue">Notas del pedido</p><p class="whitespace-pre-line">{{ o.notas }}</p></section> }
 
@@ -82,11 +84,14 @@ export class OrdenTallerVentana {
   verOrden = output();
   /** Algo cambió: el tablero debe actualizar la tarjeta (y avisar si quedó lista). */
   cambio = output<{ orden: OrdenTaller; antes: EtapaTaller }>();
+  /** El diseño movió la etapa del pedido en el servidor: hay que volver a pedir el tablero. */
+  recargar = output();
 
   etapas = Object.keys(ETAPAS) as EtapaTaller[];
   nombre = ETAPAS;
   ocupado = signal(false);
   cliente = computed(() => this.orden().cliente?.nombre || this.orden().clienteNombre || 'Mostrador');
+  telefono = computed(() => this.orden().cliente?.telefono || this.orden().clienteTelefono || '');
   siguiente = computed(() => ETAPAS[this.orden().etapa].siguiente);
 
   async cambiar(c: Partial<Pick<OrdenTaller, 'etapa' | 'maquinaId' | 'responsableId' | 'urgente'>>) {

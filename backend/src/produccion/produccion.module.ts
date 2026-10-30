@@ -1,12 +1,12 @@
 import { Body, Controller, Delete, ForbiddenException, Get, HttpCode, Injectable, Module, NotFoundException, Param, ParseIntPipe, Patch, Post, Put } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { IsBoolean, IsEnum, IsInt, IsNumber, IsOptional, IsString, Min, MaxLength, MinLength } from 'class-validator';
-import { DataSource, In } from 'typeorm';
+import { DataSource, In, Not } from 'typeorm';
 import { BitacoraService } from '../common/bitacora.service';
 import { GERENCIA, Roles, Ses, type Sesion, VEN_COSTOS } from '../common/sesion';
 import { DocumentosModule } from '../documentos/documentos.module';
 import { DocumentosService } from '../documentos/documentos.service';
-import { EstadoVenta, EtapaTaller, Maquina, Producto, Rol, TipoMaquina, Usuario, Venta, VentaItem } from '../entities';
+import { Comprobante, Diseno, EstadoComprobante, EstadoDiseno, EstadoVenta, EtapaTaller, Maquina, Producto, Rol, TipoMaquina, Usuario, Venta, VentaItem } from '../entities';
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -103,13 +103,24 @@ export class ProduccionService {
       this.maquinas(s),
       em.find(Usuario, { where: { tallerId: s.tallerId, activo: true }, select: { id: true, nombre: true, rol: true }, order: { nombre: 'ASC' } }),
     ]);
+    // Lo que respondió el cliente por el enlace: último diseño y comprobantes por revisar.
+    const vids = ventas.map((v) => v.id);
+    const [disenos, comprobantes] = vids.length
+      ? await Promise.all([
+          em.find(Diseno, { where: { tallerId: s.tallerId, ventaId: In(vids), estado: Not(EstadoDiseno.Reemplazado) }, select: { ventaId: true, version: true, estado: true } }),
+          em.find(Comprobante, { where: { tallerId: s.tallerId, ventaId: In(vids), estado: EstadoComprobante.Pendiente }, select: { ventaId: true } }),
+        ])
+      : [[], []];
+    const ultimo = new Map<number, Diseno>();
+    for (const d of disenos) if ((ultimo.get(d.ventaId)?.version ?? 0) < d.version) ultimo.set(d.ventaId, d);
     const ordenes = ventas.map((v) => {
       const items = v.items.map((i) => ({ ...i, hechos: Math.min(i.hechos ?? 0, i.cantidad), minutosPieza: i.productoId ? (min.get(i.productoId) ?? 0) : 0 }));
       const piezas = items.reduce((a, i) => a + i.cantidad, 0);
       const hechas = items.reduce((a, i) => a + i.hechos, 0);
       // Minutos de máquina que faltan, según el costeo de cada producto.
       const minutos = r2(items.reduce((a, i) => a + i.minutosPieza * (i.cantidad - i.hechos), 0));
-      return { ...v, items, etapa: etapaDe(v), piezas, hechas, minutos };
+      const diseno = ultimo.get(v.id)?.estado ?? null;
+      return { ...v, items, etapa: etapaDe(v), piezas, hechas, minutos, diseno, comprobantes: comprobantes.filter((c) => c.ventaId === v.id).length };
     });
     return { ordenes, maquinas, equipo: equipo.map((u) => ({ id: u.id, nombre: u.nombre })) };
   }

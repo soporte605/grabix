@@ -33,6 +33,7 @@ export const routes: Routes = [
   { path: 'verificar-correo', canMatch: [noEsAdmin], canActivate: [enSistema], loadComponent: () => import('./pages/cuenta').then((m) => m.VerificarCorreo), title: 'Confirmar correo · Grabix' },
   { path: 'olvide-contrasena', canMatch: [noEsAdmin], canActivate: [enSistema], loadComponent: () => import('./pages/cuenta').then((m) => m.OlvideContrasena), title: 'Recuperar contraseña · Grabix' },
   { path: 'restablecer-contrasena', canMatch: [noEsAdmin], canActivate: [enSistema], loadComponent: () => import('./pages/cuenta').then((m) => m.Restablecer), data: { modo: 'recuperacion' }, title: 'Nueva contraseña · Grabix' },
+  { path: 'pedido/:token', canMatch: [noEsAdmin], canActivate: [enSistema], loadComponent: () => import('./pages/pedido').then((m) => m.Pedido), title: 'Tu pedido' },
   { path: 'invitacion', canMatch: [noEsAdmin], canActivate: [enSistema], loadComponent: () => import('./pages/cuenta').then((m) => m.Restablecer), data: { modo: 'invitacion' }, title: 'Invitación · Grabix' },
   {
     path: 'app',

@@ -3,7 +3,8 @@ import { FotoTrabajo } from './foto';
 import { Hoja } from './hoja';
 import { Icono } from './icono';
 
-export interface FotoVisor { id: number; titulo?: string; detalle?: string; nota?: string | null }
+/** `src`: imagen pública (diseños, fotos en el enlace del cliente); si no, se descarga con la sesión. */
+export interface FotoVisor { id: number; src?: string; titulo?: string; detalle?: string; nota?: string | null }
 
 /** Fotos a tamaño completo, una por una, con flechas (o deslizando en el teléfono). */
 @Component({
@@ -13,7 +14,8 @@ export interface FotoVisor { id: number; titulo?: string; detalle?: string; nota
     @let f = actual();
     <app-hoja [titulo]="f.titulo || 'Foto ' + (indice() + 1) + ' de ' + fotos().length" ancho="980px" (cerrar)="cerrar.emit()">
       <div class="relative -mx-1" (touchstart)="toque($event)" (touchend)="suelta($event)">
-        <app-foto [fotoId]="f.id" ajuste="contener" [alt]="f.titulo || 'Foto del trabajo'" class="h-[62vh] rounded-xl" />
+        @if (f.src) { <img [src]="f.src" [alt]="f.titulo || 'Imagen'" class="h-[62vh] w-full rounded-xl bg-white object-contain" draggable="false"> }
+        @else { <app-foto [fotoId]="f.id" ajuste="contener" [alt]="f.titulo || 'Foto del trabajo'" class="h-[62vh] rounded-xl" /> }
         @if (fotos().length > 1) {
           <button type="button" class="ico absolute left-2 top-1/2 -translate-y-1/2 bg-fondo/90 shadow max-sm:hidden" aria-label="Foto anterior" (click)="mover(-1)"><app-icono nombre="izq" /></button>
           <button type="button" class="ico absolute right-2 top-1/2 -translate-y-1/2 bg-fondo/90 shadow max-sm:hidden" aria-label="Foto siguiente" (click)="mover(1)"><app-icono nombre="der" /></button>

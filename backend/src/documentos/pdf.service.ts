@@ -261,7 +261,7 @@ export class PdfService {
       if (sucursal?.indicacionesPago?.trim()) t += `${sucursal.indicacionesPago.trim()}\n`;
     }
     // Sin renglones vacíos: en WhatsApp se ven como huecos.
-    t += `${tipo === 'venta' ? 'Ver nota' : 'Ver cotización'}: ${urlPdf}\n¡Gracias por tu preferencia!`;
+    t += `${tipo === 'venta' ? 'Ver nota y avance' : 'Ver y aceptar cotización'}: ${urlPdf}\n¡Gracias por tu preferencia!`;
     let tel = (cliente?.telefono || d.clienteTelefono || '').replace(/\D/g, '');
     if (tel.length === 10) tel = (taller.lada || '') + tel;
     return { telefono: tel, texto: t, url: `https://wa.me/${tel}?text=${encodeURIComponent(t)}` };

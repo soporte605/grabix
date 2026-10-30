@@ -11,7 +11,7 @@ import { BitacoraService } from '../common/bitacora.service';
 import { Roles, Ses, type Sesion, VEN_COSTOS } from '../common/sesion';
 import { Foto, Rol, Venta } from '../entities';
 
-const DIR = process.env.FOTOS_DIR ?? join(process.cwd(), 'fotos');
+export const DIR = process.env.FOTOS_DIR ?? join(process.cwd(), 'fotos');
 const MAX_BYTES = 3 * 1024 * 1024;
 const MAX_POR_PEDIDO = 30;
 const POR_PAGINA = 24;
@@ -26,7 +26,7 @@ export class FotoDto {
 }
 
 /** Decodifica un data URL y confirma por sus primeros bytes que de verdad es WebP o JPEG. */
-function imagenDe(dataUrl: string): { buf: Buffer; ext: 'webp' | 'jpg' } {
+export function imagenDe(dataUrl: string): { buf: Buffer; ext: 'webp' | 'jpg' } {
   const m = /^data:image\/(webp|jpeg);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
   if (!m) throw new BadRequestException('La foto debe ser una imagen WebP o JPEG');
   const buf = Buffer.from(m[2], 'base64');
@@ -37,8 +37,8 @@ function imagenDe(dataUrl: string): { buf: Buffer; ext: 'webp' | 'jpg' } {
   return { buf, ext: m[1] === 'webp' ? 'webp' : 'jpg' };
 }
 
-const nombre = (ext: string) => `${randomBytes(16).toString('hex')}.${ext}`;
-const ruta = (tallerId: number, archivo: string) => join(DIR, String(tallerId), archivo.replace(/[^a-z0-9.]/g, ''));
+export const nombre = (ext: string) => `${randomBytes(16).toString('hex')}.${ext}`;
+export const ruta = (tallerId: number, archivo: string) => join(DIR, String(tallerId), archivo.replace(/[^a-z0-9.]/g, ''));
 
 @Injectable()
 export class FotosService {

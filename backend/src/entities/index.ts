@@ -561,9 +561,76 @@ export class AdminBitacora {
   @Column({ type: 'int', nullable: true }) entidadId: number | null;
   @Column({ type: 'json', nullable: true }) detalle: unknown;
   @Index() @CreateDateColumn() creadoEn: Date;
+/** Prueba de diseño que el cliente aprueba por el enlace del pedido o por WhatsApp. */
+export enum EstadoDiseno {
+  Pendiente = 'pendiente',
+  Aprobado = 'aprobado',
+  Cambios = 'cambios',
+  Reemplazado = 'reemplazado',
+}
+
+@Entity('disenos')
+export class Diseno {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Index() @Column() ventaId: number;
+  @Column({ type: 'int', default: 1 }) version: number;
+  @Column({ length: 60 }) archivo: string;
+  @Column({ length: 60 }) miniatura: string;
+  /** JPEG para la vista previa del enlace dentro de WhatsApp. */
+  @Column({ length: 60 }) vista: string;
+  @Column({ type: 'int', default: 0 }) ancho: number;
+  @Column({ type: 'int', default: 0 }) alto: number;
+  /** Lo que el cliente debe revisar: tamaño, posición, material, colores. */
+  @Column({ type: 'varchar', length: 500, nullable: true }) nota: string | null;
+  @Column({ type: 'enum', enum: EstadoDiseno, default: EstadoDiseno.Pendiente }) estado: EstadoDiseno;
+  /** Cambios que pidió el cliente, o una nota de la aprobación. */
+  @Column({ type: 'text', nullable: true }) respuesta: string | null;
+  /** Nombre que escribió el cliente o de quien registró la aprobación. */
+  @Column({ type: 'varchar', length: 120, nullable: true }) respondidoPor: string | null;
+  /** enlace | whatsapp | mostrador */
+  @Column({ type: 'varchar', length: 20, nullable: true }) via: string | null;
+  @Column({ type: 'datetime', nullable: true }) respondidoEn: Date | null;
+  @Column() usuarioId: number;
+  @Column({ length: 120 }) usuarioNombre: string;
+  @CreateDateColumn() creadoEn: Date;
+  @ManyToOne(() => Venta, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'ventaId' })
+  venta: Relation<Venta>;
+}
+
+export enum EstadoComprobante {
+  Pendiente = 'pendiente',
+  Aplicado = 'aplicado',
+  Descartado = 'descartado',
+}
+
+/** Comprobante de transferencia que el cliente sube desde el enlace del pedido. */
+@Entity('comprobantes')
+export class Comprobante {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Index() @Column() ventaId: number;
+  @Column({ length: 60 }) archivo: string;
+  @Column({ length: 60 }) miniatura: string;
+  @Column({ type: 'int', default: 0 }) ancho: number;
+  @Column({ type: 'int', default: 0 }) alto: number;
+  /** Lo que el cliente dice que pagó (0 = no lo escribió). */
+  @Column(money) monto: number;
+  @Column({ type: 'varchar', length: 200, nullable: true }) nota: string | null;
+  @Column({ type: 'enum', enum: EstadoComprobante, default: EstadoComprobante.Pendiente }) estado: EstadoComprobante;
+  @Column({ type: 'int', nullable: true }) pagoId: number | null;
+  @Column({ type: 'varchar', length: 120, nullable: true }) revisadoPor: string | null;
+  @Column({ type: 'datetime', nullable: true }) revisadoEn: Date | null;
+  @CreateDateColumn() creadoEn: Date;
+  @ManyToOne(() => Venta, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'ventaId' })
+  venta: Relation<Venta>;
 }
 
 export const ENTIDADES = [
+  Diseno,
+  Comprobante,
   Foto,
   Maquina,
   CajaTurno,

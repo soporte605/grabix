@@ -8,7 +8,8 @@ import { DocumentosService } from './documentos.service';
 import { PdfService } from './pdf.service';
 
 const VENTA = [...VEN_COSTOS, Rol.Vendedor];
-const urlPublica = (token: string) => `${process.env.PUBLIC_URL ?? 'http://localhost:8080'}/api/publico/documentos/${token}.pdf`;
+/** Enlace del cliente: su nota o cotización, el avance, el diseño por aprobar y las fotos. */
+const urlPublica = (token: string) => `${(process.env.PUBLIC_URL ?? 'http://localhost:8080').replace(/\/$/, '')}/p/${token}`;
 
 @Controller()
 export class DocumentosController {
