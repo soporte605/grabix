@@ -246,7 +246,7 @@ export class AsistenteService {
       taller: { moneda: taller.moneda, tarifaPorMinutoDeMaquina: taller.tarifaMinuto, margenObjetivoPct: taller.margenObjetivo },
       insumos: insumos.map((p) => ({ id: p.id, nombre: p.nombre, unidad: p.unidad, costo: p.costoUnitario })),
       articulosQueYaVende: parecidos.map((p) => ({ nombre: p.nombre, tipo: p.tipo, linea: p.categoria, precio: p.precio, costo: p.costoUnitario, minutos: p.minutos })),
-      articuloNuevo: { nombre: d.nombre, tipoIndicado: d.tipo ?? 'no indicado', lineaIndicada: d.categoria ?? 'no indicada', detalles: d.detalles || '' },
+      articuloNuevo: { nombre: d.nombre, tipo: d.tipo ? `${d.tipo} (obligatorio, no lo cambies)` : 'elígelo tú', lineaIndicada: d.categoria ?? 'no indicada', detalles: d.detalles || '' },
     };
 
     let entrada = 0, salida = 0;
@@ -265,6 +265,8 @@ export class AsistenteService {
       const json = r.content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text').map((b) => b.text).join('');
       if (r.stop_reason !== 'end_turn' || !json) throw new HttpException('No pude armar una sugerencia para ese artículo. Prueba con un nombre más claro.', HttpStatus.UNPROCESSABLE_ENTITY);
       const x = JSON.parse(json) as Sugerencia;
+      // El tipo que eligió la persona manda sobre el que proponga la IA.
+      if (d.tipo) x.tipo = d.tipo;
 
       // Solo insumos reales del taller, y nada de números negativos.
       const ids = new Set(insumos.map((p) => p.id));
@@ -272,7 +274,9 @@ export class AsistenteService {
       const componentes = x.tipo !== TipoProducto.Insumo
         ? x.componentes.filter((c) => ids.has(c.insumoId) && c.cantidad > 0).slice(0, 30).map((c) => ({ insumoId: c.insumoId, cantidad: Math.round(c.cantidad * 10000) / 10000 }))
         : [];
-      const costo = componentes.length ? 0 : n(x.costo), minutos = n(x.minutos), extra = n(x.extra);
+      // Un insumo es solo material comprado: sin minutos de máquina ni extras.
+      const insumo = x.tipo === TipoProducto.Insumo;
+      const costo = componentes.length ? 0 : n(x.costo), minutos = insumo ? 0 : n(x.minutos), extra = insumo ? 0 : n(x.extra);
       const base = componentes.length ? componentes.reduce((a, c) => a + (insumos.find((p) => p.id === c.insumoId)?.costoUnitario ?? 0) * c.cantidad, 0) : costo;
       return {
         tipo: Object.values(TipoProducto).includes(x.tipo) ? x.tipo : TipoProducto.Producto,

@@ -4,6 +4,10 @@ Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el co
 
 ## 2026-10-30
 
+### IA para insumos y artículos ya creados
+- En Inventario, "Sugerir con IA" respeta el tipo elegido. Para un insumo propone la unidad y el costo de compra típico (sin minutos ni extras ni receta).
+- El botón también aparece al editar un artículo existente; "Limpiar" deja los datos como estaban.
+
 ### Servicios con insumos y botón Limpiar en la IA
 - Los servicios también pueden llevar insumos ("¿Qué insumos lleva?"), por ejemplo un grabado que incluye la libreta. Su costo se calcula con la receta y al venderlos se descuentan del inventario. Un servicio sin insumos sigue igual.
 - La IA puede sugerir insumos también para servicios.
