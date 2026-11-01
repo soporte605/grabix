@@ -113,7 +113,10 @@ export class CorreoService {
     <tr><td style="background:${MARCA.primario};padding:22px 32px">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
         <td style="font-family:${f};font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-.02em">
-          <img src="${this.url('/icono-192.png')}" width="38" height="38" alt="" style="display:inline-block;width:38px;height:38px;border-radius:10px;margin-right:12px;vertical-align:middle;border:0">Grabix</td>
+          <!-- Logo hecho con texto y tablas: se ve aunque el correo bloquee las imágenes. -->
+          <table role="presentation" cellpadding="0" cellspacing="0" style="display:inline-table;vertical-align:middle;margin-right:12px"><tr>
+            <td align="center" valign="middle" style="width:36px;height:36px;border:2px solid #ffffff;border-radius:10px;font-family:${f};font-size:22px;line-height:36px;font-weight:800;color:#ffffff">G<span style="color:${MARCA.acento}">.</span></td>
+          </tr></table><span style="vertical-align:middle">Grabix</span></td>
         <td align="right" style="font-family:${f};font-size:11px;font-weight:800;letter-spacing:.22em;color:#ffffff">ELIKAR <span style="color:${MARCA.acento}">SYSTEMS</span></td>
       </tr></table>
     </td></tr>
