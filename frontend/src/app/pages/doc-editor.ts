@@ -7,7 +7,7 @@ import { AvisoService, mensajeError } from '../core/aviso.service';
 import { ConfirmarService } from '../core/confirmar.service';
 import { PosService } from '../core/pos.service';
 import { dinero, DineroPipe, FechaPipe, hoy, PctPipe, sumarDias } from '../core/formato';
-import { Cliente, Cotizacion, EST_COT, EST_VTA, Producto, Promocion, Renglon, Venta } from '../core/modelos';
+import { Cliente, Cotizacion, EST_COT, EST_VTA, Producto, Promocion, Pago, Renglon, Venta } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { Confirmar } from '../ui/confirmar';
 import { AltaCliente, AltaProducto, AltaPromocion } from '../ui/alta-rapida';
@@ -158,7 +158,23 @@ interface Form {
         <section class="caja">
           <h3>Pagos</h3>
           @for (p of v.pagos; track p.id) {
-            <div class="fila entre chico"><span>{{ p.fecha | fecha }} · {{ p.metodo }}</span><span class="num">{{ p.monto | dinero }}</span></div>
+            @if (editPago()?.id === p.id && editPago(); as e) {
+              <div class="fila chico">
+                <input class="entrada max-w-[140px] p-2" type="number" inputmode="decimal" [(ngModel)]="e.monto" aria-label="Monto del pago">
+                <select class="entrada max-w-40 p-2" [(ngModel)]="e.metodo" aria-label="Forma de pago">@for (m of metodos; track m) { <option>{{ m }}</option> }</select>
+                <button class="btn sm pri" sin-validar (click)="guardarPago()" [disabled]="!e.monto">Guardar</button>
+                <button class="btn sm" (click)="editPago.set(null)">Cancelar</button>
+              </div>
+            } @else {
+              <div class="fila entre chico"><span>{{ p.fecha | fecha }} · {{ p.metodo }}</span>
+                <span class="fila gap-1"><span class="num">{{ p.monto | dinero }}</span>
+                  @if (s.gerencia()) {
+                    <button type="button" class="ico" title="Editar pago" aria-label="Editar pago" (click)="editPago.set({ id: p.id, monto: p.monto, metodo: p.metodo })"><app-icono nombre="editar" /></button>
+                    <button type="button" class="ico" title="Eliminar pago" aria-label="Eliminar pago" (click)="eliminarPago(p)"><app-icono nombre="basura" /></button>
+                  }
+                </span>
+              </div>
+            }
           } @empty { <p class="tenue chico">Sin pagos registrados.</p> }
           @if (v.estado !== 'cancelada') {
             <div class="fila">
@@ -175,11 +191,28 @@ interface Form {
         <button class="btn" (click)="pdf()" [disabled]="ocupado()"><app-icono nombre="ojo" />Vista previa</button>
         <button class="btn wa" (click)="whatsapp()" [disabled]="ocupado()"><app-icono nombre="wa" />WhatsApp</button>
         @if (esVenta && id) { <button class="btn" (click)="ticket()" [disabled]="ocupado()"><app-icono nombre="imprimir" />Ticket</button> }
-        @if (!esVenta && id && f.estado !== 'aceptada') { <button class="btn" (click)="convertir()" [disabled]="ocupado()">Convertir en venta</button> }
+        @if (!esVenta && id && f.estado !== 'aceptada') {
+          <button class="btn" (click)="abrirAnticipo()" [disabled]="ocupado()">Registrar anticipo</button>
+          <button class="btn" (click)="convertir()" [disabled]="ocupado()">Convertir en venta</button>
+        }
         <span class="flex-1"></span>
         <button class="btn pri min-w-32 max-sm:flex-1" (click)="guardar(true)" [disabled]="ocupado()">{{ ocupado() ? 'Guardando…' : esVenta && !id ? 'Registrar venta' : 'Guardar' }}</button>
       </ng-container>
     </app-hoja>
+    @if (anticipo(); as a) {
+      <app-hoja titulo="Registrar anticipo" ancho="440px" (cerrar)="anticipo.set(null)">
+        <p class="tenue chico">La cotización pasa a venta con este pago, entra a Producción y el cliente ve lo pagado y el saldo en el mismo enlace que ya tiene.</p>
+        <div class="campos">
+          <div class="campo"><label for="an-m">Monto</label><input id="an-m" name="monto" required min="0.01" class="num" type="number" inputmode="decimal" [(ngModel)]="a.monto"></div>
+          <div class="campo"><label for="an-f">Forma de pago</label><select id="an-f" [(ngModel)]="a.metodo">@for (m of metodos; track m) { <option>{{ m }}</option> }</select></div>
+        </div>
+        <p class="chico tenue">Total de la cotización: <span class="num">{{ t().total | dinero }}</span></p>
+        <ng-container pie>
+          <button class="btn" (click)="anticipo.set(null)">Cancelar</button><span class="flex-1"></span>
+          <button class="btn pri" (click)="convertir(a)" [disabled]="ocupado()">Registrar y pasar a venta</button>
+        </ng-container>
+      </app-hoja>
+    }
     @if (vista(); as v) { <app-vista-documento [venta]="v" [tipo]="esVenta ? 'venta' : 'cotizacion'" [conCancelar]="false" (cerrar)="vista.set(null)" /> }
     @if (altaCliente() !== null) { <app-alta-cliente [inicial]="altaCliente()!" (cerrar)="altaCliente.set(null)" (creado)="clienteCreado($event)" /> }
     @if (altaProducto(); as a) { <app-alta-producto [inicial]="a.q" [categorias]="categorias()" (cerrar)="altaProducto.set(null)" (creado)="productoCreado(a.it, $event)" /> }
@@ -457,12 +490,20 @@ export class DocEditor implements OnInit {
     }
   }
 
-  async convertir() {
+  /** Anticipo recibido sobre una cotización: se registra al convertirla en venta. */
+  anticipo = signal<{ monto: number | null; metodo: string } | null>(null);
+  abrirAnticipo() { this.anticipo.set({ monto: null, metodo: 'Efectivo' }); }
+
+  async convertir(a?: { monto: number | null; metodo: string }) {
+    const monto = Number(a?.monto) || 0;
+    if (a && !(monto > 0)) { this.aviso.error('Escribe el monto del anticipo'); return; }
+    if (a && monto > this.t().total + 0.009) { this.aviso.error('El anticipo es mayor que el total de la cotización'); return; }
     const id = await this.asegurar();
     if (!id) return;
     try {
-      const v = await this.api.post<{ id: number; folio: string }>(`/cotizaciones/${id}/convertir`);
-      this.aviso.ok(`Venta ${v.folio} creada`);
+      const v = await this.api.post<{ id: number; folio: string }>(`/cotizaciones/${id}/convertir`, a ? { anticipo: { monto, metodo: a.metodo } } : {});
+      this.anticipo.set(null);
+      this.aviso.ok(a ? `Anticipo registrado en la venta ${v.folio}` : `Venta ${v.folio} creada`);
       this.router.navigate(['/app/ventas', v.id]);
     } catch (e) {
       this.aviso.error(mensajeError(e));
@@ -477,6 +518,37 @@ export class DocEditor implements OnInit {
       await this.cargar();
     } catch (e) {
       this.aviso.error(mensajeError(e));
+    }
+  }
+
+  editPago = signal<{ id: number; monto: number | null; metodo: string } | null>(null);
+
+  async guardarPago() {
+    const e = this.editPago();
+    if (!e?.monto || e.monto <= 0) return this.aviso.error('Escribe un monto mayor a cero');
+    try {
+      await this.api.put(`/ventas/${this.id}/pagos/${e.id}`, { monto: Number(e.monto), metodo: e.metodo });
+      this.editPago.set(null);
+      this.aviso.ok('Pago corregido');
+      await this.cargar();
+    } catch (err) {
+      this.aviso.error(mensajeError(err));
+    }
+  }
+
+  async eliminarPago(p: Pago) {
+    const ok = await this.confirmar.preguntar({
+      titulo: '¿Eliminar este pago?',
+      texto: `${p.metodo} por ${p.monto.toFixed(2)}. El saldo de la venta vuelve a subir y queda registrado en la bitácora.`,
+      accion: 'Eliminar pago', peligro: true,
+    });
+    if (!ok) return;
+    try {
+      await this.api.del(`/ventas/${this.id}/pagos/${p.id}`);
+      this.aviso.ok('Pago eliminado');
+      await this.cargar();
+    } catch (err) {
+      this.aviso.error(mensajeError(err));
     }
   }
 

@@ -3,7 +3,7 @@ import type { Response } from 'express';
 import { Rol } from '../entities';
 import { GERENCIA, Roles, Ses, type Sesion, VEN_COSTOS } from '../common/sesion';
 import { hoy } from '../common/suscripcion';
-import { CompraDto, CotizacionDto, EstadoVentaDto, FiltroDto, PagoDto, VentaDto } from './documentos.dto';
+import { CompraDto, ConvertirDto, CotizacionDto, EstadoVentaDto, FiltroDto, PagoDto, VentaDto } from './documentos.dto';
 import { DocumentosService } from './documentos.service';
 import { PdfService } from './pdf.service';
 
@@ -51,8 +51,8 @@ export class DocumentosController {
   }
 
   @Post('cotizaciones/:id/convertir') @Roles(...VENTA)
-  convertir(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number) {
-    return this.docs.convertir(s, id);
+  convertir(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number, @Body() dto: ConvertirDto) {
+    return this.docs.convertir(s, id, dto.anticipo);
   }
 
   @Get('cotizaciones/:id/pdf') @Roles(...VENTA)
@@ -96,6 +96,16 @@ export class DocumentosController {
   @Post('ventas/:id/pagos') @Roles(...VENTA)
   pago(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number, @Body() dto: PagoDto) {
     return this.docs.registrarPago(s, id, dto);
+  }
+
+  @Put('ventas/:id/pagos/:pagoId') @Roles(...GERENCIA)
+  editarPago(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number, @Param('pagoId', ParseIntPipe) pagoId: number, @Body() dto: PagoDto) {
+    return this.docs.cambiarPago(s, id, pagoId, dto);
+  }
+
+  @Delete('ventas/:id/pagos/:pagoId') @Roles(...GERENCIA)
+  eliminarPago(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number, @Param('pagoId', ParseIntPipe) pagoId: number) {
+    return this.docs.cambiarPago(s, id, pagoId, null);
   }
 
   @Delete('ventas/:id') @Roles(...GERENCIA)
