@@ -193,7 +193,7 @@ export class CorreoService {
 
   /** Recordatorio cuando faltan pocos días de prueba. */
   pruebaPorVencer(para: string, nombre: string, taller: string, dias: number) {
-    const url = this.url('/app/ajustes');
+    const url = this.url('/app/suscripcion');
     const cuando = dias === 1 ? 'mañana' : `en ${dias} días`;
     return this.enviar({
       para,
@@ -216,7 +216,7 @@ export class CorreoService {
 
   /** Aviso cuando la prueba ya terminó. */
   pruebaTerminada(para: string, nombre: string, taller: string) {
-    const url = this.url('/app/ajustes');
+    const url = this.url('/app/suscripcion');
     return this.enviar({
       para,
       tipo: 'prueba_terminada',

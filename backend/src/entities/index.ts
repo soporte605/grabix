@@ -93,6 +93,12 @@ export class Taller {
   estadoSuscripcion: EstadoSuscripcion;
   @Column({ type: 'date', nullable: true }) pruebaHasta: string | null;
   @Column({ type: 'date', nullable: true }) pagadoHasta: string | null;
+  /** Datos fiscales para facturar la suscripción (CFDI). */
+  @Column({ length: 13, default: '' }) rfc: string;
+  @Column({ length: 200, default: '' }) razonSocial: string;
+  @Column({ length: 3, default: '' }) regimenFiscal: string;
+  @Column({ length: 5, default: '' }) cpFiscal: string;
+  @Column({ length: 120, default: '' }) correoFacturas: string;
   /** Último aviso de prueba enviado, como `tipo:pruebaHasta`, para no repetirlo. */
   @Column({ length: 40, default: '' }) avisoPrueba: string;
   /** Eliminación solicitada por el dueño: ese día se borran todos los datos del taller. Mientras, la cuenta queda bloqueada. */

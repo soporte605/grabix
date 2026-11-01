@@ -29,6 +29,11 @@ export class OrganizacionController {
     return this.mp.crear(s, dto.plan, dto.periodo);
   }
 
+  @Get('taller/suscripcion') @Roles(Rol.Dueno)
+  resumenSuscripcion(@Ses() s: Sesion) {
+    return this.mp.resumen(s);
+  }
+
   @Post('taller/suscripcion/confirmar') @Roles(Rol.Dueno) @SinSuscripcion() @HttpCode(200)
   confirmar(@Ses() s: Sesion, @Body() dto: ConfirmarPagoDto) {
     return this.mp.confirmar(s, dto.pagoId, dto.mpPagoId);

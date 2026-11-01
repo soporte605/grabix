@@ -4,6 +4,11 @@ Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el co
 
 ## 2026-11-01
 
+### Mi suscripción
+- Nueva sección **Mi suscripción** en el menú (solo dueño, `/app/suscripcion`): plan y estado, fecha y días que quedan, uso contra límites (sucursales, usuarios, preguntas a la IA hoy y en el mes), planes con cobro en Mercado Pago, historial de pagos con folio y datos de facturación (RFC, razón social, régimen fiscal, CP, correo para facturas; columnas nuevas en `talleres`). `GET /taller/suscripcion` da el resumen.
+- Ajustes ya no muestra los planes; tiene una liga a Mi suscripción. Mercado Pago y los correos de la prueba regresan a `/app/suscripcion`.
+- En Ajustes, el logo de la sucursal muestra un recuadro de carga mientras descarga en lugar de "Sin logo".
+
 ### Ajustes al cobro y a los correos
 - "Elegir plan" muestra "Abriendo Mercado Pago…" y bloquea los botones hasta que abre el pago; si se pide dos veces en 30 minutos se reutiliza la misma liga (columna `pagos_suscripcion.url`).
 - La preferencia ya no manda el correo del comprador: con credenciales de prueba Mercado Pago rechaza mezclar un comprador real con un vendedor de prueba.

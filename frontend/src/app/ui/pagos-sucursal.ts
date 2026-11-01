@@ -36,6 +36,7 @@ const sugerencia = (pct: number) =>
         <div class="flex flex-wrap items-center gap-3">
           <div class="grid h-20 w-44 place-items-center overflow-hidden rounded-xl border border-linea bg-white p-2">
             @if (logoUrl(); as u) { <img [src]="u" alt="Logo de la sucursal" class="max-h-16 max-w-40 object-contain"> }
+            @else if (cargandoLogo()) { <span class="block h-12 w-32 animate-pulse rounded-lg bg-superficie-2" aria-label="Cargando logo"></span> }
             @else { <span class="chico text-center text-[#5a6a74]">Sin logo</span> }
           </div>
           <div class="flex flex-col gap-2">
@@ -87,6 +88,7 @@ export class PagosSucursal implements OnInit, OnDestroy {
   private fotos = inject(FotosService);
   private confirmar = inject(ConfirmarService);
   logoUrl = signal<string | null>(null);
+  cargandoLogo = signal(false);
   subiendoLogo = signal(false);
   logoTodas = false;
   private zona = viewChild.required<ElementRef<HTMLElement>>('zona');
@@ -120,10 +122,12 @@ export class PagosSucursal implements OnInit, OnDestroy {
   private async cargarLogo(x: Sucursal) {
     this.soltarLogo();
     if (!x.logo) return;
+    this.cargandoLogo.set(true);
     try {
       const b = await firstValueFrom(this.http.get(`/api/sucursales/${x.id}/logo`, { responseType: 'blob' }));
       if (this.actual()?.id === x.id) this.logoUrl.set(URL.createObjectURL(b));
     } catch { /* sin logo */ }
+    finally { this.cargandoLogo.set(false); }
   }
 
   async subirLogo(ev: Event) {

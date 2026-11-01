@@ -30,7 +30,8 @@ const MENU: Item[] = [
   { ruta: 'promociones', texto: 'Promociones', icono: 'promociones', roles: [...COSTOS, 'vendedor'] },
   { ruta: 'sucursales', texto: 'Sucursales', icono: 'sucursales', roles: GER },
   { ruta: 'usuarios', texto: 'Usuarios', icono: 'usuarios', roles: GER },
-  { ruta: 'ajustes', texto: 'Ajustes y plan', icono: 'ajustes', roles: GER },
+  { ruta: 'suscripcion', texto: 'Mi suscripción', icono: 'rayo', roles: ['dueno'] },
+  { ruta: 'ajustes', texto: 'Ajustes', icono: 'ajustes', roles: GER },
 ];
 
 const CLAVE_MENU = 'grabix.menu-corto';
@@ -107,7 +108,7 @@ function leer() {
         @if (!modoSoporte() && aviso(); as a) {
           <div [class]="BANNER + (a.vigente ? ' bg-acento-suave' : ' bg-bad-suave text-bad')">
             {{ a.texto }}
-            @if (s.rol() === 'dueno') { <a routerLink="ajustes">Ver planes</a> }
+            @if (s.rol() === 'dueno') { <a routerLink="suscripcion">Ver planes</a> }
           </div>
         }
         <main class="w-full max-w-[1400px] pt-[18px] pb-[100px] margen-x lg:px-6 lg:pt-6 lg:pb-12">@if (!s.taller()?.eliminarEn || modoSoporte()) { <router-outlet /> }</main>
