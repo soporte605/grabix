@@ -4,6 +4,11 @@ Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el co
 
 ## 2026-11-01
 
+### Diseño de los correos
+- Nueva plantilla para todos los correos del sistema: encabezado azul marino con el logo de Grabix y Elikar Systems, franja verde, botón verde, nota con borde de color y pie con soporte y la liga de la landing. Funciona en Gmail, Outlook y celular (tablas y estilos en línea).
+- El correo de bienvenida toma los días de prueba de la configuración en lugar de decir 14 fijo.
+- Producción manda los correos por Resend desde `no-responder@grabix.elikarsystems.com` (el dominio verificado).
+
 ### Editar y eliminar pagos
 - En la venta, el dueño y el administrador pueden corregir (monto y forma de pago) o eliminar un pago con los íconos de cada renglón. El saldo y el enlace del cliente se actualizan solos y el cambio queda en la bitácora con el antes y el después.
 - Si el pago ya entró en un corte de caja cerrado, no se deja cambiar para no descuadrar el corte; se registra una salida de caja o un ajuste.
