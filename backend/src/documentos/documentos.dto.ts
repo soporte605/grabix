@@ -46,6 +46,11 @@ export class VentaDto extends DocumentoDto {
   @IsOptional() @IsIn(['caja']) origen?: 'caja';
 }
 
+/** Convertir una cotización en venta, opcionalmente con el anticipo que dejó el cliente. */
+export class ConvertirDto {
+  @IsOptional() @ValidateNested() @Type(() => PagoDto) anticipo?: PagoDto;
+}
+
 export class EstadoVentaDto {
   @IsEnum(EstadoVenta) estado: EstadoVenta;
 }

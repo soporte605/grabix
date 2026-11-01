@@ -2,6 +2,12 @@
 
 Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el commit, en la rama `mejoras-interfaz-seguridad` (PR #1). El contexto del proyecto está en [`docs/PROYECTO.md`](docs/PROYECTO.md).
 
+## 2026-11-01
+
+### Anticipo desde la cotización
+- Botón **Registrar anticipo** en la cotización: pide monto y forma de pago, la convierte en venta con ese pago en un solo paso y abre la venta. El pago entra al corte si la caja está abierta.
+- El enlace de una cotización ya convertida muestra la venta (pagado, saldo, avance, diseño y comprobantes), así el cliente no necesita otro enlace. El PDF público también es el de la venta.
+
 ## 2026-10-30
 
 ### Precios del catálogo en cotizaciones en borrador

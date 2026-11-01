@@ -175,11 +175,28 @@ interface Form {
         <button class="btn" (click)="pdf()" [disabled]="ocupado()"><app-icono nombre="ojo" />Vista previa</button>
         <button class="btn wa" (click)="whatsapp()" [disabled]="ocupado()"><app-icono nombre="wa" />WhatsApp</button>
         @if (esVenta && id) { <button class="btn" (click)="ticket()" [disabled]="ocupado()"><app-icono nombre="imprimir" />Ticket</button> }
-        @if (!esVenta && id && f.estado !== 'aceptada') { <button class="btn" (click)="convertir()" [disabled]="ocupado()">Convertir en venta</button> }
+        @if (!esVenta && id && f.estado !== 'aceptada') {
+          <button class="btn" (click)="abrirAnticipo()" [disabled]="ocupado()">Registrar anticipo</button>
+          <button class="btn" (click)="convertir()" [disabled]="ocupado()">Convertir en venta</button>
+        }
         <span class="flex-1"></span>
         <button class="btn pri min-w-32 max-sm:flex-1" (click)="guardar(true)" [disabled]="ocupado()">{{ ocupado() ? 'Guardando…' : esVenta && !id ? 'Registrar venta' : 'Guardar' }}</button>
       </ng-container>
     </app-hoja>
+    @if (anticipo(); as a) {
+      <app-hoja titulo="Registrar anticipo" ancho="440px" (cerrar)="anticipo.set(null)">
+        <p class="tenue chico">La cotización pasa a venta con este pago, entra a Producción y el cliente ve lo pagado y el saldo en el mismo enlace que ya tiene.</p>
+        <div class="campos">
+          <div class="campo"><label for="an-m">Monto</label><input id="an-m" name="monto" required min="0.01" class="num" type="number" inputmode="decimal" [(ngModel)]="a.monto"></div>
+          <div class="campo"><label for="an-f">Forma de pago</label><select id="an-f" [(ngModel)]="a.metodo">@for (m of metodos; track m) { <option>{{ m }}</option> }</select></div>
+        </div>
+        <p class="chico tenue">Total de la cotización: <span class="num">{{ t().total | dinero }}</span></p>
+        <ng-container pie>
+          <button class="btn" (click)="anticipo.set(null)">Cancelar</button><span class="flex-1"></span>
+          <button class="btn pri" (click)="convertir(a)" [disabled]="ocupado()">Registrar y pasar a venta</button>
+        </ng-container>
+      </app-hoja>
+    }
     @if (vista(); as v) { <app-vista-documento [venta]="v" [tipo]="esVenta ? 'venta' : 'cotizacion'" [conCancelar]="false" (cerrar)="vista.set(null)" /> }
     @if (altaCliente() !== null) { <app-alta-cliente [inicial]="altaCliente()!" (cerrar)="altaCliente.set(null)" (creado)="clienteCreado($event)" /> }
     @if (altaProducto(); as a) { <app-alta-producto [inicial]="a.q" [categorias]="categorias()" (cerrar)="altaProducto.set(null)" (creado)="productoCreado(a.it, $event)" /> }
@@ -457,12 +474,20 @@ export class DocEditor implements OnInit {
     }
   }
 
-  async convertir() {
+  /** Anticipo recibido sobre una cotización: se registra al convertirla en venta. */
+  anticipo = signal<{ monto: number | null; metodo: string } | null>(null);
+  abrirAnticipo() { this.anticipo.set({ monto: null, metodo: 'Efectivo' }); }
+
+  async convertir(a?: { monto: number | null; metodo: string }) {
+    const monto = Number(a?.monto) || 0;
+    if (a && !(monto > 0)) { this.aviso.error('Escribe el monto del anticipo'); return; }
+    if (a && monto > this.t().total + 0.009) { this.aviso.error('El anticipo es mayor que el total de la cotización'); return; }
     const id = await this.asegurar();
     if (!id) return;
     try {
-      const v = await this.api.post<{ id: number; folio: string }>(`/cotizaciones/${id}/convertir`);
-      this.aviso.ok(`Venta ${v.folio} creada`);
+      const v = await this.api.post<{ id: number; folio: string }>(`/cotizaciones/${id}/convertir`, a ? { anticipo: { monto, metodo: a.metodo } } : {});
+      this.anticipo.set(null);
+      this.aviso.ok(a ? `Anticipo registrado en la venta ${v.folio}` : `Venta ${v.folio} creada`);
       this.router.navigate(['/app/ventas', v.id]);
     } catch (e) {
       this.aviso.error(mensajeError(e));

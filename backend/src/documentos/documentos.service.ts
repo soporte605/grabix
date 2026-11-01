@@ -182,7 +182,8 @@ export class DocumentosService {
   }
 
   /** Convierte una cotización aceptada en orden de venta (descuenta inventario). */
-  async convertir(s: Sesion, id: number) {
+  /** Pasa la cotización a venta. Si el cliente dejó anticipo, se registra en la misma operación. */
+  async convertir(s: Sesion, id: number, anticipo?: PagoDto) {
     return this.ds.transaction(async (em) => {
       const c = await this.uno(em, Cotizacion, s, id, true);
       if (await em.existsBy(Venta, { cotizacionId: c.id, tallerId: s.tallerId }))
@@ -197,6 +198,7 @@ export class DocumentosService {
         fecha: hoy(),
         entrega: sumarDias(hoy(), 3),
         items: c.items.map((i) => ({ productoId: i.productoId, descripcion: i.descripcion, cantidad: i.cantidad, precio: i.precio })),
+        anticipo,
       }, c.id);
       c.estado = EstadoCotizacion.Aceptada;
       await em.save(c);
@@ -415,7 +417,11 @@ export class DocumentosService {
   async porToken(tk: string) {
     const em = this.ds.manager;
     const c = await em.findOneBy(Cotizacion, { tokenPublico: tk });
-    if (c) return this.paraImprimir('cotizacion', c);
+    if (c) {
+      // Si ya se convirtió en venta, el enlace que el cliente ya tiene muestra la venta: pagos, saldo y avance.
+      const v = await em.findOneBy(Venta, { tallerId: c.tallerId, cotizacionId: c.id });
+      return v ? this.paraImprimir('venta', v) : this.paraImprimir('cotizacion', c);
+    }
     const v = await em.findOneBy(Venta, { tokenPublico: tk });
     return v ? this.paraImprimir('venta', v) : null;
   }
