@@ -93,6 +93,8 @@ export class Taller {
   estadoSuscripcion: EstadoSuscripcion;
   @Column({ type: 'date', nullable: true }) pruebaHasta: string | null;
   @Column({ type: 'date', nullable: true }) pagadoHasta: string | null;
+  /** Último aviso de prueba enviado, como `tipo:pruebaHasta`, para no repetirlo. */
+  @Column({ length: 40, default: '' }) avisoPrueba: string;
   /** Eliminación solicitada por el dueño: ese día se borran todos los datos del taller. Mientras, la cuenta queda bloqueada. */
   @Column({ type: 'date', nullable: true }) eliminarEn: string | null;
   /** Suspensión manual desde el panel. El equipo no puede entrar ni seguir con una sesión abierta; el acceso de soporte sí. */

@@ -4,6 +4,9 @@ Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el co
 
 ## 2026-11-01
 
+### Avisos de la prueba gratis
+- Correo al dueño 3 días antes de que termine la prueba ("tu prueba termina en 3 días") y otro al terminar ("tu prueba terminó: tus datos siguen guardados"), con botón a elegir plan. Se revisa al arrancar y cada 6 horas; cada aviso se manda una sola vez por fecha de vencimiento (columna `talleres.avisoPrueba`), y si se extiende la prueba se vuelve a avisar. Las pruebas que terminaron hace más de 7 días no se avisan.
+
 ### Diseño de los correos
 - Nueva plantilla para todos los correos del sistema: encabezado azul marino con el logo de Grabix y Elikar Systems, franja verde, botón verde, nota con borde de color y pie con soporte y la liga de la landing. Funciona en Gmail, Outlook y celular (tablas y estilos en línea).
 - El correo de bienvenida toma los días de prueba de la configuración en lugar de decir 14 fijo.
