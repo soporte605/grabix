@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, MoreThan } from 'typeorm';
 import { Sesion } from '../common/sesion';
 import { hoy, PLANES, sumarDias } from '../common/suscripcion';
-import { EstadoSuscripcion, PagoSuscripcion, Taller, Usuario } from '../entities';
+import { EstadoSuscripcion, PagoSuscripcion, Taller } from '../entities';
 
 const API = 'https://api.mercadopago.com';
 const REF = 'grabix-';
@@ -48,7 +48,12 @@ export class MercadoPagoService {
     const p = PLANES.find((x) => x.id === plan);
     if (!p) throw new BadRequestException('Plan no válido');
     const monto = periodo === 'anual' ? p.precioAnual : p.precioMensual;
-    const u = await this.ds.manager.findOneByOrFail(Usuario, { id: s.usuarioId });
+    // Doble clic o reintento: reutiliza la misma liga si se pidió hace menos de 30 minutos.
+    const previo = await this.ds.manager.findOne(PagoSuscripcion, {
+      where: { tallerId: s.tallerId, plan, periodo, estado: 'pendiente', creadoEn: MoreThan(new Date(Date.now() - 30 * 60_000)) },
+      order: { id: 'DESC' },
+    });
+    if (previo?.url) return { url: previo.url, pagoId: previo.id };
     const pago = await this.ds.manager.save(
       this.ds.manager.create(PagoSuscripcion, { tallerId: s.tallerId, plan, periodo, monto, usuarioId: s.usuarioId }),
     );
@@ -58,7 +63,6 @@ export class MercadoPagoService {
       headers: { 'X-Idempotency-Key': `${REF}${pago.id}` },
       body: JSON.stringify({
         items: [{ id: `${plan}-${periodo}`, title: `Grabix plan ${p.nombre} (${periodo})`, quantity: 1, unit_price: monto, currency_id: 'MXN' }],
-        payer: { email: u.email, name: u.nombre },
         external_reference: `${REF}${pago.id}`,
         back_urls: { success: vuelta, pending: vuelta, failure: vuelta },
         auto_return: 'approved',
@@ -66,7 +70,7 @@ export class MercadoPagoService {
         statement_descriptor: 'GRABIX',
       }),
     });
-    await this.ds.manager.update(PagoSuscripcion, { id: pago.id }, { preferenciaId: pref.id });
+    await this.ds.manager.update(PagoSuscripcion, { id: pago.id }, { preferenciaId: pref.id, url: pref.init_point });
     return { url: pref.init_point, pagoId: pago.id };
   }
 
