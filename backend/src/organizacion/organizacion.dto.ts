@@ -39,6 +39,11 @@ export class UsuarioDto {
   @IsOptional() @IsBoolean() activo?: boolean;
 }
 
+export class ConfirmarPagoDto {
+  @IsInt() pagoId: number;
+  @IsOptional() @IsString() @MaxLength(30) mpPagoId?: string;
+}
+
 export class ActivarPlanDto {
   @IsIn(['basico', 'pro', 'empresa']) plan: string;
   @IsIn(['mensual', 'anual']) periodo: string;

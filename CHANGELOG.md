@@ -4,6 +4,14 @@ Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el co
 
 ## 2026-11-01
 
+### Cobro de la suscripción con Mercado Pago
+- Con `PAGOS_MODO=mercadopago` y `MERCADOPAGO_ACCESS_TOKEN`, "Elegir plan" en Ajustes abre Mercado Pago Checkout Pro (tarjeta, OXXO, SPEI). El plan se activa cuando el pago está aprobado: por el webhook `POST /api/pagos/mercadopago` o al regresar a Ajustes (`POST /taller/suscripcion/confirmar`). En los dos casos el pago se consulta en la API de Mercado Pago y se valida monto y moneda; cada pago se aplica una sola vez (tabla `pagos_suscripcion`).
+- Los días que quedaban (de prueba o pagados) no se pierden: el periodo nuevo se suma al final.
+- Con `PAGOS_MODO=demo` todo sigue como antes.
+
+### Avisos de la prueba gratis
+- Correo al dueño 3 días antes de que termine la prueba ("tu prueba termina en 3 días") y otro al terminar ("tu prueba terminó: tus datos siguen guardados"), con botón a elegir plan. Se revisa al arrancar y cada 6 horas; cada aviso se manda una sola vez por fecha de vencimiento (columna `talleres.avisoPrueba`), y si se extiende la prueba se vuelve a avisar. Las pruebas que terminaron hace más de 7 días no se avisan.
+
 ### Diseño de los correos
 - Nueva plantilla para todos los correos del sistema: encabezado azul marino con el logo de Grabix y Elikar Systems, franja verde, botón verde, nota con borde de color y pie con soporte y la liga de la landing. Funciona en Gmail, Outlook y celular (tablas y estilos en línea).
 - El correo de bienvenida toma los días de prueba de la configuración en lugar de decir 14 fijo.

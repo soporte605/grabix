@@ -3,7 +3,7 @@ import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import * as nodemailer from 'nodemailer';
 import { Repository } from 'typeorm';
 import { CorreoLog, TokenCuenta } from '../entities';
-import { DIAS_PRUEBA_PUBLICO } from '../common/suscripcion';
+import { DIAS_PRUEBA_PUBLICO, PLANES } from '../common/suscripcion';
 import { TokensService } from './tokens.service';
 
 /** Colores de marca de los correos (Elikar Systems). */
@@ -113,7 +113,10 @@ export class CorreoService {
     <tr><td style="background:${MARCA.primario};padding:22px 32px">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
         <td style="font-family:${f};font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-.02em">
-          <img src="${this.url('/icono-192.png')}" width="38" height="38" alt="" style="display:inline-block;width:38px;height:38px;border-radius:10px;margin-right:12px;vertical-align:middle;border:0">Grabix</td>
+          <!-- Logo hecho con texto y tablas: se ve aunque el correo bloquee las imágenes. -->
+          <table role="presentation" cellpadding="0" cellspacing="0" style="display:inline-table;vertical-align:middle;margin-right:12px"><tr>
+            <td align="center" valign="middle" style="width:36px;height:36px;border:2px solid #ffffff;border-radius:10px;font-family:${f};font-size:22px;line-height:36px;font-weight:800;color:#ffffff">G<span style="color:${MARCA.acento}">.</span></td>
+          </tr></table><span style="vertical-align:middle">Grabix</span></td>
         <td align="right" style="font-family:${f};font-size:11px;font-weight:800;letter-spacing:.22em;color:#ffffff">ELIKAR <span style="color:${MARCA.acento}">SYSTEMS</span></td>
       </tr></table>
     </td></tr>
@@ -187,6 +190,50 @@ export class CorreoService {
         nota: 'El enlace vence en 7 días. Si no esperabas esta invitación, ignora este correo.',
       }),
       texto: `Hola ${nombre}, ${quien} te invitó a ${taller} en Grabix. Crea tu contraseña aquí: ${url} (vence en 7 días).`,
+    });
+  }
+
+  /** Recordatorio cuando faltan pocos días de prueba. */
+  pruebaPorVencer(para: string, nombre: string, taller: string, dias: number) {
+    const url = this.url('/app/ajustes');
+    const cuando = dias === 1 ? 'mañana' : `en ${dias} días`;
+    return this.enviar({
+      para,
+      tipo: 'prueba_por_vencer',
+      asunto: `Tu prueba de Grabix termina ${cuando}`,
+      html: this.plantilla({
+        previa: `Elige tu plan para que ${taller} siga trabajando sin pausas.`,
+        titulo: `Hola ${nombre}, tu prueba termina ${cuando}`,
+        parrafos: [
+          `Esperamos que Grabix ya le esté ahorrando tiempo a ${taller}: cotizaciones con tus costos reales, pedidos por etapas y la caja al día.`,
+          'Para seguir sin interrupciones, elige tu plan. Todo lo que capturaste se queda igual: clientes, productos, cotizaciones y ventas.',
+          `Los planes empiezan en $${PLANES[0].precioMensual} al mes, y el anual te regala dos meses.`,
+        ],
+        boton: { texto: 'Elegir mi plan', url },
+        nota: '¿Necesitas más tiempo para probarlo o tienes dudas? Escríbenos a soporte@elikarsystems.com y te ayudamos.',
+      }),
+      texto: `Hola ${nombre}, tu prueba de Grabix para ${taller} termina ${cuando}. Elige tu plan para seguir sin interrupciones: ${url}`,
+    });
+  }
+
+  /** Aviso cuando la prueba ya terminó. */
+  pruebaTerminada(para: string, nombre: string, taller: string) {
+    const url = this.url('/app/ajustes');
+    return this.enviar({
+      para,
+      tipo: 'prueba_terminada',
+      asunto: 'Tu prueba de Grabix terminó: tus datos siguen guardados',
+      html: this.plantilla({
+        previa: `Elige un plan y ${taller} vuelve a trabajar en el mismo punto.`,
+        titulo: `Hola ${nombre}, tu prueba terminó`,
+        parrafos: [
+          `Gracias por probar Grabix con ${taller}. Tus clientes, productos, cotizaciones y ventas siguen guardados.`,
+          'Elige tu plan y sigues exactamente donde te quedaste, con todo tu equipo.',
+        ],
+        boton: { texto: 'Elegir mi plan', url },
+        nota: '¿Algo no te convenció o te faltó una función? Cuéntanos en soporte@elikarsystems.com; leemos cada mensaje.',
+      }),
+      texto: `Hola ${nombre}, tu prueba de Grabix para ${taller} terminó. Tus datos siguen guardados. Elige tu plan aquí: ${url}`,
     });
   }
 

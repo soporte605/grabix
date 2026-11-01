@@ -2,12 +2,12 @@ import { Body, Controller, ForbiddenException, HttpCode, Injectable, Logger, Mod
 import { InjectDataSource } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
-import { DataSource, LessThanOrEqual } from 'typeorm';
+import { Between, DataSource, IsNull, LessThanOrEqual } from 'typeorm';
 import { BitacoraService } from '../common/bitacora.service';
 import { Roles, Ses, SinSuscripcion, type Sesion } from '../common/sesion';
 import { hoy, sumarDias } from '../common/suscripcion';
 import { CorreoService } from '../correo/correo.service';
-import { Rol, Taller, Usuario } from '../entities';
+import { EstadoSuscripcion, Rol, Taller, Usuario } from '../entities';
 
 /** Días para arrepentirse antes del borrado definitivo. */
 export const DIAS_GRACIA = 30;
@@ -99,10 +99,38 @@ export class CuentaService implements OnApplicationBootstrap, OnApplicationShutd
     for (const t of ts) await this.purgar(t.id).catch((e) => this.log.error(`No se pudo eliminar el taller ${t.id}: ${(e as Error).message}`));
   }
 
+  /**
+   * Avisos de la prueba gratis: 3 días antes y el día después de terminar.
+   * Solo a talleres en prueba, sin bloquear ni por eliminar; la prueba que terminó hace más de 7 días ya no se avisa.
+   */
+  async avisarPruebas() {
+    const h = hoy();
+    const ts = await this.ds.manager.find(Taller, {
+      where: { estadoSuscripcion: EstadoSuscripcion.Prueba, bloqueado: false, eliminarEn: IsNull(), pruebaHasta: Between(sumarDias(h, -7), sumarDias(h, 3)) },
+    });
+    for (const t of ts) {
+      const tipo = t.pruebaHasta! < h ? 'terminada' : 'porvencer';
+      const marca = `${tipo}:${t.pruebaHasta}`;
+      if (t.avisoPrueba === marca) continue;
+      const duenos = await this.ds.manager.find(Usuario, { where: { tallerId: t.id, rol: Rol.Dueno, activo: true } });
+      const dias = Math.round((Date.parse(t.pruebaHasta! + 'T12:00:00Z') - Date.parse(h + 'T12:00:00Z')) / 86400_000) + 1;
+      for (const u of duenos) {
+        if (tipo === 'terminada') await this.correo.pruebaTerminada(u.email, u.nombre, t.nombre);
+        else await this.correo.pruebaPorVencer(u.email, u.nombre, t.nombre, dias);
+      }
+      await this.ds.manager.update(Taller, { id: t.id }, { avisoPrueba: marca });
+    }
+  }
+
+  private tareas() {
+    this.purgarVencidas().catch(() => undefined);
+    this.avisarPruebas().catch((e) => this.log.error(`Avisos de prueba: ${(e as Error).message}`));
+  }
+
   onApplicationBootstrap() {
     // Revisa al arrancar y cada 6 horas; no hace falta más precisión que el día.
-    setTimeout(() => this.purgarVencidas().catch(() => undefined), 30_000);
-    this.reloj = setInterval(() => this.purgarVencidas().catch(() => undefined), 6 * 3600_000);
+    setTimeout(() => this.tareas(), 30_000);
+    this.reloj = setInterval(() => this.tareas(), 6 * 3600_000);
   }
 
   onApplicationShutdown() {

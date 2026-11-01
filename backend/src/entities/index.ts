@@ -93,6 +93,8 @@ export class Taller {
   estadoSuscripcion: EstadoSuscripcion;
   @Column({ type: 'date', nullable: true }) pruebaHasta: string | null;
   @Column({ type: 'date', nullable: true }) pagadoHasta: string | null;
+  /** Último aviso de prueba enviado, como `tipo:pruebaHasta`, para no repetirlo. */
+  @Column({ length: 40, default: '' }) avisoPrueba: string;
   /** Eliminación solicitada por el dueño: ese día se borran todos los datos del taller. Mientras, la cuenta queda bloqueada. */
   @Column({ type: 'date', nullable: true }) eliminarEn: string | null;
   /** Suspensión manual desde el panel. El equipo no puede entrar ni seguir con una sesión abierta; el acceso de soporte sí. */
@@ -653,7 +655,25 @@ export class ImagenCotizacion {
   cotizacion: Relation<Cotizacion>;
 }
 
+/** Cobro de la suscripción de Grabix (Mercado Pago Checkout Pro). */
+@Entity('pagos_suscripcion')
+export class PagoSuscripcion {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Column({ length: 20 }) plan: string;
+  @Column({ length: 10 }) periodo: string;
+  @Column(money) monto: number;
+  /** pendiente, aprobado, rechazado */
+  @Column({ length: 12, default: 'pendiente' }) estado: string;
+  @Column({ length: 80, default: '' }) preferenciaId: string;
+  @Index({ unique: true }) @Column({ type: 'varchar', length: 40, nullable: true }) mpPagoId: string | null;
+  @Column({ type: 'int', nullable: true }) usuarioId: number | null;
+  @Column({ type: 'date', nullable: true }) pagadoHasta: string | null;
+  @CreateDateColumn() creadoEn: Date;
+}
+
 export const ENTIDADES = [
+  PagoSuscripcion,
   ImagenCotizacion,
   Diseno,
   Comprobante,
