@@ -3,6 +3,7 @@ import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import * as nodemailer from 'nodemailer';
 import { Repository } from 'typeorm';
 import { CorreoLog, TokenCuenta } from '../entities';
+import { DIAS_PRUEBA_PUBLICO } from '../common/suscripcion';
 import { TokensService } from './tokens.service';
 
 /** Colores de marca de los correos (Elikar Systems). */
@@ -87,39 +88,46 @@ export class CorreoService {
   // Plantilla con marca (tablas e estilos en línea para que se vea bien en Gmail y Outlook)
   // ---------------------------------------------------------------------------
 
-  plantilla(o: { previa: string; etiqueta: string; titulo: string; parrafos: string[]; boton?: { texto: string; url: string }; nota?: string }) {
-    const ps = o.parrafos.map((p) => `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:${MARCA.texto}">${esc(p)}</p>`).join('');
+  plantilla(o: { previa: string; etiqueta?: string; titulo: string; parrafos: string[]; boton?: { texto: string; url: string }; nota?: string }) {
+    const f = "'Plus Jakarta Sans',Segoe UI,Arial,Helvetica,sans-serif";
+    const ps = o.parrafos.map((p) => `<p style="margin:0 0 16px;font-family:${f};font-size:16px;line-height:1.6;color:${MARCA.texto}">${esc(p)}</p>`).join('');
     const btn = o.boton
-      ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0"><tr><td style="border-radius:8px;background:${MARCA.primario}">
-           <a href="${esc(o.boton.url)}" style="display:inline-block;padding:13px 24px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px">${esc(o.boton.texto)}</a>
+      ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:26px 0 22px"><tr><td style="border-radius:10px;background:${MARCA.acento}">
+           <a href="${esc(o.boton.url)}" style="display:inline-block;padding:15px 28px;font-family:${f};font-size:16px;font-weight:800;color:${MARCA.primario};text-decoration:none;border-radius:10px">${esc(o.boton.texto)} &rarr;</a>
          </td></tr></table>
-         <p style="margin:0 0 14px;font-size:12px;line-height:1.5;color:${MARCA.tenue}">Si el botón no funciona, copia esta liga en tu navegador:<br>
+         <p style="margin:0 0 4px;font-family:${f};font-size:12px;line-height:1.55;color:${MARCA.tenue}">Si el botón no abre, copia esta liga en tu navegador:<br>
            <a href="${esc(o.boton.url)}" style="color:${MARCA.acentoTexto};word-break:break-all">${esc(o.boton.url)}</a></p>`
       : '';
     const nota = o.nota
-      ? `<p style="margin:18px 0 0;padding:12px 14px;background:${MARCA.lienzo};border-radius:8px;font-size:13px;line-height:1.5;color:${MARCA.tenue}">${esc(o.nota)}</p>`
+      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 0"><tr>
+           <td style="width:4px;background:${MARCA.acento};border-radius:4px 0 0 4px;font-size:0">&nbsp;</td>
+           <td style="padding:13px 16px;background:${MARCA.lienzo};border-radius:0 8px 8px 0;font-family:${f};font-size:13px;line-height:1.55;color:${MARCA.texto}">${esc(o.nota)}</td>
+         </tr></table>`
       : '';
-    return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(o.titulo)}</title></head>
-<body style="margin:0;padding:0;background:${MARCA.lienzo};font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif">
+    const landing = (process.env.LANDING_URL ?? this.url('').replace('://app.', '://')).replace(/\/$/, '');
+    return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${esc(o.titulo)}</title></head>
+<body style="margin:0;padding:0;background:${MARCA.lienzo};font-family:${f}">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(o.previa)}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${MARCA.lienzo}"><tr><td align="center" style="padding:28px 12px">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
-    <tr><td style="padding:0 4px 14px;font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:22px;font-weight:800;color:${MARCA.primario}">
-      <img src="${this.url('/icono-192.png')}" width="32" height="32" alt="" style="display:inline-block;width:32px;height:32px;border-radius:8px;margin-right:10px;vertical-align:middle;border:0">Grabix</td></tr>
-    <tr><td style="background:#ffffff;border:1px solid ${MARCA.borde};border-radius:12px;overflow:hidden">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-        <tr><td style="height:5px;background:${MARCA.acento};font-size:0;line-height:0">&nbsp;</td></tr>
-        <tr><td style="padding:28px 30px 30px">
-          <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${MARCA.acentoTexto}">${esc(o.etiqueta)}</p>
-          <h1 style="margin:0 0 16px;font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:22px;line-height:1.3;color:${MARCA.tinta}">${esc(o.titulo)}</h1>
-          ${ps}${btn}${nota}
-        </td></tr>
-      </table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${MARCA.lienzo}"><tr><td align="center" style="padding:32px 12px">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid ${MARCA.borde}">
+    <tr><td style="background:${MARCA.primario};padding:22px 32px">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td style="font-family:${f};font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-.02em">
+          <img src="${this.url('/icono-192.png')}" width="38" height="38" alt="" style="display:inline-block;width:38px;height:38px;border-radius:10px;margin-right:12px;vertical-align:middle;border:0">Grabix</td>
+        <td align="right" style="font-family:${f};font-size:11px;font-weight:800;letter-spacing:.22em;color:#ffffff">ELIKAR <span style="color:${MARCA.acento}">SYSTEMS</span></td>
+      </tr></table>
     </td></tr>
-    <tr><td style="padding:18px 6px 0;font-size:12px;line-height:1.6;color:${MARCA.tenue};text-align:center">
-      Grabix · un producto de Elikar Systems<br>¿Dudas? Escríbenos a <a href="mailto:soporte@elikarsystems.com" style="color:${MARCA.acentoTexto}">soporte@elikarsystems.com</a>
+    <tr><td style="height:4px;background:${MARCA.acento};font-size:0;line-height:0">&nbsp;</td></tr>
+    <tr><td style="padding:34px 32px 34px">
+      <h1 style="margin:0 0 18px;font-family:${f};font-size:24px;line-height:1.3;font-weight:800;letter-spacing:-.01em;color:${MARCA.tinta}">${esc(o.titulo)}</h1>
+      ${ps}${btn}${nota}
+    </td></tr>
+    <tr><td style="padding:20px 32px;border-top:1px solid ${MARCA.borde};font-family:${f};font-size:12px;line-height:1.6;color:${MARCA.tenue}">
+      <b style="color:${MARCA.primario}">Grabix</b> · cotizaciones, producción, caja e inventario para tu taller.<br>
+      ¿Dudas? Escríbenos a <a href="mailto:soporte@elikarsystems.com" style="color:${MARCA.acentoTexto}">soporte@elikarsystems.com</a> · <a href="${esc(landing)}" style="color:${MARCA.acentoTexto}">${esc(landing.replace(/^https?:\/\//, ''))}</a>
     </td></tr>
   </table>
+  <p style="margin:16px 0 0;font-family:${f};font-size:11px;color:${MARCA.tenue}">Un producto de Elikar Systems · Hecho en México</p>
 </td></tr></table></body></html>`;
   }
 
@@ -138,7 +146,7 @@ export class CorreoService {
         etiqueta: 'Bienvenido a Grabix',
         titulo: `Hola ${nombre}, confirma tu correo`,
         parrafos: [
-          `Gracias por registrar ${taller}. Ya puedes usar tu prueba gratuita de 14 días con todas las funciones.`,
+          `Gracias por registrar ${taller}. Ya puedes usar tu prueba gratuita de ${DIAS_PRUEBA_PUBLICO} días con todas las funciones.`,
           'Confirma tu correo para poder invitar a tu equipo, elegir un plan y recuperar tu contraseña si la olvidas.',
         ],
         boton: { texto: 'Confirmar mi correo', url },
