@@ -666,6 +666,8 @@ export class PagoSuscripcion {
   /** pendiente, aprobado, rechazado */
   @Column({ length: 12, default: 'pendiente' }) estado: string;
   @Column({ length: 80, default: '' }) preferenciaId: string;
+  /** Liga de pago de Mercado Pago, para reutilizarla si se pide dos veces. */
+  @Column({ length: 500, default: '' }) url: string;
   @Index({ unique: true }) @Column({ type: 'varchar', length: 40, nullable: true }) mpPagoId: string | null;
   @Column({ type: 'int', nullable: true }) usuarioId: number | null;
   @Column({ type: 'date', nullable: true }) pagadoHasta: string | null;

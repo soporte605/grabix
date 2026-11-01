@@ -4,6 +4,11 @@ Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el co
 
 ## 2026-11-01
 
+### Ajustes al cobro y a los correos
+- "Elegir plan" muestra "Abriendo Mercado Pago…" y bloquea los botones hasta que abre el pago; si se pide dos veces en 30 minutos se reutiliza la misma liga (columna `pagos_suscripcion.url`).
+- La preferencia ya no manda el correo del comprador: con credenciales de prueba Mercado Pago rechaza mezclar un comprador real con un vendedor de prueba.
+- El encabezado de los correos usa el logo real de Grabix en PNG (`/logo-correo.png`, con la palabra Grabix en Plus Jakarta Sans); si el correo oculta imágenes sale el texto "Grabix".
+
 ### Cobro de la suscripción con Mercado Pago
 - Con `PAGOS_MODO=mercadopago` y `MERCADOPAGO_ACCESS_TOKEN`, "Elegir plan" en Ajustes abre Mercado Pago Checkout Pro (tarjeta, OXXO, SPEI). El plan se activa cuando el pago está aprobado: por el webhook `POST /api/pagos/mercadopago` o al regresar a Ajustes (`POST /taller/suscripcion/confirmar`). En los dos casos el pago se consulta en la API de Mercado Pago y se valida monto y moneda; cada pago se aplica una sola vez (tabla `pagos_suscripcion`).
 - Los días que quedaban (de prueba o pagados) no se pierden: el periodo nuevo se suma al final.

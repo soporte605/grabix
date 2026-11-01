@@ -74,7 +74,10 @@ import { PagosSucursal } from '../ui/pagos-sucursal';
                     <b>{{ p.nombre }}</b>
                     <span class="num">{{ anual() ? (p.precioAnual | dinero) + ' / año' : (p.precioMensual | dinero) + ' / mes' }}</span>
                     <span class="tenue chico">{{ p.sucursales }} sucursales · {{ p.usuarios }} usuarios</span>
-                    <button class="btn sm" [class.pri]="p.id !== x.plan" (click)="pagar(p.id)">{{ p.id === x.plan ? 'Renovar' : 'Elegir' }}</button>
+                    <button class="btn sm" [class.pri]="p.id !== x.plan" (click)="pagar(p.id)" [disabled]="!!pagando()" [attr.aria-busy]="pagando() === p.id">
+                      @if (pagando() === p.id) { <span class="inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true"></span>Abriendo Mercado Pago… }
+                      @else { {{ p.id === x.plan ? 'Renovar' : 'Elegir' }} }
+                    </button>
                   </div>
                 }
               </div>
@@ -122,6 +125,8 @@ export class Ajustes implements OnInit {
   t = signal<Taller | null>(null);
   anual = signal(false);
   async ngOnInit() {
+    // Si regresa con el botón Atrás desde Mercado Pago, el botón vuelve a estar disponible.
+    addEventListener('pageshow', (e) => { if (e.persisted) this.pagando.set(null); });
     this.t.set(await this.api.get('/taller'));
     await this.regresoDePago();
   }
@@ -184,12 +189,18 @@ export class Ajustes implements OnInit {
     } catch (e) { this.aviso.error(mensajeError(e)); }
     finally { this.eliminando.set(false); }
   }
+  pagando = signal<string | null>(null);
+
   async pagar(plan: string) {
+    if (this.pagando()) return;
+    this.pagando.set(plan);
     try {
       const r = await this.api.post<{ url?: string }>('/taller/suscripcion', { plan, periodo: this.anual() ? 'anual' : 'mensual' });
+      // Se queda bloqueado mientras el navegador abre Mercado Pago.
       if (r?.url) { location.href = r.url; return; }
       await this.s.cargar();
       this.aviso.ok('Plan activado');
-    } catch (e) { this.aviso.error(mensajeError(e)); }
+      this.pagando.set(null);
+    } catch (e) { this.aviso.error(mensajeError(e)); this.pagando.set(null); }
   }
 }

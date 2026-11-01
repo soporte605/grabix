@@ -105,18 +105,16 @@ export class CorreoService {
          </tr></table>`
       : '';
     const landing = (process.env.LANDING_URL ?? this.url('').replace('://app.', '://')).replace(/\/$/, '');
-    return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${esc(o.titulo)}</title></head>
+    return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet"><title>${esc(o.titulo)}</title></head>
 <body style="margin:0;padding:0;background:${MARCA.lienzo};font-family:${f}">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(o.previa)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${MARCA.lienzo}"><tr><td align="center" style="padding:32px 12px">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid ${MARCA.borde}">
     <tr><td style="background:${MARCA.primario};padding:22px 32px">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-        <td style="font-family:${f};font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-.02em">
-          <!-- Logo hecho con texto y tablas: se ve aunque el correo bloquee las imágenes. -->
-          <table role="presentation" cellpadding="0" cellspacing="0" style="display:inline-table;vertical-align:middle;margin-right:12px"><tr>
-            <td align="center" valign="middle" style="width:36px;height:36px;border:2px solid #ffffff;border-radius:10px;font-family:${f};font-size:22px;line-height:36px;font-weight:800;color:#ffffff">G<span style="color:${MARCA.acento}">.</span></td>
-          </tr></table><span style="vertical-align:middle">Grabix</span></td>
+        <td style="font-family:${f};font-size:26px;font-weight:800;color:#ffffff;letter-spacing:-.02em">
+          <!-- Logo real en PNG (Gmail no muestra SVG). Si el correo oculta imágenes, el texto alternativo sale con la marca. -->
+          <img src="${this.url('/logo-correo.png')}" width="166" height="44" alt="Grabix" style="display:block;width:166px;height:44px;border:0;font-family:${f};font-size:26px;font-weight:800;color:#ffffff"></td>
         <td align="right" style="font-family:${f};font-size:11px;font-weight:800;letter-spacing:.22em;color:#ffffff">ELIKAR <span style="color:${MARCA.acento}">SYSTEMS</span></td>
       </tr></table>
     </td></tr>
