@@ -6,6 +6,7 @@ import { SesionService } from './core/sesion.service';
 const COSTOS = roles('dueno', 'admin', 'encargado');
 const VENTA = roles('dueno', 'admin', 'encargado', 'vendedor');
 const GER = roles('dueno', 'admin');
+const DUENO = roles('dueno');
 
 const panel = (): Routes => [
   { path: '', canActivate: [conAdmin], loadComponent: () => import('./pages/admin-talleres').then((m) => m.AdminTalleres), title: 'Talleres · Grabix' },
@@ -71,6 +72,7 @@ export const routes: Routes = [
       { path: 'promociones', canActivate: [VENTA], loadComponent: () => import('./pages/promociones').then((m) => m.Promociones), title: 'Promociones · Grabix' },
       { path: 'sucursales', canActivate: [GER], loadComponent: () => import('./pages/equipo').then((m) => m.Sucursales), title: 'Sucursales · Grabix' },
       { path: 'usuarios', canActivate: [GER], loadComponent: () => import('./pages/equipo').then((m) => m.Usuarios), title: 'Usuarios · Grabix' },
+      { path: 'suscripcion', canActivate: [DUENO], loadComponent: () => import('./pages/suscripcion').then((m) => m.Suscripcion), title: 'Mi suscripción · Grabix' },
       { path: 'ajustes', canActivate: [GER], loadComponent: () => import('./pages/ajustes').then((m) => m.Ajustes), title: 'Ajustes · Grabix' },
     ],
   },

@@ -1,8 +1,8 @@
 import { Component, ElementRef, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
-import { DineroPipe, FechaPipe } from '../core/formato';
 import { Taller } from '../core/modelos';
 import { evaluarClave } from '../core/clave';
 import { SesionService } from '../core/sesion.service';
@@ -16,9 +16,9 @@ import { PagosSucursal } from '../ui/pagos-sucursal';
 
 @Component({
   selector: 'app-ajustes',
-  imports: [FormsModule, DineroPipe, FechaPipe, CampoClave, Esqueleto, Hoja, Icono, MaquinasTaller, PagosSucursal],
+  imports: [FormsModule, RouterLink, CampoClave, Esqueleto, Hoja, Icono, MaquinasTaller, PagosSucursal],
   template: `
-    <div class="encabezado"><div class="titulo"><span class="icono-modulo"><app-icono nombre="ajustes" /></span><div><h1>Ajustes y plan</h1><p>Datos que aparecen en tus PDF y valores para calcular costos.</p></div></div></div>
+    <div class="encabezado"><div class="titulo"><span class="icono-modulo"><app-icono nombre="ajustes" /></span><div><h1>Ajustes</h1><p>Datos que aparecen en tus PDF y valores para calcular costos.</p></div></div></div>
     @if (t(); as t) {
       <div class="rejilla max-w-[820px]">
         <section class="caja">
@@ -59,30 +59,11 @@ import { PagosSucursal } from '../ui/pagos-sucursal';
           <div class="fila"><button class="btn">Cambiar contraseña</button><span class="tenue chico">Se cerrará tu sesión en otros dispositivos.</span></div>
         </form>
 
-        @if (s.perfil()?.suscripcion; as x) {
+        @if (s.rol() === 'dueno') {
           <section class="caja">
             <h3>Tu plan</h3>
-            <p>
-              @if (x.estado === 'prueba') { Prueba gratuita · vence el {{ x.vence | fecha }} ({{ x.diasRestantes }} días) }
-              @else { Plan <b>{{ nombrePlan(x.plan) }}</b> · {{ x.vigente ? 'pagado hasta el' : 'venció el' }} {{ x.vence | fecha }} }
-            </p>
-            @if (s.rol() === 'dueno') {
-              <div class="chips"><button class="chip" [class.on]="!anual()" (click)="anual.set(false)">Mensual</button><button class="chip" [class.on]="anual()" (click)="anual.set(true)">Anual</button></div>
-              <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2.5">
-                @for (p of x.planes; track p.id) {
-                  <div class="tarjeta pad flex flex-col gap-1" [class]="p.id === x.plan ? 'border-2 border-marca' : ''">
-                    <b>{{ p.nombre }}</b>
-                    <span class="num">{{ anual() ? (p.precioAnual | dinero) + ' / año' : (p.precioMensual | dinero) + ' / mes' }}</span>
-                    <span class="tenue chico">{{ p.sucursales }} sucursales · {{ p.usuarios }} usuarios</span>
-                    <button class="btn sm" [class.pri]="p.id !== x.plan" (click)="pagar(p.id)" [disabled]="!!pagando()" [attr.aria-busy]="pagando() === p.id">
-                      @if (pagando() === p.id) { <span class="inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true"></span>Abriendo Mercado Pago… }
-                      @else { {{ p.id === x.plan ? 'Renovar' : 'Elegir' }} }
-                    </button>
-                  </div>
-                }
-              </div>
-              <p class="tenue chico">Pagas en Mercado Pago con tarjeta, OXXO o transferencia SPEI. Tu plan se activa en cuanto se acredita el pago, y no pierdes los días que te quedaban.</p>
-            }
+            <p class="tenue chico">Plan, días que te quedan, uso, pagos y datos de facturación están en <b>Mi suscripción</b>.</p>
+            <div><a class="btn" routerLink="/app/suscripcion"><app-icono nombre="rayo" />Ir a Mi suscripción</a></div>
           </section>
         }
 
@@ -123,32 +104,11 @@ export class Ajustes implements OnInit {
   private aviso = inject(AvisoService);
   private el = inject<ElementRef<HTMLElement>>(ElementRef);
   t = signal<Taller | null>(null);
-  anual = signal(false);
   async ngOnInit() {
-    // Si regresa con el botón Atrás desde Mercado Pago, el botón vuelve a estar disponible.
-    addEventListener('pageshow', (e) => { if (e.persisted) this.pagando.set(null); });
     this.t.set(await this.api.get('/taller'));
-    await this.regresoDePago();
   }
 
-  /** Al volver de Mercado Pago llega ?pago=ID&payment_id=...&status=... */
-  private async regresoDePago() {
-    const q = new URLSearchParams(location.search);
-    const pagoId = Number(q.get('pago'));
-    if (!pagoId) return;
-    history.replaceState(null, '', location.pathname);
-    const mpPagoId = q.get('payment_id') ?? q.get('collection_id') ?? undefined;
-    const estado = q.get('status') ?? q.get('collection_status');
-    try {
-      const r = await this.api.post<{ estado: string }>('/taller/suscripcion/confirmar', { pagoId, mpPagoId: mpPagoId && mpPagoId !== 'null' ? mpPagoId : undefined });
-      if (r.estado === 'aprobado') {
-        await this.s.cargar();
-        this.aviso.ok('¡Gracias! Tu plan quedó activo');
-      } else if (r.estado === 'rechazado' || estado === 'rejected') this.aviso.error('El pago no se completó. Puedes intentarlo de nuevo con otra forma de pago.');
-      else this.aviso.ok('Tu pago está en proceso. Si pagaste en OXXO o SPEI, el plan se activa en cuanto se acredite.');
-    } catch (e) { this.aviso.error(mensajeError(e)); }
-  }
-  nombrePlan(id: string) { return this.s.perfil()?.suscripcion.planes.find((p) => p.id === id)?.nombre ?? id; }
+
   async guardar() {
     // Solo las secciones del negocio y los costos; el cambio de contraseña tiene su propio botón.
     const secciones = ['#a-n', '#a-tm'].map((id) => this.el.nativeElement.querySelector(id)?.closest('section'));
@@ -189,18 +149,5 @@ export class Ajustes implements OnInit {
     } catch (e) { this.aviso.error(mensajeError(e)); }
     finally { this.eliminando.set(false); }
   }
-  pagando = signal<string | null>(null);
 
-  async pagar(plan: string) {
-    if (this.pagando()) return;
-    this.pagando.set(plan);
-    try {
-      const r = await this.api.post<{ url?: string }>('/taller/suscripcion', { plan, periodo: this.anual() ? 'anual' : 'mensual' });
-      // Se queda bloqueado mientras el navegador abre Mercado Pago.
-      if (r?.url) { location.href = r.url; return; }
-      await this.s.cargar();
-      this.aviso.ok('Plan activado');
-      this.pagando.set(null);
-    } catch (e) { this.aviso.error(mensajeError(e)); this.pagando.set(null); }
-  }
 }

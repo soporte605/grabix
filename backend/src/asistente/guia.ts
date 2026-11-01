@@ -27,7 +27,8 @@ export const GUIA = `Eres el asistente de Grabix, el sistema que usan los taller
 - [Compras](/app/compras): registrar compras a proveedores; suman existencias y actualizan el costo promedio. Solo dueño, administrador y encargado.
 - [Promociones](/app/promociones): descuentos por porcentaje o monto con vigencia y un mensaje para enviar por WhatsApp; se aplican en cotizaciones y ventas.
 - [Sucursales](/app/sucursales) y [Usuarios](/app/usuarios): solo dueño y administrador. Cada sucursal tiene su inventario y sus folios. Al crear un usuario se le asigna rol y sucursal, y le llega una invitación por correo para crear su contraseña.
-- [Ajustes y plan](/app/ajustes): datos del taller (nombre, WhatsApp, correo, dirección), **costo de máquina por minuto**, margen objetivo, vigencia de cotizaciones, moneda, lada de WhatsApp, notas para el PDF, plan de suscripción y cambio de contraseña. Solo dueño y administrador.
+- [Ajustes](/app/ajustes): datos del taller (nombre, WhatsApp, correo, dirección), **costo de máquina por minuto**, margen objetivo, vigencia de cotizaciones, moneda, lada de WhatsApp, notas para el PDF, datos de pago de cada sucursal y cambio de contraseña. Solo dueño y administrador.
+- [Mi suscripción](/app/suscripcion): plan actual, días que quedan de prueba o para renovar, uso (sucursales, usuarios, preguntas a la IA de hoy y del mes), elegir o renovar plan con Mercado Pago (tarjeta, OXXO, SPEI), historial de pagos y datos de facturación (RFC, razón social, régimen, CP). Solo el dueño.
 - El selector de sucursal está arriba a la izquierda; cambia los datos que ves y los que consulto.
 - El tema claro u oscuro se elige con el botón de arriba a la derecha.
 

@@ -13,6 +13,11 @@ export class TallerDto {
   @IsOptional() @IsInt() @Min(0) @Max(95) margenObjetivo?: number;
   @IsOptional() @IsInt() @Min(1) @Max(365) vigenciaDias?: number;
   @IsOptional() @IsString() notasCotizacion?: string;
+  @IsOptional() @Matches(/^([A-ZÑ&]{3,4}\d{6}[A-Z\d]{3})?$/, { message: 'El RFC no tiene el formato correcto' }) rfc?: string;
+  @IsOptional() @IsString() @MaxLength(200) razonSocial?: string;
+  @IsOptional() @Matches(/^(\d{3})?$/, { message: 'Elige el régimen fiscal' }) regimenFiscal?: string;
+  @IsOptional() @Matches(/^(\d{5})?$/, { message: 'El código postal fiscal tiene 5 dígitos' }) cpFiscal?: string;
+  @IsOptional() @IsString() @MaxLength(120) correoFacturas?: string;
 }
 
 export class SucursalDto {

@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource, MoreThan } from 'typeorm';
+import { DataSource, In, MoreThan } from 'typeorm';
 import { Sesion } from '../common/sesion';
-import { hoy, PLANES, sumarDias } from '../common/suscripcion';
-import { EstadoSuscripcion, PagoSuscripcion, Taller } from '../entities';
+import { hoy, limites, LIMITES_PRUEBA, PLANES, sumarDias, suscripcionVigente } from '../common/suscripcion';
+import { AsistenteUso, EstadoSuscripcion, PagoSuscripcion, Sucursal, Taller, Usuario } from '../entities';
 
 const API = 'https://api.mercadopago.com';
 const REF = 'grabix-';
@@ -57,7 +57,7 @@ export class MercadoPagoService {
     const pago = await this.ds.manager.save(
       this.ds.manager.create(PagoSuscripcion, { tallerId: s.tallerId, plan, periodo, monto, usuarioId: s.usuarioId }),
     );
-    const vuelta = `${this.base()}/app/ajustes?pago=${pago.id}`;
+    const vuelta = `${this.base()}/app/suscripcion?pago=${pago.id}`;
     const pref = await this.api<{ id: string; init_point: string }>('/checkout/preferences', {
       method: 'POST',
       headers: { 'X-Idempotency-Key': `${REF}${pago.id}` },
@@ -72,6 +72,40 @@ export class MercadoPagoService {
     });
     await this.ds.manager.update(PagoSuscripcion, { id: pago.id }, { preferenciaId: pref.id, url: pref.init_point });
     return { url: pref.init_point, pagoId: pago.id };
+  }
+
+  /** Resumen para la pantalla "Mi suscripción": plan, días, uso contra límites y pagos. */
+  async resumen(s: Sesion) {
+    const m = this.ds.manager;
+    const t = await m.findOneByOrFail(Taller, { id: s.tallerId });
+    const prueba = t.estadoSuscripcion === EstadoSuscripcion.Prueba;
+    const lim = prueba ? LIMITES_PRUEBA : limites(t);
+    const asistente = Number(process.env.ASISTENTE_LIMITE_DIARIO) || (t.estadoSuscripcion === EstadoSuscripcion.Activa ? limites(t).asistente : LIMITES_PRUEBA.asistente);
+    const [sucursales, usuarios, uso, mes, pagos] = await Promise.all([
+      m.countBy(Sucursal, { tallerId: t.id, activa: true }),
+      m.countBy(Usuario, { tallerId: t.id, activo: true }),
+      m.findOneBy(AsistenteUso, { tallerId: t.id, fecha: hoy() }),
+      m.createQueryBuilder(AsistenteUso, 'a').select('COALESCE(SUM(a.preguntas),0)', 'n')
+        .where('a.tallerId = :id AND a.fecha >= :d', { id: t.id, d: hoy().slice(0, 8) + '01' }).getRawOne<{ n: string }>(),
+      m.find(PagoSuscripcion, { where: { tallerId: t.id, estado: In(['aprobado', 'rechazado']) }, order: { id: 'DESC' }, take: 24 }),
+    ]);
+    const vence = prueba ? t.pruebaHasta : t.pagadoHasta;
+    return {
+      plan: t.plan,
+      estado: t.estadoSuscripcion,
+      vigente: suscripcionVigente(t),
+      vence,
+      diasRestantes: vence ? Math.round((Date.parse(vence) - Date.parse(hoy())) / 86400000) : null,
+      pagosEnLinea: this.activo && process.env.PAGOS_MODO !== 'demo',
+      uso: {
+        sucursales: { usadas: sucursales, limite: lim.sucursales },
+        usuarios: { usados: usuarios, limite: lim.usuarios },
+        asistente: { hoy: uso?.preguntas ?? 0, limite: asistente, mes: Number(mes?.n ?? 0) },
+      },
+      totalPagado: pagos.filter((p) => p.estado === 'aprobado').reduce((a, p) => a + Number(p.monto), 0),
+      pagos: pagos.map((p) => ({ id: p.id, fecha: p.creadoEn, plan: p.plan, periodo: p.periodo, monto: Number(p.monto), estado: p.estado, pagadoHasta: p.pagadoHasta, folio: p.mpPagoId })),
+      planes: PLANES,
+    };
   }
 
   /** Aviso de Mercado Pago. Solo trae el id; el pago se consulta en la API. */
