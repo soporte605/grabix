@@ -128,7 +128,7 @@ export class CorreoService {
       ¿Dudas? Escríbenos a <a href="mailto:soporte@elikarsystems.com" style="color:${MARCA.acentoTexto}">soporte@elikarsystems.com</a> · <a href="${esc(landing)}" style="color:${MARCA.acentoTexto}">${esc(landing.replace(/^https?:\/\//, ''))}</a>
     </td></tr>
   </table>
-  <p style="margin:16px 0 0;font-family:${f};font-size:11px;color:${MARCA.tenue}">Un producto de Elikar Systems · Hecho en México</p>
+  <p style="margin:16px 0 0;font-family:${f};font-size:11px;color:${MARCA.tenue}">Un producto de Elikar Systems · Hecho en México · <a href="${esc(landing)}/privacidad" style="color:${MARCA.tenue}">Aviso de privacidad</a> · <a href="${esc(landing)}/terminos" style="color:${MARCA.tenue}">Términos de uso</a></p>
 </td></tr></table></body></html>`;
   }
 

@@ -2,6 +2,7 @@ import { Component, ElementRef, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { mensajeError } from '../core/aviso.service';
+import { PublicoService } from '../core/publico.service';
 import { SesionService } from '../core/sesion.service';
 import { validarFormulario } from '../core/validar';
 import { evaluarClave } from '../core/clave';
@@ -54,7 +55,7 @@ import { MarcoAcceso } from '../ui/marco-acceso';
           <a class="btn w-full" routerLink="/registro">Crear una cuenta gratis</a>
         }
         @if (modo() === 'registro') {
-          <p class="text-center text-xs text-tenue">Al crear tu cuenta aceptas que te enviemos correos sobre tu cuenta y tu suscripción.</p>
+          <p class="text-center text-xs text-tenue">Al crear tu cuenta aceptas los <a routerLink="/terminos" target="_blank">Términos de uso</a> y el <a routerLink="/privacidad" target="_blank">Aviso de privacidad</a>, y que te enviemos correos sobre tu cuenta y tu suscripción.</p>
         }
       </form>
     </app-marco-acceso>
@@ -62,6 +63,7 @@ import { MarcoAcceso } from '../ui/marco-acceso';
 })
 export class Acceso {
   private sesion = inject(SesionService);
+  private pub = inject(PublicoService);
   private router = inject(Router);
   private el = inject<ElementRef<HTMLElement>>(ElementRef);
   modo = input<'entrar' | 'registro'>('entrar');
@@ -79,6 +81,7 @@ export class Acceso {
       if (this.modo() === 'registro')
         await this.sesion.registro({ taller: this.taller, nombre: this.nombre, telefono: this.telefono, email: this.email, password: this.password, conEjemplos: this.conEjemplos });
       else await this.sesion.login(this.email, this.password);
+      if (this.modo() === 'registro') void this.pub.evento('CompleteRegistration', { content_name: 'Prueba gratis' });
       this.router.navigateByUrl('/app');
     } catch (e) {
       this.error.set(mensajeError(e));

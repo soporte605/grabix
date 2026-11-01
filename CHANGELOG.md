@@ -4,6 +4,13 @@ Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el co
 
 ## 2026-11-01
 
+### Listo para la campaña
+- Páginas **Aviso de privacidad** (`/privacidad`) y **Términos de uso** (`/terminos`) a nombre de Elikar Systems, con ligas en el pie de la landing, en el registro y en el pie de los correos.
+- Vista previa al compartir la liga (WhatsApp, Facebook, X): etiquetas `og:`/`twitter:` e imagen `og-grabix.png`.
+- Botón flotante de WhatsApp en la landing si existe `WHATSAPP_CONTACTO`.
+- Pixel de Meta preparado: se activa con `META_PIXEL_ID` y manda `PageView`, `Lead`, `Contact` y `CompleteRegistration`. No se carga dentro del sistema.
+- `GET /publico/config` entrega a la landing el WhatsApp, el Pixel y los datos legales.
+
 ### Mi suscripción
 - Nueva sección **Mi suscripción** en el menú (solo dueño, `/app/suscripcion`): plan y estado, fecha y días que quedan, uso contra límites (sucursales, usuarios, preguntas a la IA hoy y en el mes), planes con cobro en Mercado Pago, historial de pagos con folio y datos de facturación (RFC, razón social, régimen fiscal, CP, correo para facturas; columnas nuevas en `talleres`). `GET /taller/suscripcion` da el resumen.
 - Ajustes ya no muestra los planes; tiene una liga a Mi suscripción. Mercado Pago y los correos de la prueba regresan a `/app/suscripcion`.

@@ -56,6 +56,12 @@ services:
       ASISTENTE_MODELO: ${ASISTENTE_MODELO:-claude-opus-5-5}
       ASISTENTE_LIMITE_DIARIO: ${ASISTENTE_LIMITE_DIARIO:-}
       COTIZADOR_LIMITE: ${COTIZADOR_LIMITE:-3}
+      # Landing: botón de WhatsApp (52 + 10 dígitos), Pixel de Meta y datos del aviso de privacidad.
+      WHATSAPP_CONTACTO: ${WHATSAPP_CONTACTO:-}
+      META_PIXEL_ID: ${META_PIXEL_ID:-}
+      LEGAL_RESPONSABLE: ${LEGAL_RESPONSABLE:-Elikar Systems}
+      LEGAL_DOMICILIO: ${LEGAL_DOMICILIO:-}
+      LEGAL_CORREO: ${LEGAL_CORREO:-soporte@elikarsystems.com}
     # Fotos de trabajos terminados (respáldalas junto con ./respaldos).
     volumes:
       - ./fotos:/app/fotos

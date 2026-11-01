@@ -99,6 +99,16 @@ Cuando el DNS ya apunta al servidor, ya hay HTTPS. Revisa:
 3. Vuelve a correr el comando del paso 4. No hace falta configurar el webhook en el panel: cada preferencia manda su `notification_url` (`https://app.DOMINIO/api/pagos/mercadopago`).
 4. Prueba primero con el token de prueba y un comprador de prueba; luego cambia al token de producción.
 
+## 5c. Landing para campañas (WhatsApp, Pixel de Meta, avisos legales)
+
+Variables opcionales en `.env.produccion`; vacías, la landing funciona igual sin esa pieza:
+
+- `WHATSAPP_CONTACTO`: número con lada, sin espacios (`5215512345678`). Muestra el botón flotante "Escríbenos" en la landing.
+- `META_PIXEL_ID`: ID del Pixel (Administrador de eventos de Meta). Se carga solo en la landing, registro, entrar y avisos legales, nunca dentro de `/app`. Eventos: `PageView`, `Lead` (primera cotización del simulador), `Contact` (botón de WhatsApp) y `CompleteRegistration` (cuenta creada).
+- `LEGAL_RESPONSABLE`, `LEGAL_DOMICILIO`, `LEGAL_CORREO`: aparecen en `/privacidad` y `/terminos`. El domicilio es obligatorio por ley en el aviso de privacidad; mientras esté vacío se muestra "México".
+
+La vista previa al compartir la liga usa `frontend/public/og-grabix.png` (1200×630) y las etiquetas `og:` de `index.html`. Tras cambiarla, pide a Facebook que la vuelva a leer en developers.facebook.com/tools/debug.
+
 ## 6. Actualizar a una versión nueva
 
 ```bash
@@ -122,5 +132,5 @@ gunzip -c respaldos/grabix-2026-10-28.sql.gz | docker compose -f docker-compose.
 ## Notas
 
 - `DB_SYNC=true` crea y actualiza las tablas solo. Está bien para el arranque. Antes de tener muchos clientes conviene pasar a migraciones.
-- `PAGOS_MODO=demo` activa los planes sin cobrar, hasta que conectemos Stripe o Mercado Pago.
+- `PAGOS_MODO=demo` activa los planes sin cobrar; con `mercadopago` se cobra de verdad (sección 5b).
 - La base de datos no queda expuesta a internet. Solo Caddy publica los puertos 80 y 443.
