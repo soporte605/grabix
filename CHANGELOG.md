@@ -4,6 +4,10 @@ Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el co
 
 ## 2026-11-01
 
+### Editar y eliminar pagos
+- En la venta, el dueño y el administrador pueden corregir (monto y forma de pago) o eliminar un pago con los íconos de cada renglón. El saldo y el enlace del cliente se actualizan solos y el cambio queda en la bitácora con el antes y el después.
+- Si el pago ya entró en un corte de caja cerrado, no se deja cambiar para no descuadrar el corte; se registra una salida de caja o un ajuste.
+
 ### Anticipo desde la cotización
 - Botón **Registrar anticipo** en la cotización: pide monto y forma de pago, la convierte en venta con ese pago en un solo paso y abre la venta. El pago entra al corte si la caja está abierta.
 - El enlace de una cotización ya convertida muestra la venta (pagado, saldo, avance, diseño y comprobantes), así el cliente no necesita otro enlace. El PDF público también es el de la venta.

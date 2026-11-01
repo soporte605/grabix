@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { Between, Brackets, DataSource, EntityManager, In } from 'typeorm';
 import {
@@ -299,6 +299,31 @@ export class DocumentosService {
       await em.update(Venta, { id: v.id }, { pagado: v.pagado });
       await this.bitacora.registrar(s, 'pago', 'venta', id, { folio: v.folio, monto: dto.monto, metodo: p.metodo }, em);
       return { pagado: v.pagado, saldo: r2(Math.max(0, v.total - v.pagado)), pagoId: p.id };
+    });
+  }
+
+  /** Corregir o quitar un pago. Solo si no hay caja de por medio o el turno en que se cobró sigue abierto. */
+  async cambiarPago(s: Sesion, id: number, pagoId: number, dto: PagoDto | null) {
+    return this.ds.transaction(async (em) => {
+      const v = await this.uno(em, Venta, s, id, true);
+      const p = v.pagos.find((x) => x.id === pagoId);
+      if (!p) throw new NotFoundException('Pago no encontrado');
+      if (p.turnoId) {
+        const t = await em.findOne(CajaTurno, { where: { id: p.turnoId }, select: { id: true, estado: true } });
+        if (t && t.estado !== EstadoTurno.Abierto)
+          throw new BadRequestException('Este pago ya entró en un corte de caja cerrado. Para no descuadrar el corte, registra una salida de caja o un ajuste.');
+      }
+      const antes = { monto: Number(p.monto), metodo: p.metodo };
+      const otros = r2(v.pagos.filter((x) => x.id !== pagoId).reduce((a, x) => a + Number(x.monto), 0));
+      if (dto) {
+        if (otros + dto.monto > v.total + 0.009) throw new BadRequestException('Los pagos suman más que el total de la venta');
+        await em.update(Pago, { id: p.id }, { monto: r2(dto.monto), metodo: dto.metodo ?? p.metodo, ...(dto.fecha ? { fecha: dto.fecha } : {}) });
+      } else await em.delete(Pago, { id: p.id });
+      const pagado = r2(otros + (dto ? dto.monto : 0));
+      await em.update(Venta, { id: v.id }, { pagado });
+      await this.bitacora.registrar(s, dto ? 'editar-pago' : 'eliminar-pago', 'venta', id,
+        { folio: v.folio, antes, despues: dto ? { monto: r2(dto.monto), metodo: dto.metodo ?? p.metodo } : null }, em);
+      return { pagado, saldo: r2(Math.max(0, v.total - pagado)) };
     });
   }
 

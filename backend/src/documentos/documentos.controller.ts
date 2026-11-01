@@ -98,6 +98,16 @@ export class DocumentosController {
     return this.docs.registrarPago(s, id, dto);
   }
 
+  @Put('ventas/:id/pagos/:pagoId') @Roles(...GERENCIA)
+  editarPago(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number, @Param('pagoId', ParseIntPipe) pagoId: number, @Body() dto: PagoDto) {
+    return this.docs.cambiarPago(s, id, pagoId, dto);
+  }
+
+  @Delete('ventas/:id/pagos/:pagoId') @Roles(...GERENCIA)
+  eliminarPago(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number, @Param('pagoId', ParseIntPipe) pagoId: number) {
+    return this.docs.cambiarPago(s, id, pagoId, null);
+  }
+
   @Delete('ventas/:id') @Roles(...GERENCIA)
   eliminarVenta(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number) {
     return this.docs.eliminarVenta(s, id);
