@@ -117,6 +117,33 @@ services:
           sleep 86400
         done
 
+  # Copia los respaldos y las fotos fuera del servidor (Cloudflare R2, Backblaze B2, Google Drive…).
+  # Se activa con --profile respaldo-remoto; necesita ./rclone.conf y RESPALDO_DESTINO (ver docs/PRODUCCION.md).
+  respaldo-remoto:
+    image: rclone/rclone:1.68.2
+    profiles: ["respaldo-remoto"]
+    restart: unless-stopped
+    depends_on:
+      - respaldos
+    environment:
+      DESTINO: ${RESPALDO_DESTINO:-}
+    volumes:
+      - ./respaldos:/respaldos:ro
+      - ./fotos:/fotos:ro
+      - ./rclone.conf:/config/rclone/rclone.conf:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        [ -n "$$DESTINO" ] || { echo "Falta RESPALDO_DESTINO"; exit 1; }
+        sleep 600
+        while true; do
+          rclone copy /respaldos "$$DESTINO/base-de-datos" --include 'grabix-*.sql.gz' && echo "Respaldos copiados a $$DESTINO"
+          rclone copy /fotos "$$DESTINO/fotos" && echo "Fotos copiadas"
+          # En el destino se guardan 60 días de respaldos de la base de datos.
+          rclone delete "$$DESTINO/base-de-datos" --min-age 60d --include 'grabix-*.sql.gz'
+          sleep 86400
+        done
+
 volumes:
   datos:
   caddy_datos:

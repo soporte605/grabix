@@ -8,3 +8,6 @@ coverage/
 respaldos/
 *.local.env
 /fotos/
+
+# Llaves del respaldo externo (solo en el servidor)
+rclone.conf

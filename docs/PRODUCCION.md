@@ -123,6 +123,29 @@ El servicio `respaldos` guarda cada día `respaldos/grabix-AAAA-MM-DD.sql.gz` y 
 
 Las fotos de trabajos terminados se guardan como archivos en `fotos/` (una carpeta por taller), no en la base de datos. Respáldala junto con `respaldos/`, por ejemplo con `tar czf fotos-$(date +%F).tgz fotos`.
 
+### Copia fuera del servidor (recomendado)
+
+Si el servidor se pierde, los respaldos locales se pierden con él. El servicio `respaldo-remoto` copia cada día `respaldos/` y `fotos/` a un almacenamiento externo con rclone y guarda 60 días de la base de datos.
+
+1. Crea un *bucket* privado, por ejemplo en Cloudflare R2 (10 GB gratis) o Backblaze B2, y una llave de acceso solo para ese bucket.
+2. En `/opt/grabix` crea `rclone.conf` (permisos 600), por ejemplo para R2:
+
+   ```ini
+   [externo]
+   type = s3
+   provider = Cloudflare
+   access_key_id = …
+   secret_access_key = …
+   endpoint = https://<ID_DE_CUENTA>.r2.cloudflarestorage.com
+   ```
+
+3. En `.env.produccion` agrega `RESPALDO_DESTINO=externo:grabix-respaldos` (remoto:bucket).
+4. Levanta con el perfil: `docker compose -f docker-compose.prod.yml --env-file .env.produccion --profile respaldo-remoto up -d`. Revisa con `docker compose … logs respaldo-remoto` que diga "Respaldos copiados".
+
+### Aviso si el sistema se cae
+
+`.github/workflows/vigilancia.yml` revisa cada 10 minutos la landing y `https://app.DOMINIO/api/publico/salud`. Si no responden tras 3 intentos abre un issue "Grabix no responde" con la etiqueta `caida` (GitHub manda correo) y lo cierra cuando vuelven. Solo corre desde `main`; se puede lanzar a mano en la pestaña *Actions*.
+
 Para restaurar:
 
 ```bash

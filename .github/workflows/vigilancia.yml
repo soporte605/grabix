@@ -1,0 +1,61 @@
+# Revisa cada 10 minutos que Grabix responda. Si se cae, abre un issue "Grabix no responde"
+# (GitHub te manda correo y aviso en la app). Cuando vuelve, lo cierra solo.
+# Los workflows programados solo corren desde la rama principal (main).
+name: Vigilancia
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+concurrency:
+  group: vigilancia
+  cancel-in-progress: false
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Revisar landing y API
+        id: revisar
+        shell: bash
+        run: |
+          revisar() {
+            local url="$1" n
+            for n in 1 2 3; do
+              if curl -fsS -m 20 -o /dev/null "$url"; then return 0; fi
+              sleep 30
+            done
+            return 1
+          }
+          fallas=""
+          revisar "https://grabix.elikarsystems.com/" || fallas="$fallas landing"
+          revisar "https://app.grabix.elikarsystems.com/api/publico/salud" || fallas="$fallas api"
+          echo "fallas=${fallas# }" >> "$GITHUB_OUTPUT"
+          [ -z "$fallas" ] && echo "Todo en línea" || echo "No responde: $fallas"
+
+      - name: Abrir o cerrar el aviso
+        uses: actions/github-script@v7
+        env:
+          FALLAS: ${{ steps.revisar.outputs.fallas }}
+        with:
+          script: |
+            const titulo = 'Grabix no responde';
+            const fallas = process.env.FALLAS;
+            const { data: abiertos } = await github.rest.issues.listForRepo({ ...context.repo, state: 'open', labels: 'caida', per_page: 5 });
+            const abierto = abiertos.find((i) => i.title === titulo);
+            const hora = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
+            if (fallas && !abierto) {
+              await github.rest.issues.create({
+                ...context.repo, title: titulo, labels: ['caida'],
+                body: `No responde (${fallas}) desde ${hora}, hora del centro de México.\n\nRevisa el servidor: \`docker compose -f docker-compose.prod.yml --env-file .env.produccion ps\` en /opt/grabix.\n\nEste aviso se cierra solo cuando vuelva a responder.`,
+              });
+            } else if (!fallas && abierto) {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: abierto.number, body: `De nuevo en línea a las ${hora}.` });
+              await github.rest.issues.update({ ...context.repo, issue_number: abierto.number, state: 'closed', state_reason: 'completed' });
+            }
+            if (fallas) core.setFailed(`No responde: ${fallas}`);

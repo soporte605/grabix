@@ -11,6 +11,10 @@ Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el co
 - Pixel de Meta preparado: se activa con `META_PIXEL_ID` y manda `PageView`, `Lead`, `Contact` y `CompleteRegistration`. No se carga dentro del sistema.
 - `GET /publico/config` entrega a la landing el WhatsApp, el Pixel y los datos legales.
 
+### Seguridad de los datos
+- Vigilancia cada 10 minutos con GitHub Actions: abre un issue (y te llega correo) si la landing o la API no responden, y lo cierra cuando vuelven.
+- Servicio `respaldo-remoto` (rclone, perfil opcional): copia diario de respaldos y fotos a un almacenamiento externo, con 60 días de historial.
+
 ### Mi suscripción
 - Nueva sección **Mi suscripción** en el menú (solo dueño, `/app/suscripcion`): plan y estado, fecha y días que quedan, uso contra límites (sucursales, usuarios, preguntas a la IA hoy y en el mes), planes con cobro en Mercado Pago, historial de pagos con folio y datos de facturación (RFC, razón social, régimen fiscal, CP, correo para facturas; columnas nuevas en `talleres`). `GET /taller/suscripcion` da el resumen.
 - Ajustes ya no muestra los planes; tiene una liga a Mi suscripción. Mercado Pago y los correos de la prueba regresan a `/app/suscripcion`.
