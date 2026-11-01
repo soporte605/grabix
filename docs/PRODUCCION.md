@@ -99,6 +99,16 @@ Cuando el DNS ya apunta al servidor, ya hay HTTPS. Revisa:
 3. Vuelve a correr el comando del paso 4. No hace falta configurar el webhook en el panel: cada preferencia manda su `notification_url` (`https://app.DOMINIO/api/pagos/mercadopago`).
 4. Prueba primero con el token de prueba y un comprador de prueba; luego cambia al token de producción.
 
+## 5c. Landing para campañas (WhatsApp, Pixel de Meta, avisos legales)
+
+Variables opcionales en `.env.produccion`; vacías, la landing funciona igual sin esa pieza:
+
+- `WHATSAPP_CONTACTO`: número con lada, sin espacios (`5215512345678`). Muestra el botón flotante "Escríbenos" en la landing.
+- `META_PIXEL_ID`: ID del Pixel (Administrador de eventos de Meta). Se carga solo en la landing, registro, entrar y avisos legales, nunca dentro de `/app`. Eventos: `PageView`, `Lead` (primera cotización del simulador), `Contact` (botón de WhatsApp) y `CompleteRegistration` (cuenta creada).
+- `LEGAL_RESPONSABLE`, `LEGAL_DOMICILIO`, `LEGAL_CORREO`: aparecen en `/privacidad` y `/terminos`. El domicilio es obligatorio por ley en el aviso de privacidad; mientras esté vacío se muestra "México".
+
+La vista previa al compartir la liga usa `frontend/public/og-grabix.png` (1200×630) y las etiquetas `og:` de `index.html`. Tras cambiarla, pide a Facebook que la vuelva a leer en developers.facebook.com/tools/debug.
+
 ## 6. Actualizar a una versión nueva
 
 ```bash
@@ -113,6 +123,29 @@ El servicio `respaldos` guarda cada día `respaldos/grabix-AAAA-MM-DD.sql.gz` y 
 
 Las fotos de trabajos terminados se guardan como archivos en `fotos/` (una carpeta por taller), no en la base de datos. Respáldala junto con `respaldos/`, por ejemplo con `tar czf fotos-$(date +%F).tgz fotos`.
 
+### Copia fuera del servidor (recomendado)
+
+Si el servidor se pierde, los respaldos locales se pierden con él. El servicio `respaldo-remoto` copia cada día `respaldos/` y `fotos/` a un almacenamiento externo con rclone y guarda 60 días de la base de datos.
+
+1. Crea un *bucket* privado, por ejemplo en Cloudflare R2 (10 GB gratis) o Backblaze B2, y una llave de acceso solo para ese bucket.
+2. En `/opt/grabix` crea `rclone.conf` (permisos 600), por ejemplo para R2:
+
+   ```ini
+   [externo]
+   type = s3
+   provider = Cloudflare
+   access_key_id = …
+   secret_access_key = …
+   endpoint = https://<ID_DE_CUENTA>.r2.cloudflarestorage.com
+   ```
+
+3. En `.env.produccion` agrega `RESPALDO_DESTINO=externo:grabix-respaldos` (remoto:bucket).
+4. Levanta con el perfil: `docker compose -f docker-compose.prod.yml --env-file .env.produccion --profile respaldo-remoto up -d`. Revisa con `docker compose … logs respaldo-remoto` que diga "Respaldos copiados".
+
+### Aviso si el sistema se cae
+
+`.github/workflows/vigilancia.yml` revisa cada 10 minutos la landing y `https://app.DOMINIO/api/publico/salud`. Si no responden tras 3 intentos abre un issue "Grabix no responde" con la etiqueta `caida` (GitHub manda correo) y lo cierra cuando vuelven. Solo corre desde `main`; se puede lanzar a mano en la pestaña *Actions*.
+
 Para restaurar:
 
 ```bash
@@ -122,5 +155,5 @@ gunzip -c respaldos/grabix-2026-10-28.sql.gz | docker compose -f docker-compose.
 ## Notas
 
 - `DB_SYNC=true` crea y actualiza las tablas solo. Está bien para el arranque. Antes de tener muchos clientes conviene pasar a migraciones.
-- `PAGOS_MODO=demo` activa los planes sin cobrar, hasta que conectemos Stripe o Mercado Pago.
+- `PAGOS_MODO=demo` activa los planes sin cobrar; con `mercadopago` se cobra de verdad (sección 5b).
 - La base de datos no queda expuesta a internet. Solo Caddy publica los puertos 80 y 443.

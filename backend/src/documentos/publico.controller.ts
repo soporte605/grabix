@@ -54,6 +54,22 @@ export class PublicoController {
     return { permitido: true, usos, limite: this.limite, restantes: Math.max(0, this.limite - usos) };
   }
 
+  /** Datos públicos de la landing: WhatsApp de contacto, Pixel de Meta y responsable de los avisos legales. */
+  @Get('config')
+  config() {
+    const wa = (process.env.WHATSAPP_CONTACTO ?? '').replace(/\D/g, '');
+    const pixel = (process.env.META_PIXEL_ID ?? '').trim();
+    return {
+      whatsapp: wa.length >= 10 ? wa : null,
+      pixelId: /^\d{5,20}$/.test(pixel) ? pixel : null,
+      legal: {
+        responsable: process.env.LEGAL_RESPONSABLE || 'Elikar Systems',
+        domicilio: process.env.LEGAL_DOMICILIO || null,
+        correo: process.env.LEGAL_CORREO || 'soporte@elikarsystems.com',
+      },
+    };
+  }
+
   @Get('planes')
   planes() {
     return { diasPrueba: DIAS_PRUEBA_PUBLICO, planes: PLANES };

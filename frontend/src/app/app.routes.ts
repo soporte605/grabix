@@ -29,6 +29,8 @@ export const routes: Routes = [
   },
   { path: 'admin', canMatch: [panelLocal], children: panel() },
   { path: '', canMatch: [noEsAdmin], canActivate: [enLanding], loadComponent: () => import('./pages/landing').then((m) => m.Landing), title: 'Grabix · Cotizaciones, producción e inventario para tu taller' },
+  { path: 'privacidad', canMatch: [noEsAdmin], loadComponent: () => import('./pages/legal').then((m) => m.Privacidad), title: 'Aviso de privacidad · Grabix' },
+  { path: 'terminos', canMatch: [noEsAdmin], loadComponent: () => import('./pages/legal').then((m) => m.Terminos), title: 'Términos de uso · Grabix' },
   { path: 'entrar', canMatch: [noEsAdmin], canActivate: [enSistema, sinSesion], loadComponent: () => import('./pages/acceso').then((m) => m.Acceso), data: { modo: 'entrar' }, title: 'Entrar · Grabix' },
   { path: 'registro', canMatch: [noEsAdmin], canActivate: [enSistema, sinSesion], loadComponent: () => import('./pages/acceso').then((m) => m.Acceso), data: { modo: 'registro' }, title: 'Crear cuenta · Grabix' },
   { path: 'verificar-correo', canMatch: [noEsAdmin], canActivate: [enSistema], loadComponent: () => import('./pages/cuenta').then((m) => m.VerificarCorreo), title: 'Confirmar correo · Grabix' },
