@@ -78,7 +78,7 @@ import { PagosSucursal } from '../ui/pagos-sucursal';
                   </div>
                 }
               </div>
-              <p class="tenue chico">El cobro en línea (Stripe o Mercado Pago) se conecta en la siguiente etapa. En modo demostración el plan se activa sin cobrar.</p>
+              <p class="tenue chico">Pagas en Mercado Pago con tarjeta, OXXO o transferencia SPEI. Tu plan se activa en cuanto se acredita el pago, y no pierdes los días que te quedaban.</p>
             }
           </section>
         }
@@ -121,7 +121,28 @@ export class Ajustes implements OnInit {
   private el = inject<ElementRef<HTMLElement>>(ElementRef);
   t = signal<Taller | null>(null);
   anual = signal(false);
-  async ngOnInit() { this.t.set(await this.api.get('/taller')); }
+  async ngOnInit() {
+    this.t.set(await this.api.get('/taller'));
+    await this.regresoDePago();
+  }
+
+  /** Al volver de Mercado Pago llega ?pago=ID&payment_id=...&status=... */
+  private async regresoDePago() {
+    const q = new URLSearchParams(location.search);
+    const pagoId = Number(q.get('pago'));
+    if (!pagoId) return;
+    history.replaceState(null, '', location.pathname);
+    const mpPagoId = q.get('payment_id') ?? q.get('collection_id') ?? undefined;
+    const estado = q.get('status') ?? q.get('collection_status');
+    try {
+      const r = await this.api.post<{ estado: string }>('/taller/suscripcion/confirmar', { pagoId, mpPagoId: mpPagoId && mpPagoId !== 'null' ? mpPagoId : undefined });
+      if (r.estado === 'aprobado') {
+        await this.s.cargar();
+        this.aviso.ok('¡Gracias! Tu plan quedó activo');
+      } else if (r.estado === 'rechazado' || estado === 'rejected') this.aviso.error('El pago no se completó. Puedes intentarlo de nuevo con otra forma de pago.');
+      else this.aviso.ok('Tu pago está en proceso. Si pagaste en OXXO o SPEI, el plan se activa en cuanto se acredite.');
+    } catch (e) { this.aviso.error(mensajeError(e)); }
+  }
   nombrePlan(id: string) { return this.s.perfil()?.suscripcion.planes.find((p) => p.id === id)?.nombre ?? id; }
   async guardar() {
     // Solo las secciones del negocio y los costos; el cambio de contraseña tiene su propio botón.
@@ -165,7 +186,8 @@ export class Ajustes implements OnInit {
   }
   async pagar(plan: string) {
     try {
-      await this.api.post('/taller/suscripcion', { plan, periodo: this.anual() ? 'anual' : 'mensual' });
+      const r = await this.api.post<{ url?: string }>('/taller/suscripcion', { plan, periodo: this.anual() ? 'anual' : 'mensual' });
+      if (r?.url) { location.href = r.url; return; }
       await this.s.cargar();
       this.aviso.ok('Plan activado');
     } catch (e) { this.aviso.error(mensajeError(e)); }

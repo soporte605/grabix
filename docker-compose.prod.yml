@@ -42,7 +42,9 @@ services:
       # Caddy -> Nginx -> API: la IP real del visitante está dos saltos atrás.
       TRUST_PROXY: 2
       FOTOS_DIR: /app/fotos
+      # demo = el plan se activa sin cobrar; mercadopago = cobro real con MERCADOPAGO_ACCESS_TOKEN.
       PAGOS_MODO: ${PAGOS_MODO:-demo}
+      MERCADOPAGO_ACCESS_TOKEN: ${MERCADOPAGO_ACCESS_TOKEN:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       MAIL_FROM: ${MAIL_FROM:-Grabix <no-responder@${DOMINIO}>}
       SMTP_HOST: ${SMTP_HOST:-}

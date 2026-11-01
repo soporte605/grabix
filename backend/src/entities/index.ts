@@ -655,7 +655,25 @@ export class ImagenCotizacion {
   cotizacion: Relation<Cotizacion>;
 }
 
+/** Cobro de la suscripción de Grabix (Mercado Pago Checkout Pro). */
+@Entity('pagos_suscripcion')
+export class PagoSuscripcion {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() tallerId: number;
+  @Column({ length: 20 }) plan: string;
+  @Column({ length: 10 }) periodo: string;
+  @Column(money) monto: number;
+  /** pendiente, aprobado, rechazado */
+  @Column({ length: 12, default: 'pendiente' }) estado: string;
+  @Column({ length: 80, default: '' }) preferenciaId: string;
+  @Index({ unique: true }) @Column({ type: 'varchar', length: 40, nullable: true }) mpPagoId: string | null;
+  @Column({ type: 'int', nullable: true }) usuarioId: number | null;
+  @Column({ type: 'date', nullable: true }) pagadoHasta: string | null;
+  @CreateDateColumn() creadoEn: Date;
+}
+
 export const ENTIDADES = [
+  PagoSuscripcion,
   ImagenCotizacion,
   Diseno,
   Comprobante,

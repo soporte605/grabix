@@ -92,6 +92,13 @@ Cuando el DNS ya apunta al servidor, ya hay HTTPS. Revisa:
 4. Pon un remitente del dominio en `MAIL_FROM`, por ejemplo `Grabix <no-responder@DOMINIO>`.
 5. Vuelve a correr el comando del paso 4.
 
+## 5b. Cobro de la suscripción (Mercado Pago)
+
+1. En mercadopago.com.mx/developers → *Tus integraciones* crea la aplicación "Grabix" (Checkout Pro).
+2. Pon el *Access Token* en `MERCADOPAGO_ACCESS_TOKEN` y cambia `PAGOS_MODO=mercadopago` (con `demo` el plan se activa sin cobrar).
+3. Vuelve a correr el comando del paso 4. No hace falta configurar el webhook en el panel: cada preferencia manda su `notification_url` (`https://app.DOMINIO/api/pagos/mercadopago`).
+4. Prueba primero con el token de prueba y un comprador de prueba; luego cambia al token de producción.
+
 ## 6. Actualizar a una versión nueva
 
 ```bash
