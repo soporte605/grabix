@@ -27,6 +27,7 @@ services:
       db:
         condition: service_healthy
     environment:
+      FOTOS_DIR: /app/fotos
       DB_HOST: db
       DB_PORT: 3306
       DB_NAME: ${DB_NAME:-grabix}
@@ -44,8 +45,19 @@ services:
       SMTP_SECURE: ${SMTP_SECURE:-false}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
+      # Asistente con IA (Claude). Sin ANTHROPIC_API_KEY el asistente se muestra como "no configurado".
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ASISTENTE_MODELO: ${ASISTENTE_MODELO:-claude-opus-5-5}
+      ASISTENTE_LIMITE_DIARIO: ${ASISTENTE_LIMITE_DIARIO:-}
+      COTIZADOR_LIMITE: ${COTIZADOR_LIMITE:-3}
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-}
 
   # Bandeja de pruebas: atrapa todos los correos que manda la API y los muestra en el navegador.
+    # Fotos de trabajos terminados (respáldalas junto con ./respaldos).
+    volumes:
+      - ./fotos:/app/fotos
+
   mailpit:
     image: axllent/mailpit:v1.27
     restart: unless-stopped

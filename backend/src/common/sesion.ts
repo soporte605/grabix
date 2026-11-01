@@ -11,6 +11,8 @@ export interface Sesion {
   /** Sucursal con la que se está trabajando (null = todas). */
   sucursal: number | null;
   emailVerificado: boolean;
+  /** Super administrador que entró como dueño de este taller. */
+  soporteId?: number;
 }
 
 export const ES_PUBLICO = 'publico';

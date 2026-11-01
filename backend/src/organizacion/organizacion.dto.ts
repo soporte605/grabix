@@ -1,4 +1,5 @@
-import { IsBoolean, IsEmail, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Matches, MaxLength, Min, MinLength } from 'class-validator';
+import { ClaveSegura } from '../common/clave';
 import { Rol } from '../entities';
 
 export class TallerDto {
@@ -12,6 +13,11 @@ export class TallerDto {
   @IsOptional() @IsInt() @Min(0) @Max(95) margenObjetivo?: number;
   @IsOptional() @IsInt() @Min(1) @Max(365) vigenciaDias?: number;
   @IsOptional() @IsString() notasCotizacion?: string;
+  @IsOptional() @Matches(/^([A-ZÑ&]{3,4}\d{6}[A-Z\d]{3})?$/, { message: 'El RFC no tiene el formato correcto' }) rfc?: string;
+  @IsOptional() @IsString() @MaxLength(200) razonSocial?: string;
+  @IsOptional() @Matches(/^(\d{3})?$/, { message: 'Elige el régimen fiscal' }) regimenFiscal?: string;
+  @IsOptional() @Matches(/^(\d{5})?$/, { message: 'El código postal fiscal tiene 5 dígitos' }) cpFiscal?: string;
+  @IsOptional() @IsString() @MaxLength(120) correoFacturas?: string;
 }
 
 export class SucursalDto {
@@ -19,15 +25,28 @@ export class SucursalDto {
   @IsOptional() @IsString() @MaxLength(255) direccion?: string;
   @IsOptional() @IsString() @MaxLength(40) telefono?: string;
   @IsOptional() @IsBoolean() activa?: boolean;
+  @IsOptional() @IsString() @MaxLength(80) banco?: string;
+  @IsOptional() @IsString() @MaxLength(120) titular?: string;
+  @IsOptional() @Matches(/^(\d{18})?$/, { message: 'La CLABE debe tener 18 dígitos' }) clabe?: string;
+  @IsOptional() @Matches(/^[\d-]{0,30}$/, { message: 'El número de cuenta solo lleva dígitos' }) cuenta?: string;
+  @IsOptional() @Matches(/^(\d{15,19})?$/, { message: 'La tarjeta debe tener 16 dígitos' }) tarjeta?: string;
+  @IsOptional() @IsString() @MaxLength(500) indicacionesPago?: string;
+  @IsOptional() @IsInt() @Min(0) @Max(100) anticipoPct?: number;
+  @IsOptional() @IsString() @MaxLength(1000) condiciones?: string;
 }
 
 export class UsuarioDto {
   @IsString() @MinLength(2) @MaxLength(120) nombre: string;
   @IsEmail({}, { message: 'Correo no válido' }) email: string;
-  @IsOptional() @IsString() @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' }) password?: string;
+  @IsOptional() @IsString() @ClaveSegura('email', 'nombre') password?: string;
   @IsEnum(Rol) rol: Rol;
   @IsOptional() @IsInt() sucursalId?: number | null;
   @IsOptional() @IsBoolean() activo?: boolean;
+}
+
+export class ConfirmarPagoDto {
+  @IsInt() pagoId: number;
+  @IsOptional() @IsString() @MaxLength(30) mpPagoId?: string;
 }
 
 export class ActivarPlanDto {

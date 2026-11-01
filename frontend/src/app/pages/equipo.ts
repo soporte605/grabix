@@ -1,33 +1,38 @@
+import { Esqueleto } from '../ui/esqueleto';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { DatePipe, JsonPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { Bitacora, Rol, ROLES, Sucursal, Usuario } from '../core/modelos';
+import { evaluarClave } from '../core/clave';
 import { SesionService } from '../core/sesion.service';
+import { CampoClave } from '../ui/campo-clave';
 import { Hoja } from '../ui/hoja';
 import { Icono } from '../ui/icono';
 
 @Component({
   selector: 'app-sucursales',
-  imports: [FormsModule, Hoja, Icono],
+  imports: [FormsModule, Hoja, Icono, Esqueleto],
   template: `
     <div class="encabezado">
-      <div><h1>Sucursales</h1><p>Tu plan permite {{ s.perfil()?.suscripcion?.limites?.sucursales }} sucursal(es). Cada una lleva su inventario y sus ventas.</p></div>
+      <div class="titulo"><span class="icono-modulo"><app-icono nombre="sucursales" /></span><div><h1>Sucursales</h1><p>Tu plan permite {{ s.perfil()?.suscripcion?.limites?.sucursales }} sucursal(es). Cada una lleva su inventario y sus ventas.</p></div></div>
       <button class="btn pri" (click)="e_.set({ nombre: '', direccion: '', telefono: '', activa: true })"><app-icono nombre="mas1" />Nueva sucursal</button>
     </div>
     <div class="tarjeta lista">
+      @if (!listo()) { <app-esqueleto /> } @else {
       @for (x of lista(); track x.id) {
         <button class="renglon" (click)="editar(x)">
           <span class="t">{{ x.nombre }}</span><span class="d"><span class="pill" [class]="x.activa ? 'ok' : 'mut'">{{ x.activa ? 'Activa' : 'Inactiva' }}</span></span>
           <span class="m">{{ x.direccion || 'Sin dirección' }} @if (x.telefono) { · {{ x.telefono }} }</span><span></span>
         </button>
       }
+    }
     </div>
     @if (e(); as e) {
       <app-hoja [titulo]="e.id ? e.nombre! : 'Nueva sucursal'" (cerrar)="e_.set(null)">
         <div class="campos">
-          <div class="campo todo"><label for="s-n">Nombre</label><input id="s-n" [(ngModel)]="e.nombre"></div>
+          <div class="campo todo"><label for="s-n">Nombre</label><input id="s-n" name="nombre" required minlength="2" maxlength="120" [(ngModel)]="e.nombre"></div>
           <div class="campo todo"><label for="s-d">Dirección</label><input id="s-d" [(ngModel)]="e.direccion"></div>
           <div class="campo"><label for="s-t">Teléfono / WhatsApp</label><input id="s-t" type="tel" [(ngModel)]="e.telefono"></div>
           @if (e.id) { <label class="fila chico"><input type="checkbox" [(ngModel)]="e.activa"> Activa</label> }
@@ -42,9 +47,10 @@ export class Sucursales implements OnInit {
   private api = inject(Api);
   private aviso = inject(AvisoService);
   lista = signal<Sucursal[]>([]);
+  listo = signal(false);
   e_ = signal<Partial<Sucursal> | null>(null);
   e = this.e_.asReadonly();
-  async ngOnInit() { this.lista.set(await this.api.get('/sucursales')); }
+  async ngOnInit() { this.lista.set(await this.api.get('/sucursales')); this.listo.set(true); }
   editar(x: Sucursal) { this.e_.set({ ...x }); }
   invitando = signal(false);
   async invitar(id: number) {
@@ -70,19 +76,21 @@ export class Sucursales implements OnInit {
 
 @Component({
   selector: 'app-usuarios',
-  imports: [FormsModule, Hoja, Icono],
+  imports: [FormsModule, Hoja, Icono, Esqueleto, CampoClave],
   template: `
     <div class="encabezado">
-      <div><h1>Usuarios y roles</h1><p>Tu plan permite {{ s.perfil()?.suscripcion?.limites?.usuarios }} usuarios.</p></div>
+      <div class="titulo"><span class="icono-modulo"><app-icono nombre="usuarios" /></span><div><h1>Usuarios y roles</h1><p>Tu plan permite {{ s.perfil()?.suscripcion?.limites?.usuarios }} usuarios.</p></div></div>
       <button class="btn pri" (click)="abrir()"><app-icono nombre="mas1" />Nuevo usuario</button>
     </div>
     <div class="tarjeta lista">
+      @if (!listo()) { <app-esqueleto /> } @else {
       @for (u of lista(); track u.id) {
         <button class="renglon" (click)="abrir(u)">
           <span class="t">{{ u.nombre }}</span><span class="d"><span class="pill" [class]="u.activo ? 'acc' : 'mut'">{{ roles[u.rol].nombre }}</span></span>
           <span class="m">{{ u.email }}@if (u.activo && !u.emailVerificado) { · <span class="font-semibold text-warn">sin activar</span> }</span><span class="d m">{{ sucursal(u.sucursalId) }}</span>
         </button>
       }
+    }
     </div>
     <div class="tarjeta pad mt-3.5">
       <h2>Qué puede hacer cada rol</h2>
@@ -91,8 +99,8 @@ export class Sucursales implements OnInit {
     @if (e(); as e) {
       <app-hoja [titulo]="e.id ? e.nombre : 'Nuevo usuario'" (cerrar)="e_.set(null)">
         <div class="campos">
-          <div class="campo todo"><label for="u-n">Nombre</label><input id="u-n" [(ngModel)]="e.nombre"></div>
-          <div class="campo todo"><label for="u-e">Correo (con este entra)</label><input id="u-e" type="email" [(ngModel)]="e.email"></div>
+          <div class="campo todo"><label for="u-n">Nombre</label><input id="u-n" name="nombre" required minlength="2" maxlength="120" [(ngModel)]="e.nombre"></div>
+          <div class="campo todo"><label for="u-e">Correo (con este entra)</label><input id="u-e" name="email" required type="email" [(ngModel)]="e.email"></div>
           <div class="campo"><label for="u-r">Rol</label>
             <select id="u-r" [(ngModel)]="e.rol">@for (r of rolesPermitidos(); track r[0]) { <option [value]="r[0]">{{ r[1].nombre }}</option> }</select>
           </div>
@@ -101,7 +109,7 @@ export class Sucursales implements OnInit {
               <select id="u-s" [(ngModel)]="e.sucursalId"><option [ngValue]="null">Todas</option>@for (x of s.perfil()!.sucursales; track x.id) { <option [ngValue]="x.id">{{ x.nombre }}</option> }</select>
             </div>
           }
-          <div class="campo"><label for="u-p">{{ e.id ? 'Nueva contraseña (opcional)' : 'Contraseña inicial (opcional)' }}</label><input id="u-p" type="password" autocomplete="new-password" [(ngModel)]="e.password"></div>
+          <app-campo-clave entrada="u-p" [obligatorio]="false" [etiqueta]="e.id ? 'Nueva contraseña (opcional)' : 'Contraseña inicial (opcional)'" [(valor)]="e.password!" [medidor]="true" [personales]="[e.email, e.nombre]" />
           @if (!e.id) { <p class="tenue chico todo">Si la dejas vacía, le enviamos un correo de invitación para que cree la suya.</p> }
           @if (e.id) { <label class="fila chico"><input type="checkbox" [(ngModel)]="e.activo"> Activo</label> }
         </div>
@@ -122,9 +130,10 @@ export class Usuarios implements OnInit {
   rolesLista = Object.entries(ROLES) as [Rol, { nombre: string; desc: string }][];
   rolesPermitidos = computed(() => this.rolesLista.filter(([r]) => r !== 'dueno' || this.s.rol() === 'dueno'));
   lista = signal<Usuario[]>([]);
+  listo = signal(false);
   e_ = signal<(Omit<Usuario, 'id'> & { id?: number; password?: string }) | null>(null);
   e = this.e_.asReadonly();
-  async ngOnInit() { this.lista.set(await this.api.get('/usuarios')); }
+  async ngOnInit() { this.lista.set(await this.api.get('/usuarios')); this.listo.set(true); }
   sucursal(id: number | null) { return id ? this.s.perfil()?.sucursales.find((x) => x.id === id)?.nombre ?? '' : 'Todas las sucursales'; }
   abrir(u?: Usuario) { this.e_.set(u ? { ...u, password: '' } : { nombre: '', email: '', rol: 'vendedor', sucursalId: this.s.sucursal(), activo: true, password: '' }); }
   invitando = signal(false);
@@ -138,6 +147,8 @@ export class Usuarios implements OnInit {
   }
   async guardar() {
     const e = this.e()!;
+    if (e.password && !evaluarClave(e.password, [e.email, e.nombre]).valida) return this.aviso.error('La contraseña aún no es segura: revisa los puntos debajo del campo.');
+    if (e.password && !evaluarClave(e.password, [e.email, e.nombre]).valida) return this.aviso.error('La contraseña aún no es segura: revisa los puntos debajo del campo.');
     const body = { nombre: e.nombre, email: e.email, rol: e.rol, sucursalId: e.sucursalId, activo: e.activo, ...(e.password ? { password: e.password } : {}) };
     try {
       const r = e.id ? await this.api.put<{ invitado?: boolean }>(`/usuarios/${e.id}`, body) : await this.api.post<{ invitado?: boolean }>('/usuarios', body);
@@ -156,17 +167,19 @@ const ACCIONES: Record<string, string> = {
 
 @Component({
   selector: 'app-bitacora',
-  imports: [DatePipe, JsonPipe],
+  imports: [DatePipe, JsonPipe, Esqueleto, Icono],
   template: `
-    <div class="encabezado"><div><h1>Bitácora</h1><p>Quién hizo qué y cuándo.</p></div></div>
+    <div class="encabezado"><div class="titulo"><span class="icono-modulo"><app-icono nombre="bitacora" /></span><div><h1>Bitácora</h1><p>Quién hizo qué y cuándo.</p></div></div></div>
     <div class="tarjeta lista">
+      @if (!listo()) { <app-esqueleto /> } @else {
       @for (b of lista(); track b.id) {
         <details class="renglon block cursor-default">
           <summary class="cursor-pointer"><b>{{ b.usuarioNombre }}</b> {{ accion(b.accion) }} {{ b.entidad }} @if (b.entidadId) { #{{ b.entidadId }} }
             <span class="tenue chico"> · {{ b.creadoEn | date: 'dd/MM/yyyy HH:mm' }}</span></summary>
-          <pre class="mt-2 font-mono text-[.78rem] whitespace-pre-wrap text-tenue wrap-anywhere">{{ b.detalle | json }}</pre>
+          <pre class="mt-2 text-sm whitespace-pre-wrap text-tenue wrap-anywhere">{{ b.detalle | json }}</pre>
         </details>
       } @empty { <div class="vacio">Sin movimientos</div> }
+    }
     </div>
     <div class="fila mt-3">
       @if (pagina() > 1) { <button class="btn" (click)="ir(pagina() - 1)">Más recientes</button> }
@@ -177,8 +190,9 @@ const ACCIONES: Record<string, string> = {
 export class BitacoraPagina implements OnInit {
   private api = inject(Api);
   lista = signal<Bitacora[]>([]);
+  listo = signal(false);
   pagina = signal(1);
   ngOnInit() { this.ir(1); }
   accion(a: string) { return ACCIONES[a] ?? a; }
-  async ir(p: number) { this.pagina.set(p); this.lista.set(await this.api.get('/bitacora', { pagina: String(p) })); }
+  async ir(p: number) { this.pagina.set(p); this.lista.set(await this.api.get('/bitacora', { pagina: String(p) })); this.listo.set(true); }
 }

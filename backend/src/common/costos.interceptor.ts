@@ -4,6 +4,10 @@ import { Sesion, VEN_COSTOS } from './sesion';
 
 const OCULTOS = new Set(['costo', 'costoUnitario', 'costoTotal', 'utilidad', 'margen', 'ganancia', 'costoVendido']);
 
+export function sinCostos(v: unknown): unknown {
+  return limpiar(v);
+}
+
 function limpiar(v: unknown): unknown {
   if (Array.isArray(v)) return v.map(limpiar);
   if (v && typeof v === 'object' && !(v instanceof Date) && !Buffer.isBuffer(v)) {

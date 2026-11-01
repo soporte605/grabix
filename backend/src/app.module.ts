@@ -3,14 +3,22 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AccesosModule } from './admin/accesos.service';
+import { AdminModule } from './admin/admin.module';
+import { AsistenteModule } from './asistente/asistente.controller';
 import { AuthModule } from './auth/auth.module';
 import { CorreoModule } from './correo/correo.service';
 import { CatalogoModule } from './catalogo/catalogo.module';
 import { AuthGuard } from './common/auth.guard';
 import { BitacoraModule } from './common/bitacora.service';
 import { CostosInterceptor } from './common/costos.interceptor';
+import { CajaModule } from './caja/caja.module';
+import { ProduccionModule } from './produccion/produccion.module';
+import { EnlaceModule } from './enlace/enlace.module';
+import { FotosModule } from './fotos/fotos.module';
+import { CuentaModule } from './cuenta/cuenta.module';
 import { DocumentosModule } from './documentos/documentos.module';
-import { ENTIDADES, Sucursal, Taller, Usuario } from './entities';
+import { ENTIDADES, Sucursal, SuperAdmin, Taller, Usuario } from './entities';
 import { OrganizacionModule } from './organizacion/organizacion.module';
 
 @Module({
@@ -30,7 +38,7 @@ import { OrganizacionModule } from './organizacion/organizacion.module';
       // En desarrollo el esquema se sincroniza solo; en producción usar migraciones.
       synchronize: process.env.DB_SYNC === 'true',
     }),
-    TypeOrmModule.forFeature([Usuario, Taller, Sucursal]),
+    TypeOrmModule.forFeature([Usuario, Taller, Sucursal, SuperAdmin]),
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET ?? 'cambia-este-secreto',
@@ -40,8 +48,16 @@ import { OrganizacionModule } from './organizacion/organizacion.module';
     CorreoModule,
     CatalogoModule,
     OrganizacionModule,
+    AccesosModule,
     AuthModule,
+    AdminModule,
     DocumentosModule,
+    AsistenteModule,
+    CuentaModule,
+    CajaModule,
+    ProduccionModule,
+    FotosModule,
+    EnlaceModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },

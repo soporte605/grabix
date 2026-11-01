@@ -2,10 +2,13 @@ import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { rutaPanel } from './admin-host';
 import { Perfil, Rol } from './modelos';
 
 const K_TOKEN = 'grabix.token';
 const K_SUC = 'grabix.sucursal';
+const K_ANTES = 'grabix.token.antes';
+const K_SOPORTE = 'grabix.soporte';
 const leer = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
 const guardar = (k: string, v: string | null) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch { /* sin almacenamiento */ } };
 
@@ -13,6 +16,8 @@ const guardar = (k: string, v: string | null) => { try { v == null ? localStorag
 export class SesionService {
   private http = inject(HttpClient);
   private router = inject(Router);
+  /** La última petición cerró el modo soporte; `cargar` no debe borrar el token restaurado. */
+  private soporteCerrada = false;
 
   readonly token = signal<string | null>(leer(K_TOKEN));
   readonly perfil = signal<Perfil | null>(null);
@@ -66,14 +71,57 @@ export class SesionService {
 
   /** Recarga el perfil (rol, sucursales, suscripción). Devuelve false si la sesión ya no es válida. */
   async cargar(): Promise<boolean> {
-    if (!this.token()) return false;
+    if (!this.token()) {
+      this.soporteCerrada = false;
+      return false;
+    }
+    this.soporteCerrada = false;
     try {
       this.ajustarSucursal(await firstValueFrom(this.http.get<Perfil>('/api/auth/yo')));
       return true;
     } catch {
+      if (this.soporteCerrada) return false;
       this.salir(false);
       return false;
     }
+  }
+
+  /** Deja el JWT de soporte como sesión del taller. */
+  adoptarToken(token: string) {
+    this.token.set(token);
+    guardar(K_TOKEN, token);
+  }
+
+  /**
+   * Si hay un token de taller y todavía no estamos en soporte, lo aparta.
+   * Hay que llamarlo antes de `adoptarToken`.
+   */
+  marcarSoporte(tallerId: number) {
+    const actual = leer(K_TOKEN);
+    if (actual && !leer(K_SOPORTE)) guardar(K_ANTES, actual);
+    guardar(K_SOPORTE, String(tallerId));
+  }
+
+  idSoporte() { return leer(K_SOPORTE); }
+  enSoporte() { return !!leer(K_SOPORTE); }
+
+  /** Quita el token de soporte y deja el que había antes, si existía. No toca el token del panel. */
+  restaurarTrasSoporte(navegar = true) {
+    this.soporteCerrada = true;
+    const antes = leer(K_ANTES);
+    guardar(K_TOKEN, antes);
+    guardar(K_SOPORTE, null);
+    guardar(K_ANTES, null);
+    this.token.set(antes);
+    this.perfil.set(null);
+    if (navegar) void this.router.navigateByUrl(rutaPanel());
+  }
+
+  /** Lo usa el guard tras un 401 de soporte, para ir al listado y no a /entrar. */
+  acaboDeCerrarSoporte() {
+    const v = this.soporteCerrada;
+    this.soporteCerrada = false;
+    return v;
   }
 
   elegirSucursal(id: number | null) {

@@ -1,0 +1,488 @@
+import { NgTemplateOutlet } from '@angular/common';
+import { Component, computed, effect, ElementRef, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Api } from '../core/api.service';
+import { AvisoService, mensajeError } from '../core/aviso.service';
+import { DineroPipe, hoy, sumarDias } from '../core/formato';
+import { CajaTurno, Cliente, DetalleTurno, Producto } from '../core/modelos';
+import { VentaHecha } from '../core/pos.service';
+import { SesionService } from '../core/sesion.service';
+import { Buscador } from '../ui/buscador';
+import { Hoja } from '../ui/hoja';
+import { Icono } from '../ui/icono';
+import { VentaHechaVentana } from '../ui/venta-hecha';
+import { AltaCliente } from '../ui/alta-rapida';
+import { AbrirCaja, CerrarCaja, imprimirCorte, MovimientoCaja } from '../ui/turno-caja';
+
+interface Linea { productoId: number | null; descripcion: string; precio: number; cantidad: number }
+const METODOS = ['Efectivo', 'Tarjeta', 'Transferencia', 'Otro', 'Combinado'];
+const PARTES = ['Efectivo', 'Tarjeta', 'Transferencia'] as const;
+type Parte = (typeof PARTES)[number];
+const BILLETES = [10, 50, 100, 500, 1000];
+
+/**
+ * Caja: punto de venta de mostrador. Productos en botones grandes, carrito y cobro con cambio.
+ * Se puede expandir a pantalla completa (tapa el menú del sistema) y minimizar para volver.
+ */
+@Component({
+  selector: 'app-caja',
+  imports: [FormsModule, NgTemplateOutlet, DineroPipe, Icono, Hoja, Buscador, VentaHechaVentana, AbrirCaja, MovimientoCaja, CerrarCaja, AltaCliente],
+  host: { '(document:keydown)': 'atajo($event)', '(document:fullscreenchange)': 'alSalirDePantallaCompleta()' },
+  template: `
+    <div class="flex flex-col bg-fondo" [class]="grande() ? 'fixed inset-0 z-40 p-3 lg:p-4' : 'h-[calc(100dvh-170px)] min-h-[560px] lg:h-[calc(100dvh-110px)]'">
+      <!-- Barra de la caja -->
+      <header class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div class="titulo min-w-0 flex-1">
+          <span class="icono-modulo"><app-icono nombre="caja" /></span>
+          <div class="min-w-0"><h1>Caja</h1><p class="truncate">{{ s.nombreSucursal() }} · {{ s.perfil()?.usuario?.nombre }}</p></div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 max-sm:order-last max-sm:w-full">
+          @if (turno(); as t) {
+            <span class="flex items-center gap-1.5 rounded-lg border border-linea bg-superficie px-3 py-1.5 text-sm text-tenue" [title]="'Abrió ' + t.abrioNombre">
+              <i class="inline-block size-2 rounded-full bg-ok"></i>{{ t.folio }} · desde {{ hora(t.abiertoEn) }}</span>
+            <span class="rounded-lg border border-linea bg-superficie px-3 py-1.5 text-sm text-tenue"><b class="num text-tinta">{{ t.resumen?.ventas ?? 0 }}</b> {{ t.resumen?.ventas === 1 ? 'venta' : 'ventas' }} · <b class="num text-tinta">{{ (t.resumen?.cobrado ?? 0) | dinero }}</b></span>
+            <button class="btn sm" (click)="verMov.set(true)" title="Entrada o salida de efectivo">± Efectivo</button>
+            <button class="btn sm" (click)="abrirCierre()"><app-icono nombre="caja" />Cerrar caja</button>
+          } @else if (estadoCaja()) {
+            <span class="flex items-center gap-1.5 rounded-lg border border-linea bg-superficie px-3 py-1.5 text-sm text-tenue"><i class="inline-block size-2 rounded-full bg-bad"></i>Caja cerrada</span>
+            <button class="btn sm pri" (click)="verApertura.set(true)">Abrir caja</button>
+          }
+        </div>
+        <button class="btn" (click)="alternarGrande()" [title]="grande() ? 'Minimizar (vuelve al sistema)' : 'Pantalla completa'">
+          <app-icono [nombre]="grande() ? 'contraer' : 'expandir'" /><span class="max-sm:hidden">{{ grande() ? 'Minimizar' : 'Pantalla completa' }}</span>
+        </button>
+      </header>
+
+      @if (!s.sucursal()) {
+        <div class="tarjeta p-6 text-center"><b>Elige una sucursal</b><p class="tenue">La caja vende del inventario de una sucursal. Elígela arriba a la izquierda.</p></div>
+      } @else if (estadoCaja() && !turno()) {
+        <div class="tarjeta m-auto flex w-full max-w-[460px] flex-col items-center gap-3 p-8 text-center">
+          <span class="grid size-14 place-items-center rounded-2xl bg-marca-suave text-2xl text-marca"><app-icono nombre="caja" /></span>
+          <h2 class="text-xl">La caja está cerrada</h2>
+          <p class="text-tenue">Ábrela con el efectivo que tienes para dar cambio. Al final del turno haces el corte y ves si cuadra.</p>
+          @if (estadoCaja()?.ultimo; as u) { <p class="chico tenue">Último corte: {{ u.folio }} por {{ u.cerroNombre }}, dejó <b class="num">{{ u.dejado | dinero }}</b>.</p> }
+          <button class="btn pri min-h-12 px-6 text-lg" (click)="verApertura.set(true)">Abrir caja</button>
+        </div>
+      } @else {
+      <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_440px]">
+        <!-- Productos -->
+        <section class="flex min-h-0 min-w-0 flex-col gap-2.5">
+          <div class="flex items-center gap-2">
+            <div class="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-linea bg-superficie px-3 focus-within:border-marca">
+              <app-icono nombre="buscar" class="text-tenue" />
+              <input #busqueda class="min-w-0 flex-1 bg-transparent py-2.5 text-lg outline-none" type="search" placeholder="Buscar producto  ( / )" [ngModel]="q()" (ngModelChange)="q.set($event)"
+                (keydown.enter)="agregarPrimero()" (keydown.escape)="q.set('')" aria-label="Buscar producto" autocomplete="off">
+            </div>
+            <button class="btn" (click)="libre()" title="Agregar un concepto que no está en el catálogo"><app-icono nombre="mas1" /><span class="max-sm:hidden">Concepto libre</span></button>
+          </div>
+          <div class="chips flex-nowrap overflow-x-auto pb-0.5">
+            @for (c of categorias(); track c) { <button class="chip flex-none" [class.on]="cat() === c" (click)="cat.set(c)">{{ c }}</button> }
+          </div>
+          <div class="grid min-h-0 flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(138px,1fr))] gap-2 overflow-y-auto pt-2 pr-2 pb-24 lg:pb-2">
+            @for (p of visibles(); track p.id) {
+              <button class="group relative flex min-h-[104px] flex-col justify-between gap-1.5 rounded-xl border border-linea bg-superficie p-3 text-left transition hover:-translate-y-px hover:border-marca hover:shadow-caja active:translate-y-0 disabled:opacity-45"
+                (click)="agregar(p)" [disabled]="agotado(p)" [class.!border-marca]="enCarrito(p.id)">
+                <span class="line-clamp-3 text-base leading-snug font-semibold">{{ limpio(p.nombre) }}</span>
+                <span class="flex items-end justify-between gap-1">
+                  <b class="num text-lg text-marca">{{ p.precio | dinero }}</b>
+                  @if (p.controlaStock) { <span class="text-xs" [class]="p.existencia <= p.minimo ? 'font-semibold text-warn' : 'text-tenue'">{{ agotado(p) ? 'Agotado' : p.existencia + ' ' + p.unidad }}</span> }
+                </span>
+                @if (enCarrito(p.id); as n) { <span class="absolute -top-1.5 -right-1.5 flex size-6 items-center justify-center rounded-full bg-marca text-xs font-bold text-sobre-marca">{{ n }}</span> }
+              </button>
+            } @empty {
+              <p class="col-span-full p-6 text-center text-tenue">Sin productos{{ q() ? ' para “' + q() + '”' : '' }}. Agrégalos en Inventario o usa Concepto libre.</p>
+            }
+          </div>
+        </section>
+
+        <!-- Carrito (escritorio) -->
+        <aside class="hidden min-h-0 flex-col overflow-hidden rounded-2xl border border-linea bg-superficie shadow-caja lg:flex">
+          <ng-container [ngTemplateOutlet]="carrito" />
+        </aside>
+      </div>
+
+      <!-- Barra del carrito (celular) -->
+      <button class="fixed inset-x-3 bottom-[calc(76px+env(safe-area-inset-bottom,0px))] z-30 flex items-center justify-between gap-3 rounded-2xl bg-[#002150] px-4 py-3 text-white shadow-caja lg:hidden"
+        [class.!bottom-3]="grande()" (click)="verCarrito.set(true)">
+        <span class="text-left text-sm text-white/75">{{ piezas() }} artículo{{ piezas() === 1 ? '' : 's' }}<br><b class="num text-xl text-white">{{ total() | dinero }}</b></span>
+        <span class="rounded-xl bg-[#67be28] px-4 py-2.5 font-semibold text-[#001536]">Ver y cobrar</span>
+      </button>
+      }
+    </div>
+
+    <ng-template #carrito>
+      <div class="flex items-center gap-2 border-b border-linea p-3">
+        <app-buscador class="flex-1" [opciones]="opsClientes()" [conVacio]="true" vacio="Público en general" placeholder="Buscar cliente…" etiqueta="Cliente" crear="Nuevo cliente" (nuevo)="altaCliente.set($event)" [(ngModel)]="clienteId" (ngModelChange)="guardarLocal()" />
+        @if (lineas().length) { <button class="btn sm" (click)="vaciar()" title="Vaciar carrito">Vaciar</button> }
+      </div>
+      <div class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-3">
+        @for (l of lineas(); track $index; let i = $index) {
+          <div class="rounded-xl border border-linea bg-superficie-2 p-2.5">
+            <div class="flex items-start gap-2">
+              @if (l.productoId) { <p class="min-w-0 flex-1 text-base font-semibold">{{ l.descripcion }}</p> }
+              @else { <input class="entrada min-w-0 flex-1 p-1.5 text-base" placeholder="Descripción" [ngModel]="l.descripcion" (ngModelChange)="cambiar(i, { descripcion: $event })" aria-label="Descripción"> }
+              <button class="text-xl leading-none text-tenue hover:text-bad" (click)="quitar(i)" aria-label="Quitar">×</button>
+            </div>
+            <div class="mt-2 flex items-center gap-2">
+              <div class="flex items-center rounded-lg border border-linea bg-superficie">
+                <button class="flex size-9 items-center justify-center text-tenue hover:text-tinta" (click)="cambiar(i, { cantidad: l.cantidad - 1 })" aria-label="Menos"><app-icono nombre="menos" /></button>
+                <input class="num w-12 bg-transparent text-center outline-none" type="number" inputmode="decimal" [ngModel]="l.cantidad" (ngModelChange)="cambiar(i, { cantidad: +$event })" aria-label="Cantidad">
+                <button class="flex size-9 items-center justify-center text-tenue hover:text-tinta" (click)="cambiar(i, { cantidad: l.cantidad + 1 })" aria-label="Más"><app-icono nombre="mas1" /></button>
+              </div>
+              <span class="text-tenue">×</span>
+              <input class="entrada num w-24 p-1.5 text-right" type="number" inputmode="decimal" [ngModel]="l.precio" (ngModelChange)="cambiar(i, { precio: +$event })" aria-label="Precio">
+              <b class="num ml-auto">{{ l.cantidad * l.precio | dinero }}</b>
+            </div>
+          </div>
+        } @empty {
+          <div class="m-auto flex flex-col items-center gap-2 p-6 text-center text-tenue">
+            <span class="text-3xl"><app-icono nombre="ventas" /></span>
+            <p>Toca un producto para agregarlo.</p>
+            <p class="text-sm">Atajos: <kbd class="rounded border border-linea px-1">/</kbd> buscar · <kbd class="rounded border border-linea px-1">Enter</kbd> agrega el primero · <kbd class="rounded border border-linea px-1">F2</kbd> cobrar</p>
+          </div>
+        }
+      </div>
+      <div class="flex flex-col gap-2.5 border-t border-linea bg-superficie p-3">
+        <div class="flex flex-wrap items-center gap-2 text-base">
+          <label class="flex items-center gap-1.5 text-tenue">Descuento
+            <input class="entrada num w-16 p-1.5 text-right" type="number" inputmode="decimal" [ngModel]="descuento()" (ngModelChange)="descuento.set(+$event || 0); guardarLocal()" aria-label="Descuento en porcentaje">%</label>
+          <label class="ml-auto flex items-center gap-1.5"><input type="checkbox" [ngModel]="despues()" (ngModelChange)="despues.set($event)"> Entregar después</label>
+          @if (despues()) { <input class="entrada w-auto p-1.5" type="date" [ngModel]="entrega()" (ngModelChange)="entrega.set($event)" aria-label="Fecha de entrega"> }
+        </div>
+        @if (descuento()) { <div class="flex justify-between text-base text-tenue"><span>Subtotal {{ subtotal() | dinero }}</span><span>Descuento −{{ subtotal() - total() | dinero }}</span></div> }
+        <div class="flex items-end justify-between"><span class="text-tenue">Total</span><b class="num text-3xl leading-none">{{ total() | dinero }}</b></div>
+        <button class="btn pri min-h-14 text-lg" (click)="cobrar()" [disabled]="!lineas().length">Cobrar <kbd class="ml-1 rounded max-lg:hidden bg-white/15 px-1.5 text-xs font-normal">F2</kbd></button>
+      </div>
+    </ng-template>
+
+    @if (verCarrito()) {
+      <app-hoja titulo="Carrito" ancho="520px" (cerrar)="verCarrito.set(false)">
+        <div class="-m-4 flex min-h-[60dvh] flex-col"><ng-container [ngTemplateOutlet]="carrito" /></div>
+      </app-hoja>
+    }
+
+    @if (pago()) {
+      <app-hoja [titulo]="'Cobrar ' + (total() | dinero)" ancho="520px" (cerrar)="pago.set(false)">
+        <div class="flex flex-col gap-4" (keydown.enter)="$event.preventDefault(); confirmar()">
+          <div class="grid grid-cols-3 gap-2 sm:grid-cols-5">
+            @for (m of metodos; track m) {
+              <button class="min-w-0 rounded-xl border-2 px-1 py-3 text-sm font-semibold" [class]="metodo() === m ? 'border-marca bg-marca-suave text-marca' : 'border-linea'" (click)="elegirMetodo(m)">{{ m }}</button>
+            }
+          </div>
+          @if (metodo() === 'Combinado') {
+            <div class="flex flex-col gap-2">
+              <p class="chico tenue">Reparte el pago entre varias formas. "Resto" llena lo que falta.</p>
+              @for (k of partesMetodos; track k) {
+                <div class="flex items-center gap-2">
+                  <label class="w-28 flex-none text-base font-semibold" [for]="'c-p-' + k">{{ k }}</label>
+                  <input class="entrada num flex-1 text-lg" [id]="'c-p-' + k" type="number" inputmode="decimal" placeholder="0" [ngModel]="partes()[k] || null" (ngModelChange)="parte(k, +$event || 0)">
+                  <button class="btn sm" (click)="resto(k)">Resto</button>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="campo"><label for="c-abona">Paga ahora</label><input id="c-abona" class="num text-lg" type="number" inputmode="decimal" [ngModel]="abona()" (ngModelChange)="abona.set(+$event || 0)"></div>
+          }
+          @if (efectivo() > 0) {
+            <div class="flex flex-col gap-2 rounded-xl border border-linea p-3">
+              <div class="flex items-center gap-2">
+                <label class="w-28 flex-none text-base font-semibold" for="c-con">Recibe efectivo</label>
+                <input #campoRecibe id="c-con" class="entrada num flex-1 text-lg" type="number" inputmode="decimal" placeholder="Opcional" [ngModel]="recibe() || null" (ngModelChange)="recibe.set(+$event || 0)">
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button class="chip" (click)="recibe.set(efectivo())">Exacto</button>
+                @for (b of billetes(); track b) { <button class="chip num" (click)="recibe.set(b)">{{ b | dinero }}</button> }
+              </div>
+            </div>
+          }
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="rounded-xl p-3.5" [class]="pagado() > total() + 0.001 ? 'bg-bad-suave text-bad' : 'bg-superficie-2'">
+              <p class="chico" [class.tenue]="pagado() <= total() + 0.001">{{ pagado() > total() + 0.001 ? 'Pasa del total por' : pagado() < total() ? 'Queda a deber' : 'Paga' }}</p>
+              <p class="num text-2xl font-semibold">{{ (pagado() > total() ? pagado() - total() : pagado() < total() ? total() - pagado() : total()) | dinero }}</p>
+            </div>
+            <div class="rounded-xl p-3.5" [class]="faltaEfectivo() ? 'bg-bad-suave text-bad' : 'bg-ok-suave text-ok'">
+              <p class="chico font-semibold">{{ faltaEfectivo() ? 'Falta efectivo' : 'Cambio' }}</p>
+              <p class="num text-2xl font-semibold">{{ (faltaEfectivo() ? efectivo() - recibe() : cambio()) | dinero }}</p>
+            </div>
+          </div>
+          @if (pagado() < total() - 0.001) { <p class="chico rounded-lg bg-warn-suave px-3 py-2 text-warn">Se registra como anticipo y la venta queda con saldo pendiente.</p> }
+        </div>
+        <ng-container pie>
+          <button class="btn" (click)="pago.set(false)">Volver</button>
+          <span class="flex-1"></span>
+          <button class="btn pri min-h-12 min-w-44 text-lg" (click)="confirmar()" [disabled]="ocupado() || faltaEfectivo() || pagado() > total() + 0.001">{{ ocupado() ? 'Registrando…' : 'Confirmar cobro' }}</button>
+        </ng-container>
+      </app-hoja>
+    }
+
+    @if (verApertura()) { <app-abrir-caja [sugerido]="estadoCaja()?.sugerido ?? 0" [ultimo]="estadoCaja()?.ultimo ?? null" (cerrar)="verApertura.set(false)" (abierta)="verApertura.set(false); cargarTurno(); enfocar()" /> }
+    @if (verMov()) { <app-movimiento-caja (cerrar)="verMov.set(false)" (guardado)="verMov.set(false); cargarTurno()" (cambio)="cargarTurno()" /> }
+    @if (verCierre() && turno(); as t) { <app-cerrar-caja [turno]="t" (cerrar)="verCierre.set(false)" (cerrada)="verCierre.set(false); corte.set($event); cargarTurno()" /> }
+    @if (corte(); as c) {
+      <app-hoja [titulo]="'Corte ' + c.folio" ancho="440px" (cerrar)="corte.set(null)">
+        <div class="flex flex-col items-center gap-1 text-center">
+          <span class="grid size-12 place-items-center rounded-full text-2xl" [class]="c.diferencia === 0 ? 'bg-ok-suave text-ok' : c.diferencia > 0 ? 'bg-warn-suave text-warn' : 'bg-bad-suave text-bad'"><app-icono [nombre]="c.diferencia === 0 ? 'ok' : 'alerta'" /></span>
+          <h2 class="text-xl">{{ c.diferencia === 0 ? 'La caja cuadra' : c.diferencia > 0 ? 'Sobran ' + (c.diferencia | dinero) : 'Faltan ' + (-c.diferencia | dinero) }}</h2>
+          <p class="text-tenue">Cobrado {{ c.resumen?.cobrado | dinero }} · Se deja {{ c.dejado | dinero }} · Retiro {{ c.retiro | dinero }}</p>
+        </div>
+        <ng-container pie>
+          <button class="btn" (click)="imprimirCorte(c)"><app-icono nombre="imprimir" />Imprimir corte</button><span class="flex-1"></span>
+          <button class="btn pri" (click)="corte.set(null)">Listo</button>
+        </ng-container>
+      </app-hoja>
+    }
+
+    @if (hecha(); as h) {
+      <app-venta-hecha [datos]="h" (cerrar)="hecha.set(null); enfocar()" (nueva)="hecha.set(null); enfocar()" />
+    }
+    @if (altaCliente() !== null) { <app-alta-cliente [inicial]="altaCliente()!" (cerrar)="altaCliente.set(null)" (creado)="clienteCreado($event)" /> }
+  `,
+})
+export class Caja implements OnInit, OnDestroy {
+  s = inject(SesionService);
+  private api = inject(Api);
+  private aviso = inject(AvisoService);
+  private busqueda = viewChild<ElementRef<HTMLInputElement>>('busqueda');
+  private recibeEl = viewChild<ElementRef<HTMLInputElement>>('campoRecibe');
+
+  metodos = METODOS;
+  productos = signal<Producto[]>([]);
+  clientes = signal<Cliente[]>([]);
+  altaCliente = signal<string | null>(null);
+  clienteCreado(c: Cliente) {
+    this.clientes.update((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    this.clienteId = c.id;
+    this.altaCliente.set(null);
+    this.guardarLocal();
+  }
+  lineas = signal<Linea[]>([]);
+  clienteId: number | null = null;
+  q = signal('');
+  cat = signal('Todos');
+  descuento = signal(0);
+  despues = signal(false);
+  entrega = signal(sumarDias(hoy(), 3));
+  grande = signal(false);
+  verCarrito = signal(false);
+  pago = signal(false);
+  metodo = signal('Efectivo');
+  abona = signal(0);
+  recibe = signal(0);
+  partesMetodos = PARTES;
+  partes = signal<Record<Parte, number>>({ Efectivo: 0, Tarjeta: 0, Transferencia: 0 });
+  /** Lo que se paga ahora, sumando todas las formas. */
+  pagado = computed(() => r2(this.metodo() === 'Combinado' ? PARTES.reduce((a, k) => a + this.partes()[k], 0) : this.abona()));
+  /** La parte en efectivo, que es la que da cambio. */
+  efectivo = computed(() => (this.metodo() === 'Combinado' ? this.partes().Efectivo : this.metodo() === 'Efectivo' ? this.abona() : 0));
+  ocupado = signal(false);
+  hecha = signal<VentaHecha | null>(null);
+  /** Estado de la caja en la sucursal: turno abierto o, si está cerrada, cuánto dejó el último corte. */
+  estadoCaja = signal<{ turno: CajaTurno | null; sugerido?: number; ultimo?: { folio: string; cerroNombre: string; dejado: number } | null } | null>(null);
+  turno = computed(() => this.estadoCaja()?.turno ?? null);
+  verApertura = signal(false);
+  verMov = signal(false);
+  verCierre = signal(false);
+  corte = signal<DetalleTurno | null>(null);
+
+  private vendibles = computed(() => this.productos().filter((p) => p.activo && p.tipo !== 'insumo'));
+  categorias = computed(() => {
+    const cs = [...new Set(this.vendibles().map((p) => p.categoria).filter(Boolean))].sort();
+    return ['Todos', ...(this.vendibles().some((p) => p.tipo === 'servicio') ? ['Servicios'] : []), ...cs];
+  });
+  visibles = computed(() => {
+    const q = norm(this.q().trim()), c = this.cat();
+    return this.vendibles().filter((p) => {
+      if (c === 'Servicios' && p.tipo !== 'servicio') return false;
+      if (c !== 'Todos' && c !== 'Servicios' && p.categoria !== c) return false;
+      return !q || q.split(/\s+/).every((t) => norm(p.nombre).includes(t));
+    });
+  });
+  opsClientes = computed(() => this.clientes().map((c) => ({ valor: c.id, texto: c.nombre, detalle: c.telefono || undefined })));
+  subtotal = computed(() => r2(this.lineas().reduce((a, l) => a + l.cantidad * l.precio, 0)));
+  total = computed(() => r2(this.subtotal() * (1 - Math.min(100, Math.max(0, this.descuento())) / 100)));
+  piezas = computed(() => this.lineas().reduce((a, l) => a + l.cantidad, 0));
+  cambio = computed(() => (this.efectivo() > 0 && this.recibe() > this.efectivo() ? r2(this.recibe() - this.efectivo()) : 0));
+  faltaEfectivo = computed(() => this.efectivo() > 0 && this.recibe() > 0 && this.recibe() < this.efectivo());
+  billetes = computed(() => {
+    // Montos con los que suelen pagar: redondeos hacia arriba a 10, 50, 100, 500 y 1000.
+    const t = this.efectivo();
+    return [...new Set(BILLETES.map((b) => Math.ceil(t / b) * b))].filter((b) => b > t).slice(0, 4);
+  });
+
+  private get claveLocal() { return `grabix.caja.${this.s.perfil()?.usuario.id}.${this.s.sucursal()}`; }
+
+  constructor() {
+    // Si cambian de sucursal, se recargan productos (existencias) y carrito de esa sucursal.
+    effect(() => {
+      this.s.sucursal();
+      queueMicrotask(() => { this.cargar(); this.leerLocal(); });
+    });
+  }
+
+  ngOnInit() {
+    this.api.get<Cliente[]>('/clientes').then((c) => this.clientes.set(c), () => {});
+    setTimeout(() => this.enfocar(), 300);
+  }
+
+  ngOnDestroy() {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  }
+
+  async cargar() {
+    try {
+      this.productos.set(await this.api.get<Producto[]>('/productos'));
+      await this.cargarTurno();
+    } catch (e) {
+      this.aviso.error(mensajeError(e));
+    }
+  }
+
+  async cargarTurno() {
+    if (!this.s.sucursal()) { this.estadoCaja.set(null); return; }
+    this.estadoCaja.set(await this.api.get('/caja/turno'));
+  }
+
+  async abrirCierre() { await this.cargarTurno(); this.verCierre.set(true); }
+  hora(d: string) { return new Date(d).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }); }
+  imprimirCorte(c: DetalleTurno) { imprimirCorte(c, this.s); }
+
+  limpio(n: string) { return n.replace(/ \(ejemplo\)$/, ''); }
+  enCarrito(id: number) { return this.lineas().filter((l) => l.productoId === id).reduce((a, l) => a + l.cantidad, 0); }
+  agotado(p: Producto) { return p.controlaStock && p.existencia - this.enCarrito(p.id) <= 0; }
+
+  agregar(p: Producto) {
+    if (this.agotado(p)) return;
+    const i = this.lineas().findIndex((l) => l.productoId === p.id);
+    if (i >= 0) this.cambiar(i, { cantidad: this.lineas()[i].cantidad + 1 });
+    else this.lineas.update((ls) => [...ls, { productoId: p.id, descripcion: this.limpio(p.nombre), precio: p.precio, cantidad: 1 }]);
+    this.guardarLocal();
+  }
+
+  /** Enter en el buscador: agrega el primer resultado (sirve también con lector de código). */
+  agregarPrimero() {
+    const p = this.visibles()[0];
+    if (p && this.q().trim()) { this.agregar(p); this.q.set(''); }
+  }
+
+  libre() {
+    this.lineas.update((ls) => [...ls, { productoId: null, descripcion: '', precio: 0, cantidad: 1 }]);
+    if (window.innerWidth < 1024) this.verCarrito.set(true);
+  }
+
+  cambiar(i: number, c: Partial<Linea>) {
+    this.lineas.update((ls) => ls.map((l, k) => (k === i ? { ...l, ...c } : l)).filter((l) => l.cantidad > 0));
+    this.guardarLocal();
+  }
+
+  quitar(i: number) {
+    this.lineas.update((ls) => ls.filter((_, k) => k !== i));
+    this.guardarLocal();
+  }
+
+  vaciar() {
+    this.lineas.set([]);
+    this.clienteId = null;
+    this.descuento.set(0);
+    this.despues.set(false);
+    this.guardarLocal();
+  }
+
+  cobrar() {
+    if (!this.lineas().length || this.pago()) return;
+    if (!this.turno()) { this.verApertura.set(true); return; }
+    if (this.lineas().some((l) => !l.descripcion.trim())) { this.aviso.error('Escribe la descripción del concepto libre'); this.verCarrito.set(true); return; }
+    this.verCarrito.set(false);
+    this.metodo.set('Efectivo');
+    this.abona.set(this.total());
+    this.recibe.set(0);
+    this.pago.set(true);
+    setTimeout(() => this.recibeEl()?.nativeElement.focus(), 100);
+  }
+
+  elegirMetodo(m: string) {
+    this.metodo.set(m);
+    if (m === 'Combinado') this.partes.set({ Efectivo: 0, Tarjeta: 0, Transferencia: 0 });
+  }
+
+  parte(k: Parte, v: number) { this.partes.update((p) => ({ ...p, [k]: v })); }
+
+  /** Llena esta forma de pago con lo que falta para el total. */
+  resto(k: Parte) {
+    const otras = PARTES.filter((x) => x !== k).reduce((a, x) => a + this.partes()[x], 0);
+    this.parte(k, r2(Math.max(0, this.total() - otras)));
+  }
+
+  async confirmar() {
+    if (this.ocupado() || this.faltaEfectivo() || this.pagado() > this.total() + 0.001) return;
+    const cliente = this.clientes().find((c) => c.id === this.clienteId);
+    const abona = Math.min(this.abona(), this.total());
+    this.ocupado.set(true);
+    try {
+      const r = await this.api.post<{ id: number }>('/ventas', {
+        clienteId: this.clienteId, clienteNombre: cliente?.nombre ?? '', clienteTelefono: cliente?.telefono ?? '',
+        fecha: hoy(), descuentoTipo: 'pct', descuentoValor: this.descuento(), promocionId: null, notas: '',
+        items: this.lineas().map((l) => ({ productoId: l.productoId, descripcion: l.descripcion.trim(), cantidad: l.cantidad, precio: l.precio })),
+        origen: 'caja',
+        estado: this.despues() ? 'pendiente' : 'entregada',
+        entrega: this.despues() ? this.entrega() : hoy(),
+        ...(this.metodo() === 'Combinado'
+          ? { pagos: PARTES.filter((k) => this.partes()[k] > 0).map((k) => ({ monto: this.partes()[k], metodo: k })) }
+          : abona > 0 ? { anticipo: { monto: abona, metodo: this.metodo() } } : {}),
+      });
+      this.hecha.set({ id: r.id, nueva: true, recibido: this.cambio() ? this.recibe() : undefined, cambio: this.cambio() || undefined });
+      this.pago.set(false);
+      this.vaciar();
+      await this.cargar();
+    } catch (e) {
+      this.aviso.error(mensajeError(e));
+    } finally {
+      this.ocupado.set(false);
+    }
+  }
+
+  /** Pantalla completa: tapa el menú del sistema y, si el navegador lo permite, ocupa todo el monitor. */
+  async alternarGrande() {
+    if (this.grande()) {
+      this.grande.set(false);
+      if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+    } else {
+      this.grande.set(true);
+      await document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+    this.enfocar();
+  }
+
+  alSalirDePantallaCompleta() {
+    if (!document.fullscreenElement && this.grande()) this.grande.set(false);
+  }
+
+  enfocar() {
+    if (window.innerWidth >= 1024) setTimeout(() => this.busqueda()?.nativeElement.focus({ preventScroll: true }));
+  }
+
+  atajo(ev: KeyboardEvent) {
+    if (this.hecha() || this.verCierre() || this.verApertura() || this.verMov()) return;
+    if (ev.key === 'F2') { ev.preventDefault(); this.cobrar(); return; }
+    const t = ev.target as HTMLElement;
+    const escribiendo = t.closest('input, textarea, select, [contenteditable]');
+    if (ev.key === '/' && !escribiendo && !this.pago()) { ev.preventDefault(); this.busqueda()?.nativeElement.focus(); }
+  }
+
+  guardarLocal() {
+    try {
+      sessionStorage.setItem(this.claveLocal, JSON.stringify({ lineas: this.lineas(), clienteId: this.clienteId, descuento: this.descuento() }));
+    } catch { /* sin almacenamiento */ }
+  }
+
+  private leerLocal() {
+    try {
+      const d = JSON.parse(sessionStorage.getItem(this.claveLocal) ?? 'null');
+      this.lineas.set(d?.lineas ?? []);
+      this.clienteId = d?.clienteId ?? null;
+      this.descuento.set(d?.descuento ?? 0);
+    } catch { this.lineas.set([]); }
+  }
+}
+
+const r2 = (n: number) => Math.round(n * 100) / 100;
+const norm = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();

@@ -1,0 +1,11 @@
+---
+description: Contexto de Grabix (SaaS para talleres de láser y sublimación)
+alwaysApply: true
+---
+Antes de cambiar código lee `docs/PROYECTO.md` (qué es el proyecto, reglas del negocio, roles y convenciones de interfaz) y `CHANGELOG.md` (lo que ya se hizo).
+
+- Todo el texto visible va en español de México.
+- Frontend: Angular 20 standalone con signals y Tailwind v4 (tokens en `frontend/src/styles.css`, sin SCSS). Formularios en modales (`ui/hoja.ts`), que no se cierran al tocar afuera.
+- Backend: NestJS 11 + TypeORM. Cada consulta filtra por `tallerId` y respeta sucursal y roles (`common/sesion.ts`).
+- Debe funcionar bien en teléfono.
+- No subas secretos ni toques otros proyectos del servidor.

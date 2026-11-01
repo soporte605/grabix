@@ -76,13 +76,49 @@ Igual que FincaPro y SiloPro:
 - Con la suscripción vencida se puede consultar, pero no registrar (HTTP 402).
 - `PAGOS_MODO=demo` activa planes sin cobrar. **Pendiente:** conectar Stripe o Mercado Pago (webhook que llame a la activación).
 
+## Super administrador
+
+Panel de Elikar, aparte del login de los talleres. En producción no trae correo ni contraseña de fábrica.
+
+- En local, con `ng serve`: http://localhost:4200/admin
+- En local, con Docker: http://localhost:8081/admin
+- En producción: https://admin.grabix.elikarsystems.com
+
+Cuenta local (solo la base de Docker de esta máquina; no existe en producción):
+
+- Correo: `local-panel@grabix.test`
+- Contraseña: `Mesa4821k`
+- Nombre: Elikar
+
+El primero se crea al arrancar la API, solo si la tabla `super_admins` está vacía y hay `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD`. La contraseña sigue las mismas reglas que el resto de cuentas: mínimo 8 caracteres, con letras y números, que no sea muy común y que no incluya el correo ni la palabra Elikar. Si no las cumple, no se crea y la API sigue. Si ya hay un super administrador, el arranque no cambia su contraseña.
+
+Desde el panel se ven los talleres, se editan datos y planes, se bloquean cuentas, se reenvían correos y se puede entrar como dueño. **Bitácora** muestra lo que se cambió en el panel y en los talleres. **Accesos** guarda cada intento de entrar (panel y talleres): correo, si entró, el motivo, la IP y la hora. No guarda la contraseña. Los intentos anteriores a esta función no aparecen.
+
+## Asistente con IA
+
+Botón **Asistente** en la barra superior del sistema. Usa Claude (Anthropic) y responde con los datos del taller:
+
+- Consulta ventas, pedidos, cotizaciones, inventario y clientes con herramientas **de solo lectura** (`backend/src/asistente/`). No crea, cambia ni borra nada.
+- Respeta la **sucursal** elegida y el **rol**: vendedores y producción nunca reciben costos ni ganancias, y cada rol solo tiene las consultas que le tocan.
+- Explica cómo usar Grabix con la guía de `backend/src/asistente/guia.ts` y da enlaces a las pantallas.
+- Cupo diario por taller según el plan (40 / 150 / 500 preguntas), guardado en la tabla `asistente_uso` junto con los tokens usados.
+
+Para activarlo pon `ANTHROPIC_API_KEY` en `.env` (llave de console.anthropic.com) y reconstruye la API. `ASISTENTE_MODELO` cambia el modelo (por defecto `claude-opus-5-5`; `claude-haiku-5-5` es mucho más barato). Sin llave, el panel avisa que no está activado.
+
 ## Identidad visual
-Colores de Elikar Systems (azul marino `#002150` y verde `#67BE28`, los mismos de SiloPro; provisionales hasta tener la paleta oficial) y fuentes de Google (Montserrat, Inter, JetBrains Mono).
+Logo, colores, tipografías y reglas de uso en [`docs/MARCA.md`](docs/MARCA.md).
+
+Colores de Elikar Systems (azul marino `#002150` y verde `#67BE28`, los mismos de SiloPro; provisionales hasta tener la paleta oficial) y fuentes de Google (Plus Jakarta Sans para todo el sistema y JetBrains Mono para cifras).
 
 El diseño usa **Tailwind CSS v4**, igual que SiloPro y FincaPro. Todo vive en `frontend/src/styles.css`:
 - `:root` con los colores y fuentes; `@theme` los expone como utilidades (`bg-marca`, `text-tenue`, `border-linea`, `font-titulo`, `shadow-caja`…). Para cambiar la marca basta con cambiar `:root`.
 - `@layer components` con las piezas que se repiten: `btn` (`pri`, `sec`, `wa`, `peligro`, `sm`), `tarjeta`, `caja`, `campo`/`campos`, `renglon`, `pill`, `chip`, `kpi`, `encabezado`.
 - Lo demás va con utilidades directamente en las plantillas de cada componente (no hay hojas de estilo por componente).
+- **Modo oscuro**: el mismo `:root` se redefine con `data-tema="oscuro"` o con la preferencia del sistema.
+- Piezas de interfaz en `frontend/src/app/ui/`: `capas` (barra de carga global, avisos y ventana de confirmación), `esqueleto` (skeletons de carga), `campo-clave` (contraseña con medidor de seguridad), `hoja` (ventanas modales) y `logo`.
+
+### Seguridad de contraseñas
+Mínimo 8 caracteres, con letras y números, que no sea una muy común ni contenga el correo o el nombre. Se valida igual en la API (`backend/src/common/clave.ts`) y en la app (`frontend/src/app/core/clave.ts`), que además muestra el medidor de seguridad.
 
 Los colores del PDF se ajustan con `PDF_COLOR_ACENTO` y `PDF_COLOR_SECUNDARIO`.
 

@@ -8,6 +8,6 @@ import { PublicoController } from './publico.controller';
 @Module({
   controllers: [DocumentosController, PublicoController],
   providers: [DocumentosService, FoliosService, PdfService],
-  exports: [FoliosService],
+  exports: [FoliosService, DocumentosService],
 })
 export class DocumentosModule {}

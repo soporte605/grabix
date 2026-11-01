@@ -1,4 +1,6 @@
-import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Req } from '@nestjs/common';
+import type { Request } from 'express';
+import { ipDe } from '../admin/accesos.service';
 import { Publico, Ses, SinSuscripcion, type Sesion } from '../common/sesion';
 import { CambiarContrasenaDto, LoginDto, OlvideDto, RegistroDto, RestablecerDto, TokenDto } from './auth.dto';
 import { AuthService } from './auth.service';
@@ -13,8 +15,8 @@ export class AuthController {
   }
 
   @Publico() @Post('login') @HttpCode(200)
-  login(@Body() dto: LoginDto) {
-    return this.auth.login(dto);
+  login(@Body() dto: LoginDto, @Req() req: Request) {
+    return this.auth.login(dto, ipDe(req));
   }
 
   @Get('yo')

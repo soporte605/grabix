@@ -6,7 +6,7 @@ import { SesionService } from '../core/sesion.service';
 @Component({
   selector: 'app-grafica',
   template: `
-    <svg class="block h-auto w-full fill-tenue font-mono text-[11px]" [attr.viewBox]="'0 0 ' + W + ' ' + H" role="img" aria-label="Ventas y ganancia por mes">
+    <svg class="block h-auto w-full fill-tenue text-xs" [attr.viewBox]="'0 0 ' + W + ' ' + H" role="img" aria-label="Ventas y ganancia por mes">
       @for (g of g().guias; track g.y) {
         <line [attr.x1]="L" [attr.x2]="W" [attr.y1]="g.y" [attr.y2]="g.y" class="stroke-linea" />
         <text [attr.x]="L - 6" [attr.y]="g.y + 4" text-anchor="end">{{ g.t }}</text>

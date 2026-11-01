@@ -4,9 +4,11 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { DataSource, Repository } from 'typeorm';
 import { EstadoSuscripcion, Rol, Sucursal, Taller, Usuario } from '../entities';
+import { exigirClave } from '../common/clave';
 import { Sesion } from '../common/sesion';
 import { DIAS_PRUEBA_PUBLICO, hoy, limites, PLANES, sumarDias, suscripcionVigente } from '../common/suscripcion';
 import { EjemplosService } from '../organizacion/ejemplos.service';
+import { AccesosService } from '../admin/accesos.service';
 import { CorreoService } from '../correo/correo.service';
 import { TokensService } from '../correo/tokens.service';
 import { CambiarContrasenaDto, LoginDto, RegistroDto, RestablecerDto } from './auth.dto';
@@ -25,6 +27,7 @@ export class AuthService {
     private ejemplos: EjemplosService,
     private correo: CorreoService,
     private tokens: TokensService,
+    private accesos: AccesosService,
   ) {}
 
   async registro(dto: RegistroDto) {
@@ -57,14 +60,38 @@ export class AuthService {
     return this.respuesta(usuario);
   }
 
-  async login(dto: LoginDto) {
-    const u = await this.usuarios
-      .createQueryBuilder('u')
-      .addSelect('u.passwordHash')
-      .where('u.email = :e', { e: dto.email.trim().toLowerCase() })
-      .getOne();
-    if (!u || !u.activo || !(await bcrypt.compare(dto.password, u.passwordHash)))
+  async login(dto: LoginDto, ip = '') {
+    const email = dto.email.trim().toLowerCase();
+    const u = await this.usuarios.createQueryBuilder('u').addSelect('u.passwordHash').where('u.email = :e', { e: email }).getOne();
+    const acceso = (motivo: string, exito = false) =>
+      this.accesos.anotar({
+        email,
+        tipo: 'taller',
+        exito,
+        motivo,
+        ip,
+        nombre: u?.nombre ?? '',
+        tallerId: u?.tallerId ?? null,
+        usuarioId: u?.id ?? null,
+      });
+    if (!u || !(await bcrypt.compare(dto.password, u.passwordHash))) {
+      await acceso('clave');
       throw new UnauthorizedException('Correo o contraseña incorrectos');
+    }
+    if (!u.activo) {
+      await acceso('inactivo');
+      throw new UnauthorizedException('Correo o contraseña incorrectos');
+    }
+    const t = await this.talleres.findOneBy({ id: u.tallerId });
+    if (t?.bloqueado) {
+      await acceso('bloqueado');
+      throw new UnauthorizedException('Esta cuenta está suspendida. Escríbenos para reactivarla.');
+    }
+    if (u.rol !== Rol.Dueno && t?.eliminarEn) {
+      await acceso('eliminacion');
+      throw new UnauthorizedException('Esta cuenta está en proceso de eliminación. Pide al dueño que la restaure.');
+    }
+    await acceso('ok', true);
     return this.respuesta(u);
   }
 
@@ -120,6 +147,7 @@ export class AuthService {
   /** Sirve para el enlace de recuperación y para aceptar una invitación. Deja la sesión iniciada. */
   async restablecer(dto: RestablecerDto) {
     const { token, usuario } = await this.tokens.buscar(dto.token, ['recuperacion', 'invitacion']);
+    exigirClave(dto.password, [usuario.email, usuario.nombre]);
     const passwordHash = await bcrypt.hash(dto.password, 10);
     await this.ds.transaction(async (em) => {
       // Abrir el enlace prueba que el correo es suyo.
@@ -133,6 +161,8 @@ export class AuthService {
   async cambiarContrasena(s: Sesion, dto: CambiarContrasenaDto) {
     const u = await this.usuarios.createQueryBuilder('u').addSelect('u.passwordHash').where('u.id = :id', { id: s.usuarioId }).getOneOrFail();
     if (!(await bcrypt.compare(dto.actual, u.passwordHash))) throw new BadRequestException('Tu contraseña actual no es correcta');
+    exigirClave(dto.nueva, [u.email, u.nombre]);
+    if (dto.nueva === dto.actual) throw new BadRequestException('La contraseña nueva debe ser distinta de la actual');
     await this.usuarios.update({ id: u.id }, { passwordHash: await bcrypt.hash(dto.nueva, 10), claveCambiadaEn: new Date() });
     await this.correo.contrasenaCambiada(u.email, u.nombre);
     // Las demás sesiones se cierran; esta recibe un token nuevo.
@@ -145,7 +175,8 @@ export class AuthService {
   }
 
   async yo(s: Sesion) {
-    return this.perfil(s.usuarioId);
+    const perfil = await this.perfil(s.usuarioId);
+    return s.soporteId ? { ...perfil, soporte: { id: s.soporteId } } : perfil;
   }
 
   private async perfil(usuarioId: number) {
@@ -158,7 +189,7 @@ export class AuthService {
     const vence = t.estadoSuscripcion === EstadoSuscripcion.Prueba ? t.pruebaHasta : t.pagadoHasta;
     const dias = vence ? Math.round((Date.parse(vence) - Date.parse(hoy())) / 86400000) : null;
     return {
-      usuario: { id: u.id, nombre: u.nombre, email: u.email, rol: u.rol, sucursalId: u.sucursalId, emailVerificado: u.emailVerificado },
+      usuario: { id: u.id, nombre: u.nombre, email: u.email, rol: u.rol, sucursalId: u.sucursalId, emailVerificado: u.emailVerificado, recorridoVisto: u.recorridoVisto },
       taller: t,
       sucursales,
       suscripcion: {

@@ -1,12 +1,18 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
+import { errorValidacion } from './common/validacion';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // Detrás de Nginx: la IP real del visitante viene en X-Forwarded-For.
+  app.set('trust proxy', Number(process.env.TRUST_PROXY ?? 1));
+  // Las fotos de trabajos llegan en base64 dentro del JSON.
+  app.useBodyParser('json', { limit: '8mb' });
   app.setGlobalPrefix('api');
   app.enableCors({ origin: process.env.CORS_ORIGIN?.split(',') ?? true });
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, transformOptions: { enableImplicitConversion: false } }));
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, transformOptions: { enableImplicitConversion: false }, exceptionFactory: errorValidacion }));
   const port = parseInt(process.env.PORT ?? '3000', 10);
   await app.listen(port);
   Logger.log(`API lista en http://localhost:${port}/api`, 'Grabix');

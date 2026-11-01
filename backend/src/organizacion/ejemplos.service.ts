@@ -35,7 +35,7 @@ export class EjemplosService {
     const cafe = await cli('Café La Molienda', '5534567890', 'Cafetería');
 
     const promo = await em.save(
-      em.create(Promocion, { tallerId: t.id, nombre: '10% en tazas (ejemplo)', tipo: 'pct', valor: 10, inicio: hoy(), fin: sumarDias(hoy(), 30), activa: true }),
+      em.create(Promocion, { tallerId: t.id, nombre: '10% en tazas (ejemplo)', tipo: 'pct', valor: 10, inicio: sumarDias(hoy(), -1), fin: sumarDias(hoy(), 30), activa: true }),
     );
 
     const cat = await this.costos.catalogo(em, t.id);

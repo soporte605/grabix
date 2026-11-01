@@ -12,6 +12,19 @@ export class Api {
   patch<T>(url: string, body: unknown) { return firstValueFrom(this.http.patch<T>('/api' + url, body)); }
   del<T>(url: string) { return firstValueFrom(this.http.delete<T>('/api' + url)); }
 
+  /** Descarga el PDF como archivo. */
+  async descargarPdf(url: string, nombre: string) {
+    const b = await firstValueFrom(this.http.get('/api' + url, { responseType: 'blob' }));
+    const u = URL.createObjectURL(b);
+    const a = document.createElement('a');
+    a.href = u;
+    a.download = nombre.endsWith('.pdf') ? nombre : `${nombre}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 60_000);
+  }
+
   /** Abre el PDF en otra pestaña (en el celular lo muestra el visor del sistema). */
   async abrirPdf(url: string) {
     const ventana = window.open('', '_blank');

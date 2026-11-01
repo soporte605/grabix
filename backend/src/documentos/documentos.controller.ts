@@ -3,12 +3,13 @@ import type { Response } from 'express';
 import { Rol } from '../entities';
 import { GERENCIA, Roles, Ses, type Sesion, VEN_COSTOS } from '../common/sesion';
 import { hoy } from '../common/suscripcion';
-import { CompraDto, CotizacionDto, EstadoVentaDto, FiltroDto, PagoDto, VentaDto } from './documentos.dto';
+import { CompraDto, ConvertirDto, CotizacionDto, EstadoVentaDto, FiltroDto, PagoDto, VentaDto } from './documentos.dto';
 import { DocumentosService } from './documentos.service';
 import { PdfService } from './pdf.service';
 
 const VENTA = [...VEN_COSTOS, Rol.Vendedor];
-const urlPublica = (token: string) => `${process.env.PUBLIC_URL ?? 'http://localhost:8080'}/api/publico/documentos/${token}.pdf`;
+/** Enlace del cliente: su nota o cotización, el avance, el diseño por aprobar y las fotos. */
+const urlPublica = (token: string) => `${(process.env.PUBLIC_URL ?? 'http://localhost:8080').replace(/\/$/, '')}/p/${token}`;
 
 @Controller()
 export class DocumentosController {
@@ -50,8 +51,8 @@ export class DocumentosController {
   }
 
   @Post('cotizaciones/:id/convertir') @Roles(...VENTA)
-  convertir(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number) {
-    return this.docs.convertir(s, id);
+  convertir(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number, @Body() dto: ConvertirDto) {
+    return this.docs.convertir(s, id, dto.anticipo);
   }
 
   @Get('cotizaciones/:id/pdf') @Roles(...VENTA)
@@ -97,6 +98,16 @@ export class DocumentosController {
     return this.docs.registrarPago(s, id, dto);
   }
 
+  @Put('ventas/:id/pagos/:pagoId') @Roles(...GERENCIA)
+  editarPago(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number, @Param('pagoId', ParseIntPipe) pagoId: number, @Body() dto: PagoDto) {
+    return this.docs.cambiarPago(s, id, pagoId, dto);
+  }
+
+  @Delete('ventas/:id/pagos/:pagoId') @Roles(...GERENCIA)
+  eliminarPago(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number, @Param('pagoId', ParseIntPipe) pagoId: number) {
+    return this.docs.cambiarPago(s, id, pagoId, null);
+  }
+
   @Delete('ventas/:id') @Roles(...GERENCIA)
   eliminarVenta(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number) {
     return this.docs.eliminarVenta(s, id);
@@ -115,8 +126,8 @@ export class DocumentosController {
 
   /* compras */
   @Get('compras') @Roles(...VEN_COSTOS)
-  compras(@Ses() s: Sesion) {
-    return this.docs.compras(s);
+  compras(@Ses() s: Sesion, @Query() f: FiltroDto) {
+    return this.docs.compras(s, f);
   }
 
   @Post('compras') @Roles(...VEN_COSTOS)
