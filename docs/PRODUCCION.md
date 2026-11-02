@@ -101,6 +101,8 @@ Cuando el DNS ya apunta al servidor, ya hay HTTPS. Revisa:
 
 ## 5c. Landing para campañas (WhatsApp, Pixel de Meta, avisos legales)
 
+Cómo se crearon el Pixel en Meta y las credenciales de Mercado Pago, con los problemas que salieron: [`LANZAMIENTO.md`](LANZAMIENTO.md).
+
 Variables opcionales en `.env.produccion`; vacías, la landing funciona igual sin esa pieza:
 
 - `WHATSAPP_CONTACTO`: número con lada, sin espacios (`5215512345678`). Muestra el botón flotante "Escríbenos" en la landing.
