@@ -2,6 +2,10 @@
 
 Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el commit, en la rama `mejoras-interfaz-seguridad` (PR #1). El contexto del proyecto está en [`docs/PROYECTO.md`](docs/PROYECTO.md).
 
+## 2026-11-02
+
+- `docs/LANZAMIENTO.md`: bitácora del lanzamiento (Pixel de Meta en el portafolio Elikar Systems, credenciales de Mercado Pago, WhatsApp, avisos legales, vigilancia y pendientes). Producción corre desde `main`.
+
 ## 2026-11-01
 
 ### Listo para la campaña
