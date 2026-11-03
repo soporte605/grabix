@@ -38,7 +38,7 @@ export class AuthService {
       const t = await em.save(
         em.create(Taller, {
           nombre: dto.taller.trim(),
-          telefono: dto.telefono ?? '',
+          telefono: dto.telefono,
           email,
           tarifaMinuto: 6,
           notasCotizacion: NOTAS,
@@ -47,7 +47,7 @@ export class AuthService {
           pruebaHasta: sumarDias(hoy(), DIAS_PRUEBA),
         }),
       );
-      const s = await em.save(em.create(Sucursal, { tallerId: t.id, nombre: 'Matriz', telefono: dto.telefono ?? '' }));
+      const s = await em.save(em.create(Sucursal, { tallerId: t.id, nombre: 'Matriz', telefono: dto.telefono }));
       const u = await em.save(
         em.create(Usuario, { tallerId: t.id, nombre: dto.nombre.trim(), email, passwordHash: hash, rol: Rol.Dueno, sucursalId: null }),
       );
