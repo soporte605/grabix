@@ -31,10 +31,14 @@ const ok = (c, m) => { if (!c) { console.error('✗', m); process.exitCode = 1; 
 
 const email = `dueno${Date.now()}@ejemplo.com`;
 for (const [clave, motivo] of [['corta1', 'corta'], ['solotexto', 'sin números'], ['12345678', 'sin letras'], ['password1', 'muy común'], [`dueno${Date.now()}x1`, 'con el correo']]) {
-  const d = await api('POST', '/auth/registro', { taller: 'Taller débil', nombre: 'Prueba', email: `debil${Date.now()}@ejemplo.com`, password: motivo === 'con el correo' ? 'debil' + Date.now() + 'a' : clave });
+  const d = await api('POST', '/auth/registro', { taller: 'Taller débil', nombre: 'Prueba', telefono: '5512345678', email: `debil${Date.now()}@ejemplo.com`, password: motivo === 'con el correo' ? 'debil' + Date.now() + 'a' : clave });
   ok(d.status === 400, `rechaza contraseña ${motivo}: ${Array.isArray(d.data.message) ? d.data.message[0] : d.data.message}`);
 }
-let r = await api('POST', '/auth/registro', { taller: 'Taller de prueba', nombre: 'Dueño', email, password: 'secreto123', conEjemplos: true });
+for (const [tel, motivo] of [[undefined, 'sin teléfono'], ['   ', 'en blanco'], ['12345', 'muy corto'], ['55-abc-1234', 'con letras']]) {
+  const d = await api('POST', '/auth/registro', { taller: 'Taller sin tel', nombre: 'Prueba', email: `sintel${Date.now()}@ejemplo.com`, password: 'secreto123', ...(tel === undefined ? {} : { telefono: tel }) });
+  ok(d.status === 400, `rechaza registro ${motivo}: ${Array.isArray(d.data.message) ? d.data.message[0] : d.data.message}`);
+}
+let r = await api('POST', '/auth/registro', { taller: 'Taller de prueba', nombre: 'Dueño', email, telefono: '55 1234 5678', password: 'secreto123', conEjemplos: true });
 ok(r.status === 201 && r.data.token, 'registro con datos de ejemplo');
 token = r.data.token;
 sucursal = String(r.data.sucursales[0].id);

@@ -26,7 +26,7 @@ import { MarcoAcceso } from '../ui/marco-acceso';
             <legend class="mb-2 text-xs font-bold tracking-[.08em] text-tenue uppercase">Tu taller</legend>
             <div class="campo todo"><label for="a-t">Nombre del taller</label><input id="a-t" name="taller" [(ngModel)]="taller" required minlength="2" autocomplete="organization" placeholder="Ej. Láser y Diseño MX"></div>
             <div class="campo"><label for="a-n">Tu nombre</label><input id="a-n" name="nombre" [(ngModel)]="nombre" required minlength="2" autocomplete="name"></div>
-            <div class="campo"><label for="a-w">WhatsApp <span class="font-normal">(opcional)</span></label><input id="a-w" name="tel" type="tel" [(ngModel)]="telefono" autocomplete="tel"></div>
+            <div class="campo"><label for="a-w">WhatsApp o teléfono</label><input id="a-w" name="telefono" type="tel" inputmode="tel" [(ngModel)]="telefono" required maxlength="25" autocomplete="tel" placeholder="Ej. 55 1234 5678"></div>
           </fieldset>
           <p class="mt-1 mb-[-4px] text-xs font-bold tracking-[.08em] text-tenue uppercase">Tu acceso</p>
         } @else {

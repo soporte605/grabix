@@ -18,6 +18,12 @@ function problema(c: Control): string | null {
   const min = (c as HTMLInputElement).minLength;
   if (min > 0 && v.length < min) return `Debe tener al menos ${min} ${min === 1 ? 'carácter' : 'caracteres'}`;
   if (c instanceof HTMLInputElement) {
+    // Solo los teléfonos obligatorios (registro): los opcionales de clientes pueden traer formatos viejos.
+    if (c.type === 'tel' && c.required) {
+      if (!/^\+?[\d\s().-]+$/.test(v)) return 'Solo números, espacios, guiones, paréntesis y +';
+      const digitos = v.replace(/\D/g, '').length;
+      if (digitos < 10 || digitos > 15) return 'Escribe un número de 10 dígitos, por ejemplo 55 1234 5678';
+    }
     if (c.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Escribe un correo válido, por ejemplo nombre@correo.com';
     if (c.type === 'number') {
       const n = Number(v);
