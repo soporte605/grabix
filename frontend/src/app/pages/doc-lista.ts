@@ -14,11 +14,12 @@ import { Paginador } from '../ui/paginador';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { ConfirmarService } from '../core/confirmar.service';
 import { SesionService } from '../core/sesion.service';
+import { CobrarVenta, VentaPorCobrar } from '../ui/cobrar-venta';
 
 /** Lista de cotizaciones o de ventas (según la ruta). */
 @Component({
   selector: 'app-doc-lista',
-  imports: [FormsModule, VentaHechaVentana, FiltroFechas, RouterLink, RouterOutlet, DineroPipe, FechaPipe, Icono, Esqueleto, Paginador, VistaDocumento],
+  imports: [FormsModule, VentaHechaVentana, FiltroFechas, RouterLink, RouterOutlet, DineroPipe, FechaPipe, Icono, Esqueleto, Paginador, VistaDocumento, CobrarVenta],
   template: `
     <div class="encabezado">
       <div class="titulo"><span class="icono-modulo"><app-icono [nombre]="esVenta ? 'ventas' : 'cotizaciones'" /></span><div>
@@ -34,6 +35,7 @@ import { SesionService } from '../core/sesion.service';
       </div>
       <div class="chips">
         <button class="chip" [class.on]="!estado()" (click)="filtrar('')">Todas</button>
+        @if (esVenta) { <button class="chip" [class.on]="porCobrar()" (click)="porCobrar.set(!porCobrar()); pagina.set(1); cargar()">Por cobrar</button> }
         @for (k of estados; track k) { <button class="chip" [class.on]="estado() === k" (click)="filtrar(k)">{{ mapa[k][0] }}</button> }
       </div>
     </div>
@@ -44,11 +46,19 @@ import { SesionService } from '../core/sesion.service';
           <a class="renglon" [routerLink]="[d.id]">
             <span class="t">{{ d.cliente?.nombre || d.clienteNombre || 'Mostrador' }}</span>
             <span class="d num">{{ d.total | dinero }}</span>
-            <span class="m"><span class="num">{{ d.folio }}</span> · {{ d.fecha | fecha }}
-              @if (esVenta && $any(d).saldo > 0 && d.estado !== 'cancelada') { · Saldo <span class="num">{{ $any(d).saldo | dinero }}</span> }</span>
-            <span class="d"><span class="pill" [class]="mapa[d.estado][1]">{{ mapa[d.estado][0] }}</span></span>
+            <span class="m"><span class="num">{{ d.folio }}</span> · {{ d.fecha | fecha }}</span>
+            <span class="d flex flex-wrap content-start items-start justify-end gap-1">
+              @if (esVenta && d.estado !== 'cancelada') {
+                @if ($any(d).saldo > 0) { <span class="pill warn">Saldo <span class="num">{{ $any(d).saldo | dinero }}</span></span> }
+                @else { <span class="pill ok">Pagada</span> }
+              }
+              <span class="pill" [class]="mapa[d.estado][1]">{{ mapa[d.estado][0] }}</span>
+            </span>
           </a>
           <span class="acciones">
+            @if (esVenta && $any(d).saldo > 0 && d.estado !== 'cancelada' && puedeCobrar()) {
+              <button type="button" class="btn sm" title="Registrar pago" (click)="cobrar(d)">Cobrar</button>
+            }
             <a class="ico max-sm:hidden" [routerLink]="[d.id]" title="Editar" aria-label="Editar {{ d.folio }}"><app-icono nombre="editar" /></a>
             <button type="button" class="ico" title="Vista previa" aria-label="Ver {{ d.folio }}" (click)="ver(d)"><app-icono nombre="ojo" /></button>
             @if (puedeEliminar()) {
@@ -70,6 +80,7 @@ import { SesionService } from '../core/sesion.service';
     @if (esVenta && pos.hecha(); as h) {
       <app-venta-hecha [datos]="h" (cerrar)="pos.hecha.set(null)" (nueva)="pos.hecha.set(null); router.navigate(['/app/ventas/nueva'])" />
     }
+    @if (cobro(); as c) { <app-cobrar-venta [venta]="c" (cerrar)="cobro.set(null)" (listo)="cobro.set(null); cargar()" /> }
     @if (vista(); as v) { <app-vista-documento [venta]="v" [tipo]="esVenta ? 'venta' : 'cotizacion'" (cerrar)="vista.set(null)" (cambio)="cargar()" /> }
   `,
 })
@@ -93,6 +104,14 @@ export class DocLista implements OnInit {
   private s = inject(SesionService);
   private aviso = inject(AvisoService);
   private confirmar = inject(ConfirmarService);
+  porCobrar = signal(false);
+  cobro = signal<VentaPorCobrar | null>(null);
+  /** Producción ve las ventas pero no cobra. */
+  puedeCobrar = computed(() => this.s.rol() !== 'produccion');
+  cobrar(d: Cotizacion | Venta) {
+    const v = d as Venta;
+    this.cobro.set({ id: v.id, folio: v.folio, cliente: v.cliente?.nombre || v.clienteNombre || 'Mostrador', total: v.total, pagado: v.pagado });
+  }
   puedeEliminar = computed(() => (this.esVenta ? this.s.gerencia() : this.s.verCostos()));
 
   ngOnInit() { this.cargar(); }
@@ -101,6 +120,7 @@ export class DocLista implements OnInit {
   async cargar(): Promise<void> {
     const p: Record<string, string> = { pagina: String(this.pagina()), por: String(this.por) };
     if (this.estado()) p['estado'] = this.estado();
+    if (this.esVenta && this.porCobrar()) p['saldo'] = '1';
     if (this.q.trim()) p['q'] = this.q.trim();
     if (this.rango.desde) p['desde'] = this.rango.desde;
     if (this.rango.hasta) p['hasta'] = this.rango.hasta;
