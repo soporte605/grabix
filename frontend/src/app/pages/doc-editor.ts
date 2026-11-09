@@ -178,7 +178,8 @@ interface Form {
           } @empty { <p class="tenue chico">Sin pagos registrados.</p> }
           @if (v.estado !== 'cancelada') {
             <div class="fila">
-              <input class="entrada max-w-[140px] p-2" type="number" inputmode="decimal" placeholder="Monto" [(ngModel)]="pago" aria-label="Monto del pago">
+              <input class="entrada max-w-[140px] p-2" type="number" inputmode="decimal" [placeholder]="v.saldo > 0 ? 'Saldo ' + v.saldo.toFixed(2) : 'Monto'" [(ngModel)]="pago" aria-label="Monto del pago">
+              @if (v.saldo > 0) { <button type="button" class="btn sm" (click)="pago = v.saldo">Todo el saldo</button> }
               <select class="entrada max-w-40 p-2" [(ngModel)]="metodoPago" aria-label="Forma de pago">@for (m of metodos; track m) { <option>{{ m }}</option> }</select>
               <button class="btn sm" (click)="registrarPago()" [disabled]="!pago">Registrar pago</button>
             </div>
@@ -444,7 +445,15 @@ export class DocEditor implements OnInit {
       } else body['vigenciaDias'] = Number(this.f.vigenciaDias) || 15;
       const r = this.id ? await this.api.put<{ id: number }>(`${this.base}/${this.id}`, body) : await this.api.post<{ id: number }>(this.base, body);
       this.sucio = false;
-      if (!(salir && this.esVenta && !this.id)) this.aviso.ok(this.esVenta ? 'Venta guardada' : 'Cotización guardada');
+      // Si escribió un pago en "Pagos" y tocó Guardar en lugar de "Registrar pago", también se registra.
+      let conPago = false;
+      if (this.esVenta && this.id && Number(this.pago) > 0) {
+        await this.api.post(`/ventas/${this.id}/pagos`, { monto: Number(this.pago), metodo: this.metodoPago });
+        this.pago = null;
+        conPago = true;
+        if (!salir) await this.cargar();
+      }
+      if (!(salir && this.esVenta && !this.id)) this.aviso.ok(conPago ? 'Venta guardada y pago registrado' : this.esVenta ? 'Venta guardada' : 'Cotización guardada');
       if (salir && this.esVenta && !this.id) {
         // Venta nueva: se cierra el editor y se muestra la ventana de venta realizada con el ticket.
         const c = this.cobro();

@@ -97,6 +97,7 @@ export class DocumentosService {
     if (f.clienteId) qb.andWhere('d.clienteId = :cl', { cl: f.clienteId });
     if (f.desde) qb.andWhere('d.fecha >= :desde', { desde: f.desde });
     if (f.hasta) qb.andWhere('d.fecha <= :hasta', { hasta: f.hasta });
+    if (f.saldo && ent === (Venta as unknown)) qb.andWhere('d.total - d.pagado > 0.009').andWhere("d.estado <> 'cancelada'");
     if (f.q)
       qb.andWhere(
         new Brackets((w) =>
@@ -292,6 +293,9 @@ export class DocumentosService {
     return this.ds.transaction(async (em) => {
       const v = await this.uno(em, Venta, s, id, true);
       if (v.estado === EstadoVenta.Cancelada) throw new BadRequestException('La venta está cancelada');
+      const saldo = r2(v.total - v.pagado);
+      if (dto.monto > saldo + 0.009)
+        throw new BadRequestException(saldo > 0 ? `El pago es mayor que el saldo (${saldo.toFixed(2)})` : 'Esta venta ya está pagada');
       const turnoId = await this.turnoAbierto(em, s.tallerId, v.sucursalId);
       const p = em.create(Pago, { ventaId: v.id, fecha: dto.fecha ?? hoy(), monto: dto.monto, metodo: dto.metodo ?? 'Efectivo', usuarioId: s.usuarioId, turnoId });
       await em.save(p);

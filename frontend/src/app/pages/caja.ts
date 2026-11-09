@@ -13,6 +13,7 @@ import { Icono } from '../ui/icono';
 import { VentaHechaVentana } from '../ui/venta-hecha';
 import { AltaCliente } from '../ui/alta-rapida';
 import { AbrirCaja, CerrarCaja, imprimirCorte, MovimientoCaja } from '../ui/turno-caja';
+import { FotoProducto } from '../ui/foto-producto';
 
 interface Linea { productoId: number | null; descripcion: string; precio: number; cantidad: number }
 const METODOS = ['Efectivo', 'Tarjeta', 'Transferencia', 'Otro', 'Combinado'];
@@ -26,7 +27,7 @@ const BILLETES = [10, 50, 100, 500, 1000];
  */
 @Component({
   selector: 'app-caja',
-  imports: [FormsModule, NgTemplateOutlet, DineroPipe, Icono, Hoja, Buscador, VentaHechaVentana, AbrirCaja, MovimientoCaja, CerrarCaja, AltaCliente],
+  imports: [FormsModule, NgTemplateOutlet, DineroPipe, Icono, Hoja, Buscador, VentaHechaVentana, AbrirCaja, MovimientoCaja, CerrarCaja, AltaCliente, FotoProducto],
   host: { '(document:keydown)': 'atajo($event)', '(document:fullscreenchange)': 'alSalirDePantallaCompleta()' },
   template: `
     <div class="flex flex-col bg-fondo" [class]="grande() ? 'fixed inset-0 z-40 p-3 lg:p-4' : 'h-[calc(100dvh-170px)] min-h-[560px] lg:h-[calc(100dvh-110px)]'">
@@ -82,6 +83,7 @@ const BILLETES = [10, 50, 100, 500, 1000];
             @for (p of visibles(); track p.id) {
               <button class="group relative flex min-h-[104px] flex-col justify-between gap-1.5 rounded-xl border border-linea bg-superficie p-3 text-left transition hover:-translate-y-px hover:border-marca hover:shadow-caja active:translate-y-0 disabled:opacity-45"
                 (click)="agregar(p)" [disabled]="agotado(p)" [class.!border-marca]="enCarrito(p.id)">
+                @if (p.imagen) { <app-foto-producto class="-mx-3 -mt-3 mb-0.5 aspect-[4/3] rounded-t-xl" [productoId]="p.id" [archivo]="p.imagen" [alt]="p.nombre" /> }
                 <span class="line-clamp-3 text-base leading-snug font-semibold">{{ limpio(p.nombre) }}</span>
                 <span class="flex items-end justify-between gap-1">
                   <b class="num text-lg text-marca">{{ p.precio | dinero }}</b>

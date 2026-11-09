@@ -76,6 +76,8 @@ export class FiltroDto {
   @IsOptional() @Type(() => Number) @IsInt() clienteId?: number;
   @IsOptional() @IsDateString() desde?: string;
   @IsOptional() @IsDateString() hasta?: string;
+  /** Solo ventas: '1' deja solo las que tienen saldo por cobrar. */
+  @IsOptional() @IsIn(['1']) saldo?: string;
   /** Con `pagina` la respuesta es { items, total, resumen } en lugar de la lista completa. */
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) pagina?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(5) @Max(100) por?: number;

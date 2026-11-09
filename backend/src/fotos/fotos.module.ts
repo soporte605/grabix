@@ -9,7 +9,7 @@ import { join } from 'path';
 import { DataSource } from 'typeorm';
 import { BitacoraService } from '../common/bitacora.service';
 import { GERENCIA, Roles, Ses, type Sesion, VEN_COSTOS } from '../common/sesion';
-import { Foto, Rol, Sucursal, Venta } from '../entities';
+import { Foto, Producto, Rol, Sucursal, Venta } from '../entities';
 
 export const DIR = process.env.FOTOS_DIR ?? join(process.cwd(), 'fotos');
 const MAX_BYTES = 3 * 1024 * 1024;
@@ -218,5 +218,62 @@ export class LogoController {
   }
 }
 
-@Module({ controllers: [FotosController, LogoController], providers: [FotosService] })
+export class ImagenProductoDto {
+  @IsString() @MaxLength(4_000_000) imagen: string;
+  @IsString() @MaxLength(1_000_000) miniatura: string;
+}
+
+/** Foto principal de un producto: se ve en Inventario y en los botones de la Caja. */
+@Controller('productos/:id/imagen')
+export class ImagenProductoController {
+  constructor(@InjectDataSource() private ds: DataSource, private bitacora: BitacoraService) {}
+
+  private async producto(s: Sesion, id: number) {
+    const p = await this.ds.manager.findOneBy(Producto, { id, tallerId: s.tallerId });
+    if (!p) throw new NotFoundException('No encontramos ese artículo');
+    return p;
+  }
+
+  private borrar(tallerId: number, ...archivos: (string | null)[]) {
+    return Promise.all(archivos.filter((a): a is string => !!a).map((a) => unlink(ruta(tallerId, a)).catch(() => undefined)));
+  }
+
+  @Put() @Roles(...VEN_COSTOS)
+  async subir(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number, @Body() dto: ImagenProductoDto) {
+    const p = await this.producto(s, id);
+    const img = imagenDe(dto.imagen);
+    const min = imagenDe(dto.miniatura);
+    const imagen = nombre(img.ext);
+    const imagenMini = nombre(min.ext);
+    await mkdir(join(DIR, String(s.tallerId)), { recursive: true });
+    await writeFile(ruta(s.tallerId, imagen), img.buf);
+    await writeFile(ruta(s.tallerId, imagenMini), min.buf);
+    await this.ds.manager.update(Producto, { id }, { imagen, imagenMini });
+    await this.borrar(s.tallerId, p.imagen, p.imagenMini);
+    await this.bitacora.registrar(s, 'imagen', 'producto', id, { nombre: p.nombre });
+    return { imagen, imagenMini };
+  }
+
+  @Delete() @Roles(...VEN_COSTOS) @HttpCode(200)
+  async quitar(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number) {
+    const p = await this.producto(s, id);
+    await this.ds.manager.update(Producto, { id }, { imagen: null, imagenMini: null });
+    await this.borrar(s.tallerId, p.imagen, p.imagenMini);
+    return { ok: true };
+  }
+
+  @Get()
+  async ver(@Ses() s: Sesion, @Param('id', ParseIntPipe) id: number, @Query('mini') mini: string | undefined, @Res({ passthrough: true }) res: Response) {
+    const p = await this.producto(s, id);
+    const nom = mini === '1' ? p.imagenMini : p.imagen;
+    if (!nom) throw new NotFoundException('Este artículo no tiene foto');
+    const r = ruta(s.tallerId, nom);
+    await stat(r).catch(() => { throw new NotFoundException('El archivo de la foto ya no existe'); });
+    // El nombre del archivo cambia con cada foto nueva, así que se puede guardar en caché.
+    res.set({ 'Content-Type': nom.endsWith('.webp') ? 'image/webp' : 'image/jpeg', 'Cache-Control': 'private, max-age=604800' });
+    return new StreamableFile(createReadStream(r));
+  }
+}
+
+@Module({ controllers: [FotosController, LogoController, ImagenProductoController], providers: [FotosService] })
 export class FotosModule {}

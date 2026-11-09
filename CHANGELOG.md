@@ -2,6 +2,13 @@
 
 Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el commit, en la rama `mejoras-interfaz-seguridad` (PR #1). El contexto del proyecto está en [`docs/PROYECTO.md`](docs/PROYECTO.md).
 
+## 2026-11-09
+
+- **Cobro rápido de ventas**: botón *Cobrar* en la lista de Ventas (ventana con total, pagado, saldo, monto prellenado, forma de pago y cambio en efectivo; "Marcar como pagada" o "Registrar abono"). Etiqueta de pago *Pagada* / *Saldo $X* junto al estado del pedido, filtro *Por cobrar* (`GET /ventas?saldo=1`).
+- Al editar una venta, si se escribe un monto en *Pagos* y se toca *Guardar*, el pago también se registra (antes se perdía y la nota seguía con saldo). Botón *Todo el saldo*.
+- `POST /ventas/:id/pagos` rechaza pagos mayores que el saldo.
+- **Foto de producto**: en Inventario, al crear o editar un artículo, "Subir foto" / "Cambiar" / "Quitar". Se ve en miniatura en la lista de Inventario y en los botones de la Caja. Se reduce en el navegador (WebP o JPEG) y se guarda en `FOTOS_DIR` junto a las fotos de trabajos. Columnas nuevas `productos.imagen` e `imagenMini` (las crea `DB_SYNC`). Endpoints `PUT/DELETE/GET /productos/:id/imagen`.
+
 ## 2026-11-02
 
 - `docs/LANZAMIENTO.md`: bitácora del lanzamiento (Pixel de Meta en el portafolio Elikar Systems, credenciales de Mercado Pago, WhatsApp, avisos legales, vigilancia y pendientes). Producción corre desde `main`.

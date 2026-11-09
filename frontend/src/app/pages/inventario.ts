@@ -5,6 +5,8 @@ import { Api } from '../core/api.service';
 import { AsistenteService, SugerenciaProducto } from '../core/asistente.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { DineroPipe, PctPipe } from '../core/formato';
+import { FotoLista, FotosService } from '../core/fotos.service';
+import { FotoProducto } from '../ui/foto-producto';
 import { Componente, Producto, TIPOS, TipoProducto } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { Confirmar } from '../ui/confirmar';
@@ -15,12 +17,18 @@ import { Buscador } from '../ui/buscador';
 import { Hoja } from '../ui/hoja';
 import { Icono } from '../ui/icono';
 
-type Edit = Omit<Producto, 'id' | 'existencia' | 'minimo' | 'controlaStock'> & { id?: number; stockInicial?: number; minimo?: number };
+type Edit = Omit<Producto, 'id' | 'existencia' | 'minimo' | 'controlaStock'> & {
+  id?: number; stockInicial?: number; minimo?: number;
+  /** Foto elegida que se sube al guardar. */
+  foto?: FotoLista | null;
+  /** Quitar la foto actual al guardar. */
+  quitarFoto?: boolean;
+};
 const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
 
 @Component({
   selector: 'app-inventario',
-  imports: [FormsModule, Buscador, DineroPipe, PctPipe, Hoja, Icono, Confirmar, Esqueleto, Paginador, TrabajosProducto],
+  imports: [FormsModule, Buscador, DineroPipe, PctPipe, Hoja, Icono, Confirmar, Esqueleto, Paginador, TrabajosProducto, FotoProducto],
   template: `
     <div class="encabezado">
       <div class="titulo"><span class="icono-modulo"><app-icono nombre="inventario" /></span><div><h1>Inventario</h1><p>{{ s.nombreSucursal() }} @if (s.verCostos()) { · Valor <span class="num">{{ valor() | dinero }}</span> }</p></div></div>
@@ -39,7 +47,8 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
     <div class="tarjeta lista">
       @if (!listo()) { <app-esqueleto /> } @else {
       @for (p of enPagina(); track p.id) {
-        <div class="con-acciones">
+        <div class="con-acciones" [style.grid-template-columns]="conFotos() ? 'auto minmax(0,1fr) auto' : null">
+          @if (conFotos()) { <app-foto-producto class="ml-3 size-10 self-center rounded-lg sm:size-12" [productoId]="p.id" [archivo]="p.imagen" [alt]="p.nombre" /> }
           <button class="renglon" (click)="s.verCostos() ? abrir(p) : p.tipo !== 'insumo' && trabajos.set(p)">
             <span class="t">{{ p.nombre }} <span class="pill" [class]="p.tipo === 'insumo' ? 'mut' : p.tipo === 'servicio' ? 'acc' : 'sec'">{{ tipos[p.tipo] }}</span></span>
             <span class="d">
@@ -73,6 +82,19 @@ const CATEGORIAS = ['Sublimación', 'Corte láser', 'Grabado láser', 'Otro'];
           <div class="campo"><label for="p-t">Tipo</label><select id="p-t" [(ngModel)]="e.tipo" (ngModelChange)="calc()">@for (t of tiposLista; track t[0]) { <option [value]="t[0]">{{ t[1] }}</option> }</select></div>
           <div class="campo"><label for="p-c">Línea</label><select id="p-c" [(ngModel)]="e.categoria">@for (c of categorias; track c) { <option>{{ c }}</option> }</select></div>
           <div class="campo"><label for="p-u">Unidad</label><input id="p-u" [(ngModel)]="e.unidad"></div>
+        </div>
+        <div class="flex items-center gap-3">
+          @if (e.foto) { <img [src]="e.foto.miniatura" alt="Foto nueva" class="size-20 shrink-0 rounded-xl object-cover"> }
+          @else if (e.id && e.imagen && !e.quitarFoto) { <app-foto-producto class="size-20 rounded-xl" [productoId]="e.id" [archivo]="e.imagen" [alt]="e.nombre" /> }
+          @else { <app-foto-producto class="size-20 rounded-xl" [productoId]="0" /> }
+          <div class="flex flex-col items-start gap-1.5">
+            <span class="text-sm font-semibold">Foto del producto</span>
+            <span class="fila">
+              <button type="button" class="btn sm" (click)="elegirFoto.click()" [disabled]="preparando()"><app-icono nombre="camara" />{{ preparando() ? 'Preparando…' : tieneFoto(e) ? 'Cambiar' : 'Subir foto' }}</button>
+              @if (tieneFoto(e)) { <button type="button" class="btn sm" (click)="e.foto = null; e.quitarFoto = !!e.imagen">Quitar</button> }
+            </span>
+            <input #elegirFoto type="file" accept="image/*" class="hidden" (change)="prepararFoto($event)" aria-label="Elegir foto del producto">
+          </div>
         </div>
         @if (ia.estado()?.disponible) {
           <div class="caja" [class.!border-marca]="sug()">
@@ -169,7 +191,9 @@ export class Inventario implements OnInit {
   private api = inject(Api);
   private aviso = inject(AvisoService);
   private confirmar = inject(ConfirmarService);
+  private fotos = inject(FotosService);
   ia = inject(AsistenteService);
+  preparando = signal(false);
   /** Última sugerencia de la IA para el artículo que se está creando. */
   sug = signal<SugerenciaProducto | null>(null);
   pensando = signal(false);
@@ -197,6 +221,8 @@ export class Inventario implements OnInit {
     return this.productos().filter((p) => p.activo && (this.tipo() === 'todos' || p.tipo === this.tipo()) && (!q || p.nombre.toLowerCase().includes(q))
       && (!this.soloBajo() || (p.controlaStock && p.minimo > 0 && p.existencia <= p.minimo)));
   });
+  /** La miniatura en la lista solo aparece cuando al menos un artículo tiene foto. */
+  conFotos = computed(() => this.productos().some((p) => p.activo && p.imagen));
   valor = computed(() => this.productos().filter((p) => p.controlaStock).reduce((a, p) => a + Math.max(0, p.existencia) * (p.costoUnitario ?? 0), 0));
   insumos = computed(() => this.productos().filter((p) => p.tipo === 'insumo' && p.activo && p.id !== this.e()?.id));
   conStock = computed(() => this.productos().filter((p) => p.controlaStock && p.existencia > 0));
@@ -233,6 +259,22 @@ export class Inventario implements OnInit {
     this.calc();
   }
 
+  tieneFoto(e: Edit) { return !!e.foto || (!!e.imagen && !e.quitarFoto); }
+
+  async prepararFoto(ev: Event) {
+    const el = ev.target as HTMLInputElement;
+    const archivo = el.files?.[0];
+    el.value = '';
+    const e = this.e();
+    if (!archivo || !e) return;
+    this.preparando.set(true);
+    try {
+      e.foto = await this.fotos.preparar(archivo);
+      e.quitarFoto = false;
+    } catch (err) { this.aviso.error(err instanceof Error ? err.message : 'No pudimos leer esa imagen'); }
+    finally { this.preparando.set(false); }
+  }
+
   async sugerir() {
     const e = this.e();
     if (!e || this.pensando()) return;
@@ -267,12 +309,17 @@ export class Inventario implements OnInit {
       ...(e.id ? {} : { stockInicial: Number(e.stockInicial) || 0, minimo: Number(e.minimo) || 0 }),
     };
     try {
+      let id = e.id;
       if (e.id) {
         await this.api.put(`/productos/${e.id}`, body);
         const antes = this.productos().find((p) => p.id === e.id);
         if (this.s.sucursal() && antes?.controlaStock && (Number(e.stockInicial) !== antes.existencia || Number(e.minimo) !== antes.minimo))
           await this.api.patch(`/productos/${e.id}/existencia`, { cantidad: Number(e.stockInicial) || 0, minimo: Number(e.minimo) || 0 });
-      } else await this.api.post('/productos', body);
+      } else id = (await this.api.post<{ id: number }>('/productos', body)).id;
+      if (id && e.foto) {
+        try { await this.api.put(`/productos/${id}/imagen`, { imagen: e.foto.imagen, miniatura: e.foto.miniatura }); }
+        catch (err) { this.aviso.error(`El artículo se guardó, pero la foto no: ${mensajeError(err)}`); }
+      } else if (id && e.quitarFoto) await this.api.del(`/productos/${id}/imagen`);
       this.e_.set(null);
       this.aviso.ok('Artículo guardado');
       await this.cargar();
