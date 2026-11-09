@@ -2,6 +2,10 @@
 
 Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el commit, en la rama `mejoras-interfaz-seguridad` (PR #1). El contexto del proyecto está en [`docs/PROYECTO.md`](docs/PROYECTO.md).
 
+## 2026-11-09
+
+- **Foto de producto**: en Inventario, al crear o editar un artículo, "Subir foto" / "Cambiar" / "Quitar". Se ve en miniatura en la lista de Inventario y en los botones de la Caja. Se reduce en el navegador (WebP o JPEG) y se guarda en `FOTOS_DIR` junto a las fotos de trabajos. Columnas nuevas `productos.imagen` e `imagenMini` (las crea `DB_SYNC`). Endpoints `PUT/DELETE/GET /productos/:id/imagen`.
+
 ## 2026-11-02
 
 - `docs/LANZAMIENTO.md`: bitácora del lanzamiento (Pixel de Meta en el portafolio Elikar Systems, credenciales de Mercado Pago, WhatsApp, avisos legales, vigilancia y pendientes). Producción corre desde `main`.

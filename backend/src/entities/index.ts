@@ -195,6 +195,9 @@ export class Producto {
   /** Otros costos por pieza (empaque, base, etc.). */
   @Column(money) extra: number;
   @Column({ default: true }) activo: boolean;
+  /** Foto principal del producto (archivo en FOTOS_DIR/<taller>/) y su miniatura. */
+  @Column({ type: 'varchar', length: 60, nullable: true }) imagen: string | null;
+  @Column({ type: 'varchar', length: 60, nullable: true }) imagenMini: string | null;
   @OneToMany(() => ProductoComponente, (c) => c.producto, { cascade: true, eager: true })
   componentes: Relation<ProductoComponente[]>;
 }

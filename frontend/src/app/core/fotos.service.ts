@@ -105,6 +105,18 @@ export class FotosService {
     return p;
   }
 
+  /** Foto principal de un producto. `archivo` va en la URL para que una foto nueva no salga de la caché. */
+  urlProducto(id: number, archivo: string, mini = true): Promise<string> {
+    const k = `p${id}:${archivo}:${mini ? 1 : 0}`;
+    let p = this.cache.get(k);
+    if (!p) {
+      p = firstValueFrom(this.http.get(`/api/productos/${id}/imagen`, { params: { v: archivo, ...(mini ? { mini: '1' } : {}) }, responseType: 'blob' })).then((b) => URL.createObjectURL(b));
+      p.catch(() => this.cache.delete(k));
+      this.cache.set(k, p);
+    }
+    return p;
+  }
+
   olvidar(id: number) {
     for (const k of [`${id}:0`, `${id}:1`]) {
       void this.cache.get(k)?.then((u) => URL.revokeObjectURL(u)).catch(() => undefined);

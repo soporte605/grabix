@@ -29,6 +29,8 @@ export interface Producto {
   id: number; nombre: string; tipo: TipoProducto; categoria: string; unidad: string; costo?: number; precio: number;
   minutos: number; extra: number; activo: boolean; componentes: Componente[]; costoUnitario?: number; margen?: number | null;
   existencia: number; minimo: number; controlaStock: boolean;
+  /** Archivo de la foto principal (cambia con cada foto nueva). */
+  imagen?: string | null;
 }
 export interface Cliente { id: number; nombre: string; telefono: string; email: string; empresa: string; notas: string | null; pedidos?: number; comprado?: number }
 export interface Promocion { id: number; nombre: string; tipo: 'pct' | 'monto'; valor: number; inicio: string | null; fin: string | null; activa: boolean; mensaje: string | null }
