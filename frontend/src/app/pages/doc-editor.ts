@@ -430,7 +430,9 @@ export class DocEditor implements OnInit {
   }
   aplicarPromo() {
     const p = this.promosTodas().find((x) => x.id === this.f.promocionId);
+    // "Ninguna" quita el descuento que había puesto la promoción.
     if (p) { this.f.descuentoTipo = p.tipo; this.f.descuentoValor = p.valor; }
+    else { this.f.descuentoTipo = 'pct'; this.f.descuentoValor = 0; }
     this.tocar();
   }
 

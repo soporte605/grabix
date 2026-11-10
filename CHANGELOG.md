@@ -5,6 +5,7 @@ Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el co
 ## 2026-11-10
 
 - **Precio especial por renglón**: si un artículo del catálogo se deja más barato en una cotización o venta, se guarda su precio normal (`precioLista`, columna nueva en los renglones) y el cliente ve el precio normal tachado y su ahorro en el ticket, el PDF, el enlace del pedido, la vista previa y el texto de WhatsApp: *Precio normal*, *Precio especial*, *Subtotal*, *Descuento*, *Total* y *Te ahorras*. En el editor aparece el aviso del ahorro.
+- Elegir la promoción *Ninguna* deja el descuento en 0.
 
 ## 2026-11-09
 
