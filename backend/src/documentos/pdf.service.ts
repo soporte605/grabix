@@ -1,3 +1,4 @@
+import { ahorroPrecio } from '../common/util';
 import { Injectable } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
 import { Cotizacion, Sucursal, Venta } from '../entities';
@@ -124,7 +125,8 @@ export class PdfService {
     for (const i of d.items) {
       const vals = [String(+Number(i.cantidad).toFixed(4)), i.descripcion, m(i.precio), m(i.cantidad * i.precio)];
       doc.font('Helvetica').fontSize(9.5);
-      const h = doc.heightOfString(i.descripcion, { width: cols[1].w - 12 }) + 16;
+      const especial = Number(i.precioLista) > Number(i.precio);
+      const h = Math.max(doc.heightOfString(i.descripcion, { width: cols[1].w - 12 }), especial ? 22 : 0) + 16;
       if (y + h > H - 200) {
         doc.addPage();
         doc.rect(0, 0, W, 4).fill(ACENTO);
@@ -133,6 +135,14 @@ export class PdfService {
       vals.forEach((x, n) =>
         doc.font('Helvetica').fontSize(9.5).fillColor(TINTA).text(x, cols[n].x + (n === 0 ? 0 : 6), y + 8, { width: cols[n].w - (n === 3 ? 6 : 12), align: cols[n].a }),
       );
+      if (especial) {
+        // Precio normal tachado debajo del precio especial.
+        const txt = m(i.precioLista);
+        doc.font('Helvetica').fontSize(8).fillColor(GRIS);
+        const tw = doc.widthOfString(txt), tx = cols[2].x + cols[2].w - 12 - tw, ty0 = y + 21;
+        doc.text(txt, tx, ty0, { lineBreak: false });
+        doc.moveTo(tx, ty0 + 3.2).lineTo(tx + tw, ty0 + 3.2).strokeColor(GRIS).lineWidth(0.6).stroke();
+      }
       y += h;
       doc.moveTo(L, y).lineTo(R, y).strokeColor(LINEA).lineWidth(0.6).stroke();
     }
@@ -148,6 +158,11 @@ export class PdfService {
       if (nota) { ty += 12; doc.font('Helvetica').fontSize(7.5).fillColor(GRIS).text(nota, TX, ty, { width: TW - 100, height: 10, ellipsis: true }); }
       ty += 17;
     };
+    const ahorro = ahorroPrecio(d.items);
+    if (ahorro) {
+      fila('Precio normal', m(d.subtotal + ahorro));
+      fila('Precio especial', `-${m(ahorro)}`);
+    }
     fila('Subtotal', m(d.subtotal));
     if (d.descuento) fila('Descuento', `-${m(d.descuento)}`, false, promocion ? promocion.nombre.replace(/ \(ejemplo\)$/, '') : '');
     ty += 2;
@@ -156,6 +171,7 @@ export class PdfService {
     doc.font('Helvetica-Bold').fontSize(11).fillColor(TINTA).text('Total', TX, ty + 2, { width: TW - 120 });
     doc.font('Helvetica-Bold').fontSize(15).fillColor(ACENTO).text(m(d.total), TX + TW - 140, ty, { width: 140, align: 'right' });
     ty += 28;
+    if (ahorro && d.descuento) fila('Te ahorras', m(ahorro + d.descuento), true);
     const pct = sucursal?.anticipoPct ?? 0;
     const anticipo = anticipoDe(d.total, pct);
     if (v) {
@@ -268,12 +284,16 @@ export class PdfService {
   whatsapp({ tipo, d, taller, sucursal, cliente }: Datos, urlPdf: string) {
     const m = (n: number) => this.money(n, taller.moneda);
     const nombre = cliente?.nombre || d.clienteNombre;
-    const lineas = d.items.map((i) => `• ${+i.cantidad.toFixed(4)} × ${i.descripcion}: ${m(i.cantidad * i.precio)}`).join('\n');
+    const lineas = d.items
+      .map((i) => `• ${+i.cantidad.toFixed(4)} × ${i.descripcion}: ${m(i.cantidad * i.precio)}${Number(i.precioLista) > Number(i.precio) ? ` (precio especial ${m(i.precio)} c/u, normal ${m(i.precioLista)})` : ''}`)
+      .join('\n');
+    const ahorro = ahorroPrecio(d.items);
     let t = `Hola${nombre ? ' ' + nombre : ''},\n`;
     t += tipo === 'venta' ? `Confirmamos tu pedido *${d.folio}* en ${taller.nombre}:\n` : `Te comparto la cotización *${d.folio}* de ${taller.nombre}:\n`;
     t += lineas + '\n';
     if (d.descuento) t += `Subtotal: ${m(d.subtotal)}\nDescuento: -${m(d.descuento)}\n`;
     t += `*Total: ${m(d.total)}*\n`;
+    if (ahorro) t += `Te ahorras: ${m(ahorro + d.descuento)}\n`;
     if (tipo === 'venta') {
       const v = d as Venta;
       const resta = Math.max(0, v.total - v.pagado);

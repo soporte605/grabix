@@ -7,6 +7,7 @@ import { mkdir, stat, unlink, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { DataSource, Not } from 'typeorm';
 import { BitacoraService } from '../common/bitacora.service';
+import { ahorroPrecio } from '../common/util';
 import { Publico, Roles, Ses, type Sesion, VEN_COSTOS } from '../common/sesion';
 import { DocumentosModule } from '../documentos/documentos.module';
 import { DocumentosService } from '../documentos/documentos.service';
@@ -316,7 +317,8 @@ export class EnlaceService {
       taller: { nombre: sinEjemplo(taller.nombre), moneda: taller.moneda, lada: taller.lada },
       logo: sucursal?.logo ? `/api/publico/pedido/${token}/logo?v=${sucursal.logo.slice(0, 8)}` : null,
       sucursal: sucursal ? { nombre: sucursal.nombre, direccion: sucursal.direccion, telefono: sucursal.telefono || taller.telefono, condiciones: sucursal.condiciones } : null,
-      items: d.items.map((i) => ({ descripcion: i.descripcion, cantidad: i.cantidad, precio: i.precio })),
+      items: d.items.map((i) => ({ descripcion: i.descripcion, cantidad: i.cantidad, precio: i.precio, precioLista: Number(i.precioLista) > Number(i.precio) ? i.precioLista : null })),
+      ahorro: ahorroPrecio(d.items),
       subtotal: d.subtotal, descuento: d.descuento, total: d.total, pagado, saldo,
       anticipo: anticipo && porPagar && pagado < anticipo ? { pct, monto: r2(anticipo - pagado), texto: v ? 'Falta para iniciar' : 'Anticipo para iniciar' } : null,
       transferencia: porPagar ? datosTransferencia(sucursal) : [],

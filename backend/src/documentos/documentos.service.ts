@@ -68,6 +68,8 @@ export class DocumentosService {
         descripcion: i.descripcion || p?.nombre || 'Concepto',
         cantidad: i.cantidad,
         precio: i.precio,
+        // Si se dejó más barato que el catálogo, se guarda el precio normal para mostrar el ahorro.
+        precioLista: p && Number(p.precio) > i.precio + 0.004 ? Number(p.precio) : 0,
         costo: r2(this.costos.costoUnitario(p, cat, t.tarifaMinuto)),
       });
     }) as never;

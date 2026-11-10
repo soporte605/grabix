@@ -2,6 +2,10 @@
 
 Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el commit, en la rama `mejoras-interfaz-seguridad` (PR #1). El contexto del proyecto está en [`docs/PROYECTO.md`](docs/PROYECTO.md).
 
+## 2026-11-10
+
+- **Precio especial por renglón**: si un artículo del catálogo se deja más barato en una cotización o venta, se guarda su precio normal (`precioLista`, columna nueva en los renglones) y el cliente ve el precio normal tachado y su ahorro en el ticket, el PDF, el enlace del pedido, la vista previa y el texto de WhatsApp: *Precio normal*, *Precio especial*, *Subtotal*, *Descuento*, *Total* y *Te ahorras*. En el editor aparece el aviso del ahorro.
+
 ## 2026-11-09
 
 - **Cobro rápido de ventas**: botón *Cobrar* en la lista de Ventas (ventana con total, pagado, saldo, monto prellenado, forma de pago y cambio en efectivo; "Marcar como pagada" o "Registrar abono"). Etiqueta de pago *Pagada* / *Saldo $X* junto al estado del pedido, filtro *Por cobrar* (`GET /ventas?saldo=1`).
