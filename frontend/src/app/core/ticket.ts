@@ -1,5 +1,5 @@
 import { dinero, fecha } from './formato';
-import { Sucursal, Taller, Venta } from './modelos';
+import { ahorroPrecio, Sucursal, Taller, Venta } from './modelos';
 
 export type AnchoTicket = 58 | 80;
 
@@ -23,9 +23,13 @@ export function ticketHtml({ venta: v, taller: t, sucursal: s, ancho, recibido, 
   const dir = s?.direccion || t.direccion;
   const fila = (k: string, val: string, fuerte = false) => `<div class="f${fuerte ? ' b' : ''}"><span>${k}</span><span>${val}</span></div>`;
   const items = v.items
-    .map((i) => `<div class="it"><div>${esc(i.descripcion)}</div><div class="f"><span>${+Number(i.cantidad).toFixed(3)} × ${m(i.precio)}</span><span>${m(i.cantidad * i.precio)}</span></div></div>`)
+    .map((i) => {
+      const lista = Number(i.precioLista) > Number(i.precio) ? `<div class="n">Precio normal <s>${m(Number(i.precioLista))}</s> · especial ${m(i.precio)}</div>` : '';
+      return `<div class="it"><div>${esc(i.descripcion)}</div>${lista}<div class="f"><span>${+Number(i.cantidad).toFixed(3)} × ${m(i.precio)}</span><span>${m(i.cantidad * i.precio)}</span></div></div>`;
+    })
     .join('');
   const saldo = Math.max(0, v.total - v.pagado);
+  const ahorro = ahorroPrecio(v.items);
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Ticket ${esc(v.folio)}</title><style>
 @page { size: ${ancho}mm auto; margin: 0; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -37,6 +41,7 @@ hr { border: 0; border-top: 1px dashed #000; margin: 2mm 0; }
 .f { display: flex; justify-content: space-between; gap: 2mm; } .f span:last-child { text-align: right; white-space: nowrap; }
 .it { margin-bottom: 1.2mm; } .it > div:first-child { word-break: break-word; }
 .p { margin-top: 3mm; font-size: .92em; }
+.n { font-size: .9em; }
 </style></head><body>
 <div class="c"><div class="t">${esc(t.nombre)}</div>
 ${s ? `<div>${esc(s.nombre)}</div>` : ''}${dir ? `<div>${esc(dir)}</div>` : ''}${tel ? `<div>Tel. ${esc(tel)}</div>` : ''}</div>
@@ -47,8 +52,10 @@ ${fila('Fecha', fecha(v.fecha))}
 <hr>
 ${items}
 <hr>
-${v.descuento ? fila('Subtotal', m(v.subtotal)) + fila('Descuento', '-' + m(v.descuento)) : ''}
+${ahorro ? fila('Precio normal', m(v.subtotal + ahorro)) + fila('Precio especial', '-' + m(ahorro)) : ''}
+${v.descuento || ahorro ? fila('Subtotal', m(v.subtotal)) : ''}${v.descuento ? fila('Descuento', '-' + m(v.descuento)) : ''}
 <div class="f b g"><span>TOTAL</span><span>${m(v.total)}</span></div>
+${ahorro || v.descuento ? fila('Te ahorras', m(ahorro + v.descuento), true) : ''}
 ${(v.pagos ?? []).map((p) => fila(`Pago ${esc(p.metodo).toLowerCase()}`, m(p.monto))).join('')}
 ${(v.pagos?.length ?? 0) > 1 ? fila('Total pagado', m(v.pagado)) : ''}
 ${recibido ? fila('Recibido', m(recibido)) : ''}

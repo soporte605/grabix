@@ -3,7 +3,7 @@ import { Api } from '../core/api.service';
 import { AvisoService, mensajeError } from '../core/aviso.service';
 import { ConfirmarService } from '../core/confirmar.service';
 import { DineroPipe, FechaPipe, hoy, sumarDias } from '../core/formato';
-import { Cotizacion, EST_COT, EST_VTA, Venta } from '../core/modelos';
+import { ahorroPrecio, Cotizacion, EST_COT, EST_VTA, Renglon, Venta } from '../core/modelos';
 import { SesionService } from '../core/sesion.service';
 import { ComprobantesPedido } from './comprobantes-pedido';
 import { DatosPago } from './datos-pago';
@@ -49,7 +49,7 @@ import { Icono } from './icono';
               <span class="min-w-0 flex-1 pt-0.5">{{ i.descripcion }}</span>
               @if (conImportes()) {
                 <span class="pt-0.5 text-right"><span class="num block">{{ i.cantidad * i.precio | dinero }}</span>
-                  @if (modo() === 'documento' && i.cantidad !== 1) { <span class="num block text-sm text-tenue">{{ i.precio | dinero }} c/u</span> }</span>
+                  @if (modo() === 'documento' && (i.cantidad !== 1 || especial(i))) { <span class="num block text-sm text-tenue">@if (especial(i)) { <s>{{ i.precioLista | dinero }}</s> }{{ i.precio | dinero }} c/u</span> }</span>
               }
             </div>
           }
@@ -65,6 +65,10 @@ import { Icono } from './icono';
       }
       @if (conImportes()) {
         <div class="totales rounded-xl bg-superficie-2 p-3">
+          @if (ahorro(); as a) {
+            <span class="k">Precio normal</span><span class="text-right">{{ v.subtotal + a | dinero }}</span>
+            <span class="k">Precio especial</span><span class="text-right">−{{ a | dinero }}</span>
+          }
           @if (v.descuento) {
             <span class="k">Subtotal</span><span class="text-right">{{ v.subtotal | dinero }}</span>
             <span class="k">Descuento</span><span class="text-right">−{{ v.descuento | dinero }}</span>
@@ -129,6 +133,8 @@ export class VistaDocumento {
     const v = this.doc() as Venta;
     return this.esVenta() ? v.estado !== 'cancelada' && v.total - v.pagado > 0 : v.total > 0;
   });
+  ahorro = computed(() => ahorroPrecio(this.doc().items));
+  especial(i: Renglon) { return Number(i.precioLista) > Number(i.precio); }
   anticipo = computed(() => {
     const pct = this.sucursal()?.anticipoPct ?? 0, v = this.doc() as Venta;
     if (!pct || !this.porPagar()) return null;

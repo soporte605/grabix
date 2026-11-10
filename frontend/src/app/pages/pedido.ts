@@ -19,7 +19,8 @@ interface PedidoCliente {
   tipo: 'venta' | 'cotizacion'; folio: string; fecha: string; estado: string; etapa: EtapaTaller | null; entrega: string | null; vigenciaDias: number | null;
   cliente: string; taller: { nombre: string; moneda: string; lada: string }; logo: string | null;
   sucursal: { nombre: string; direccion: string; telefono: string; condiciones: string | null } | null;
-  items: { descripcion: string; cantidad: number; precio: number }[];
+  items: { descripcion: string; cantidad: number; precio: number; precioLista?: number | null }[];
+  ahorro?: number;
   subtotal: number; descuento: number; total: number; pagado: number; saldo: number;
   anticipo: { pct: number; monto: number; texto: string } | null;
   transferencia: [string, string][]; indicacionesPago: string | null; puedeSubirComprobante: boolean; pdf: string;
@@ -169,16 +170,23 @@ const COMPROBANTE: Record<string, [string, string]> = { pendiente: ['En revisió
                 <span class="num grid min-w-9 flex-none place-items-center rounded-lg bg-superficie-2 px-1.5 py-1 font-semibold">{{ +i.cantidad.toFixed(4) }}</span>
                 <span class="min-w-0 flex-1 pt-0.5">{{ i.descripcion }}</span>
                 <span class="pt-0.5 text-right"><span class="num block">{{ m(i.cantidad * i.precio) }}</span>
-                  @if (i.cantidad !== 1) { <span class="num block text-sm text-tenue">{{ m(i.precio) }} c/u</span> }</span>
+                  @if (i.cantidad !== 1 || i.precioLista) { <span class="num block text-sm text-tenue">@if (i.precioLista) { <s>{{ m(i.precioLista) }}</s> }{{ m(i.precio) }} c/u</span> }</span>
               </div>
             }
           </div>
           <div class="totales rounded-xl bg-superficie-2 p-3">
-            @if (d.descuento) {
+            @if (d.ahorro) {
+              <span class="k">Precio normal</span><span class="num text-right">{{ m(d.subtotal + d.ahorro) }}</span>
+              <span class="k">Precio especial</span><span class="num text-right">−{{ m(d.ahorro) }}</span>
+            }
+            @if (d.descuento || d.ahorro) {
               <span class="k">Subtotal</span><span class="num text-right">{{ m(d.subtotal) }}</span>
+            }
+            @if (d.descuento) {
               <span class="k">Descuento</span><span class="num text-right">−{{ m(d.descuento) }}</span>
             }
             <span class="k">Total</span><span class="num text-right font-semibold">{{ m(d.total) }}</span>
+            @if (d.ahorro && d.descuento) { <span class="k font-semibold text-ok">Te ahorras</span><span class="num text-right font-semibold text-ok">{{ m(d.ahorro + d.descuento) }}</span> }
             @if (esVenta()) {
               @if (d.saldo > 0) {
                 @if (d.pagado) { <span class="k">Pagado</span><span class="num text-right">{{ m(d.pagado) }}</span> }

@@ -299,6 +299,8 @@ abstract class Renglon {
   @Column({ length: 255 }) descripcion: string;
   @Column(qty) cantidad: number;
   @Column(money) precio: number;
+  /** Precio normal del catálogo cuando este renglón se dejó más barato (0 = sin precio especial). */
+  @Column(money) precioLista: number;
   @Column(qty) costo: number;
 }
 

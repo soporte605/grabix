@@ -82,6 +82,9 @@ interface Form {
               </div>
               <span class="num col-span-2 flex flex-col self-center text-right text-base">{{ (it.cantidad || 0) * (it.precio || 0) | dinero }}
                 @if (s.verCostos() && it.productoId) { <small class="text-xs text-tenue">costo {{ costoDe(it) | dinero }}</small> }</span>
+              @if (normalDe(it); as n) {
+                <p class="col-span-6 text-sm text-ok">Precio especial: el cliente verá el precio normal <s class="num">{{ n | dinero }}</s> y su ahorro de <b class="num">{{ ((n - it.precio) * (it.cantidad || 0)) | dinero }}</b>.</p>
+              }
               @if (!it.productoId && notasIA().get(it); as n) {
                 <div class="col-span-6 flex items-start gap-1.5 text-sm text-tenue"><app-icono nombre="chispa" class="mt-0.5 shrink-0 text-marca" /><p class="flex-1">{{ n.texto }}</p>
                   <button type="button" class="btn sm shrink-0" (click)="limpiarSugerencia(it)">Limpiar</button></div>
@@ -115,6 +118,10 @@ interface Form {
 
       <section class="caja">
         <div class="totales">
+          @if (ahorro(); as a) {
+            <span class="k">Precio normal</span><span>{{ t().sub + a | dinero }}</span>
+            <span class="k">Precio especial</span><span>−{{ a | dinero }}</span>
+          }
           <span class="k">Subtotal</span><span>{{ t().sub | dinero }}</span>
           @if (t().desc) { <span class="k">Descuento</span><span>−{{ t().desc | dinero }}</span> }
           <span class="k grande">Total</span><span class="grande">{{ t().total | dinero }}</span>
@@ -368,6 +375,12 @@ export class DocEditor implements OnInit {
   }
 
   tocar() { this.sucio = true; this.cambios.update((x) => x + 1); }
+  /** Precio de catálogo cuando el renglón se dejó más barato (el cliente ve el ahorro). */
+  normalDe(i: Renglon) {
+    const p = this.productos().find((x) => x.id === i.productoId)?.precio ?? 0;
+    return p > (Number(i.precio) || 0) + 0.004 ? p : 0;
+  }
+  ahorro() { return Math.round(this.f.items.reduce((a, i) => a + (this.normalDe(i) ? (this.normalDe(i) - (Number(i.precio) || 0)) * (Number(i.cantidad) || 0) : 0), 0) * 100) / 100; }
   costoDe(i: Renglon) { return this.productos().find((p) => p.id === i.productoId)?.costoUnitario ?? i.costo ?? 0; }
   agregar() { this.f.items.push({ productoId: null, descripcion: '', cantidad: 1, precio: 0 }); this.tocar(); }
   quitar(i: number) { this.f.items.splice(i, 1); this.tocar(); }
@@ -417,7 +430,9 @@ export class DocEditor implements OnInit {
   }
   aplicarPromo() {
     const p = this.promosTodas().find((x) => x.id === this.f.promocionId);
+    // "Ninguna" quita el descuento que había puesto la promoción.
     if (p) { this.f.descuentoTipo = p.tipo; this.f.descuentoValor = p.valor; }
+    else { this.f.descuentoTipo = 'pct'; this.f.descuentoValor = 0; }
     this.tocar();
   }
 

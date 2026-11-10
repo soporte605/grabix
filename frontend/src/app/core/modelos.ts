@@ -34,7 +34,10 @@ export interface Producto {
 }
 export interface Cliente { id: number; nombre: string; telefono: string; email: string; empresa: string; notas: string | null; pedidos?: number; comprado?: number }
 export interface Promocion { id: number; nombre: string; tipo: 'pct' | 'monto'; valor: number; inicio: string | null; fin: string | null; activa: boolean; mensaje: string | null }
-export interface Renglon { id?: number; productoId: number | null; descripcion: string; cantidad: number; precio: number; costo?: number }
+export interface Renglon { id?: number; productoId: number | null; descripcion: string; cantidad: number; precio: number; costo?: number; precioLista?: number | null }
+/** Lo que el cliente se ahorra por precios especiales en los renglones. */
+export const ahorroPrecio = (items: Pick<Renglon, 'cantidad' | 'precio' | 'precioLista'>[]) =>
+  Math.round(items.reduce((a, i) => a + (Number(i.precioLista) > Number(i.precio) ? Number(i.cantidad) * (Number(i.precioLista) - Number(i.precio)) : 0), 0) * 100) / 100;
 export interface Pago { id: number; fecha: string; monto: number; metodo: string }
 export interface Documento {
   id: number; sucursalId: number; folio: string; fecha: string; clienteId: number | null; cliente?: Cliente | null;
