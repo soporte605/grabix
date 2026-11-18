@@ -96,7 +96,10 @@ export class PdfService {
     meta('Fecha', fmtFecha(d.fecha));
     if (esVenta) meta('Entrega', v!.entrega ? fmtFecha(v!.entrega) : 'Por definir');
     else meta('Válida hasta', vence);
-    meta('Estado', this.estado(tipo, d.estado, saldo));
+    if (esVenta) {
+      meta('Pedido', this.estado(tipo, d.estado));
+      if (d.estado !== 'cancelada') meta('Pago', saldo <= 0 ? 'Pagada' : v!.pagado > 0 ? 'Con saldo' : 'Por pagar');
+    } else meta('Estado', this.estado(tipo, d.estado));
 
     let y = Math.max(finIzq, my) + 18;
     doc.moveTo(L, y).lineTo(R, y).strokeColor(TINTA).lineWidth(1).stroke();
@@ -272,12 +275,11 @@ export class PdfService {
     return fin;
   }
 
-  /** Estado en palabras para el encabezado. */
-  private estado(tipo: 'cotizacion' | 'venta', estado: string, saldo: number) {
+  /** Estado del documento (cotización) o del pedido (venta) en palabras; el pago va en su propia fila. */
+  private estado(tipo: 'cotizacion' | 'venta', estado: string) {
     if (tipo === 'cotizacion') return ({ borrador: 'Borrador', enviada: 'Enviada', aceptada: 'Aceptada', rechazada: 'Rechazada' } as Record<string, string>)[estado] ?? estado;
     if (estado === 'cancelada') return 'Cancelada';
-    const e = ({ pendiente: 'Pendiente', produccion: 'En producción', lista: 'Lista', entregada: 'Entregada' } as Record<string, string>)[estado] ?? estado;
-    return saldo > 0 ? e : `${e} · Pagada`;
+    return ({ pendiente: 'Por iniciar', produccion: 'En producción', lista: 'Listo para entregar', entregada: 'Entregado' } as Record<string, string>)[estado] ?? estado;
   }
 
   /** Texto listo para WhatsApp, con liga al PDF. */
