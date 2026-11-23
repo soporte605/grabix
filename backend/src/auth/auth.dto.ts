@@ -19,8 +19,11 @@ export class RegistroDto {
 }
 
 export class LoginDto {
-  @IsEmail({}, { message: 'Correo no válido' }) email: string;
+  /** Puede faltar si el navegador tiene un usuario recordado (cookie HttpOnly). */
+  @IsOptional() @IsEmail({}, { message: 'Correo no válido' }) email?: string;
   @IsString() password: string;
+  /** Recordar el usuario en este navegador. */
+  @IsOptional() @IsBoolean() recordar?: boolean;
 }
 
 export class TokenDto {

@@ -11,7 +11,8 @@ import { EjemplosService } from '../organizacion/ejemplos.service';
 import { AccesosService } from '../admin/accesos.service';
 import { CorreoService } from '../correo/correo.service';
 import { TokensService } from '../correo/tokens.service';
-import { CambiarContrasenaDto, LoginDto, RegistroDto, RestablecerDto } from './auth.dto';
+import { CambiarContrasenaDto, RegistroDto, RestablecerDto } from './auth.dto';
+import { RecordarService } from './recordar.service';
 
 export const DIAS_PRUEBA = DIAS_PRUEBA_PUBLICO;
 const NOTAS = 'Precios sujetos a cambio sin previo aviso. Se requiere 50% de anticipo para iniciar producción.';
@@ -28,6 +29,7 @@ export class AuthService {
     private correo: CorreoService,
     private tokens: TokensService,
     private accesos: AccesosService,
+    private recordar: RecordarService,
   ) {}
 
   async registro(dto: RegistroDto) {
@@ -60,7 +62,7 @@ export class AuthService {
     return this.respuesta(usuario);
   }
 
-  async login(dto: LoginDto, ip = '') {
+  async login(dto: { email: string; password: string }, ip = '') {
     const email = dto.email.trim().toLowerCase();
     const u = await this.usuarios.createQueryBuilder('u').addSelect('u.passwordHash').where('u.email = :e', { e: email }).getOne();
     const acceso = (motivo: string, exito = false) =>
@@ -154,7 +156,11 @@ export class AuthService {
       await em.update(Usuario, { id: usuario.id }, { passwordHash, emailVerificado: true, claveCambiadaEn: new Date() });
       await this.tokens.marcarUsado(token, em);
     });
-    if (token.tipo === 'recuperacion') await this.correo.contrasenaCambiada(usuario.email, usuario.nombre);
+    if (token.tipo === 'recuperacion') {
+      // Si alguien más había dejado este usuario recordado en otro equipo, deja de saludarlo.
+      await this.recordar.olvidarTodos(usuario.id);
+      await this.correo.contrasenaCambiada(usuario.email, usuario.nombre);
+    }
     return this.respuesta(usuario);
   }
 

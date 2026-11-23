@@ -164,6 +164,22 @@ export class TokenCuenta {
   @CreateDateColumn() creadoEn: Date;
 }
 
+/**
+ * Equipo donde la persona pidió "Recordar mi usuario". El navegador solo guarda un token al azar en una
+ * cookie HttpOnly (JavaScript no la puede leer); aquí se guarda su hash y a quién pertenece.
+ */
+@Entity('dispositivos_recordados')
+export class DispositivoRecordado {
+  @PrimaryGeneratedColumn() id: number;
+  @Index() @Column() usuarioId: number;
+  @Index({ unique: true }) @Column({ length: 64 }) hash: string;
+  /** Navegador, para mostrarlo algún día en "Mis equipos". */
+  @Column({ length: 200, default: '' }) agente: string;
+  @Column({ type: 'datetime' }) expira: Date;
+  @Column({ type: 'datetime', nullable: true }) usadoEn: Date | null;
+  @CreateDateColumn() creadoEn: Date;
+}
+
 /** Registro de cada correo que sale (o falla) para poder revisar entregas. */
 @Entity('correos_log')
 export class CorreoLog {
@@ -700,6 +716,7 @@ export const ENTIDADES = [
   Usuario,
   SuperAdmin,
   TokenCuenta,
+  DispositivoRecordado,
   CorreoLog,
   Producto,
   ProductoComponente,

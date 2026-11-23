@@ -32,8 +32,28 @@ export class SesionService {
   readonly multiSucursal = computed(() => this.perfil()?.usuario.sucursalId == null && (this.perfil()?.sucursales.length ?? 0) > 1);
   readonly nombreSucursal = computed(() => this.perfil()?.sucursales.find((s) => s.id === this.sucursal())?.nombre ?? 'Todas las sucursales');
 
-  async login(email: string, password: string) {
-    this.aplicar(await firstValueFrom(this.http.post<Perfil & { token: string }>('/api/auth/login', { email, password })));
+  /** Sin `email`, el servidor usa el usuario recordado en la cookie de este navegador. */
+  async login(email: string | null, password: string, recordar = false) {
+    const cuerpo = email ? { email, password, recordar } : { password, recordar };
+    this.aplicar(await firstValueFrom(this.http.post<Perfil & { token: string }>('/api/auth/login', cuerpo)));
+  }
+
+  /**
+   * Usuario recordado en este navegador. El dato vive en una cookie HttpOnly que JavaScript no puede leer;
+   * el servidor la traduce a primer nombre y correo con asteriscos.
+   */
+  async recordado(): Promise<{ nombre: string; email: string } | null> {
+    try {
+      const r = await firstValueFrom(this.http.get<{ recordado: boolean; nombre?: string; email?: string }>('/api/auth/recordado'));
+      return r.recordado && r.nombre ? { nombre: r.nombre, email: r.email ?? '' } : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** "No soy yo": borra el usuario recordado de este navegador. */
+  olvidarRecordado() {
+    return firstValueFrom(this.http.post('/api/auth/recordado/olvidar', {})).catch(() => undefined);
   }
 
   async registro(datos: { taller: string; nombre: string; email: string; password: string; telefono?: string; conEjemplos?: boolean }) {
