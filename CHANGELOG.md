@@ -2,6 +2,10 @@
 
 Cambios de Grabix, del más reciente al más antiguo. Entre paréntesis va el commit, en la rama `mejoras-interfaz-seguridad` (PR #1). El contexto del proyecto está en [`docs/PROYECTO.md`](docs/PROYECTO.md).
 
+## 2026-11-23
+
+- **Recordar mi usuario** en *Entrar* (como en las apps de banco): casilla "Recordar mi usuario en este equipo". La próxima vez la pantalla saluda "Hola, Jose · Ingresa tu contraseña para continuar" con el correo con asteriscos (`jo••••@gmail.com`) y el botón "No soy Jose, usar otra cuenta". El navegador solo guarda un token al azar en la cookie `grabix_recordar` (HttpOnly, Secure, SameSite=Strict, ruta `/api/auth`, 90 días); nada en localStorage. La tabla nueva `dispositivos_recordados` guarda solo su hash SHA-256 (la crea `DB_SYNC`). El token cambia en cada entrada, se borra con "No soy yo" o al entrar sin la casilla, y al restablecer la contraseña se olvidan todos los equipos. La contraseña se pide siempre. Endpoints `GET /auth/recordado`, `POST /auth/recordado/olvidar`; `POST /auth/login` acepta `recordar` y puede venir sin `email` si hay cookie. `COOKIE_SEGURA=false` quita `Secure` (solo para probar por http fuera de localhost).
+
 ## 2026-11-10
 
 - **Precio especial por renglón**: si un artículo del catálogo se deja más barato en una cotización o venta, se guarda su precio normal (`precioLista`, columna nueva en los renglones) y el cliente ve el precio normal tachado y su ahorro en el ticket, el PDF, el enlace del pedido, la vista previa y el texto de WhatsApp: *Precio normal*, *Precio especial*, *Subtotal*, *Descuento*, *Total* y *Te ahorras*. En el editor aparece el aviso del ahorro.
